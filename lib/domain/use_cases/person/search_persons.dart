@@ -1,0 +1,20 @@
+import 'package:dartz/dartz.dart';
+import 'package:nm_gen/core/errors/failures.dart';
+import 'package:nm_gen/domain/entities/person.dart';
+import 'package:nm_gen/domain/repositories/person_repository.dart';
+
+/// Use Case: Поиск людей по запросу
+class SearchPersonsUseCase {
+  final PersonRepository repository;
+
+  SearchPersonsUseCase(this.repository);
+
+  Future<Either<Failure, List<Person>>> execute(String query) async {
+    try {
+      final persons = await repository.searchPersons(query);
+      return Right(persons);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+}

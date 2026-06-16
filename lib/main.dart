@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nm_gen/di/injector.dart';
+import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
 import 'package:nm_gen/presentation/screens/home_screen.dart';
+import 'package:nm_gen/presentation/blocs/person/person_event.dart';
 
 void main() {
   // Настраиваем DI контейнер
   configureDependencies();
+
+  // Регистрируем Use Cases и BLoC
+  registerUseCasesAndBlocs();
 
   runApp(const MyApp());
 }
@@ -20,7 +26,10 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
         useMaterial3: true,
       ),
-      home: const HomeScreen(),
+      home: BlocProvider(
+        create: (context) => getIt<PersonBloc>()..add(LoadPersonsEvent()),
+        child: const HomeScreen(),
+      ),
     );
   }
 }

@@ -1,67 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
-import 'package:nm_gen/domain/entities/person.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nm_gen/core/enums/gender.dart';
-import 'package:nm_gen/domain/repositories/person_repository.dart';
+import 'package:nm_gen/domain/entities/person.dart';
+import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
+import 'package:nm_gen/presentation/blocs/person/person_event.dart';
+import 'package:nm_gen/presentation/blocs/person/person_state.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
-
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  List<Person> _persons = [];
-  bool _isLoading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPersons();
-  }
-
-  Future<void> _loadPersons() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final repository = GetIt.instance<PersonRepository>();
-      _persons = await repository.getAllPersons();
-    } catch (e) {
-      // Обработка ошибки
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _addTestPerson() async {
-    final repository = GetIt.instance<PersonRepository>();
-
-    final person = Person.create(
-      firstName: 'Иван',
-      lastName: 'Петров',
-      middleName: 'Иванович',
-      gender: Gender.male,
-      birthDate: DateTime(1980, 1, 15),
-      occupation: 'Инженер',
-    );
-
-    await repository.addPerson(person);
-    await _loadPersons();
-  }
-
-  Future<void> _deletePerson(String id) async {
-    final repository = GetIt.instance<PersonRepository>();
-    await repository.deletePerson(id);
-    await _loadPersons();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,84 +16,408 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('Генеалогическое древо'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadPersons),
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () => _showSearchDialog(context),
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              context.read<PersonBloc>().add(const LoadPersonsEvent());
+            },
+          ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _persons.isEmpty
-          ? Center(
+      body: BlocConsumer<PersonBloc, PersonState>(
+        listener: (context, state) {
+          if (state is PersonOperationSuccess) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.green,
+              ),
+            );
+          } else if (state is PersonError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        },
+        builder: (context, state) {
+          if (state is PersonLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (state is PersonError) {
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
-                    Icons.family_restroom,
-                    size: 64,
-                    color: Colors.grey,
-                  ),
+                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Нет людей в базе данных',
-                    style: TextStyle(fontSize: 18, color: Colors.grey),
-                  ),
+                  Text(state.message, textAlign: TextAlign.center),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: _addTestPerson,
-                    child: const Text('Добавить тестового человека'),
+                    onPressed: () {
+                      context.read<PersonBloc>().add(const LoadPersonsEvent());
+                    },
+                    child: const Text('Повторить'),
                   ),
                 ],
               ),
-            )
-          : ListView.builder(
-              itemCount: _persons.length,
-              itemBuilder: (context, index) {
-                final person = _persons[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: person.gender == Gender.male
-                          ? Colors.blue.shade100
-                          : person.gender == Gender.female
-                          ? Colors.pink.shade100
-                          : Colors.grey.shade200,
-                      child: Icon(
-                        person.gender == Gender.male
-                            ? Icons.male
-                            : person.gender == Gender.female
-                            ? Icons.female
-                            : Icons.person,
-                        color: person.gender == Gender.male
-                            ? Colors.blue
-                            : person.gender == Gender.female
-                            ? Colors.pink
-                            : Colors.grey,
+            );
+          }
+
+          if (state is PersonsLoaded) {
+            if (state.persons.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.family_restroom,
+                      size: 64,
+                      color: Colors.grey,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      state.isSearching
+                          ? 'Ничего не найдено по запросу "${state.searchQuery}"'
+                          : 'Нет людей в базе данных',
+                      style: const TextStyle(fontSize: 18, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 16),
+                    if (state.isSearching)
+                      ElevatedButton(
+                        onPressed: () {
+                          context.read<PersonBloc>().add(ClearSearchEvent());
+                        },
+                        child: const Text('Очистить поиск'),
+                      )
+                    else
+                      ElevatedButton(
+                        onPressed: () => _showAddPersonDialog(context),
+                        child: const Text('Добавить человека'),
                       ),
+                  ],
+                ),
+              );
+            }
+
+            return Column(
+              children: [
+                if (state.isSearching)
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Результаты поиска: "${state.searchQuery}" (${state.persons.length})',
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            context.read<PersonBloc>().add(ClearSearchEvent());
+                          },
+                          child: const Text('Очистить'),
+                        ),
+                      ],
                     ),
-                    title: Text(person.displayName),
-                    subtitle: Text(
-                      '${person.formattedAge} · ${person.occupation ?? 'Без профессии'}',
-                    ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _deletePerson(person.id),
-                    ),
-                    onTap: () {
-                      // TODO: Перейти на экран деталей
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Выбран: ${person.fullName}')),
+                  ),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: state.persons.length,
+                    itemBuilder: (context, index) {
+                      final person = state.persons[index];
+                      return Card(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: person.gender == Gender.male
+                                ? Colors.blue.shade100
+                                : person.gender == Gender.female
+                                ? Colors.pink.shade100
+                                : Colors.grey.shade200,
+                            child: Icon(
+                              person.gender == Gender.male
+                                  ? Icons.male
+                                  : person.gender == Gender.female
+                                  ? Icons.female
+                                  : Icons.person,
+                              color: person.gender == Gender.male
+                                  ? Colors.blue
+                                  : person.gender == Gender.female
+                                  ? Colors.pink
+                                  : Colors.grey,
+                            ),
+                          ),
+                          title: Text(person.displayName),
+                          subtitle: Text(
+                            '${person.formattedAge} · ${person.occupation ?? 'Без профессии'}',
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.edit,
+                                  color: Colors.blue,
+                                ),
+                                onPressed: () =>
+                                    _showEditPersonDialog(context, person),
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete,
+                                  color: Colors.red,
+                                ),
+                                onPressed: () => _confirmDelete(
+                                  context,
+                                  person.id,
+                                  person.displayName,
+                                ),
+                              ),
+                            ],
+                          ),
+                          onTap: () {
+                            // TODO: Перейти на экран деталей
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Выбран: ${person.fullName}'),
+                              ),
+                            );
+                          },
+                        ),
                       );
                     },
                   ),
+                ),
+              ],
+            );
+          }
+
+          return const SizedBox.shrink();
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAddPersonDialog(context),
+        child: const Icon(Icons.person_add),
+      ),
+    );
+  }
+
+  void _showSearchDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Поиск людей'),
+        content: TextField(
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: 'Введите имя или фамилию...',
+            prefixIcon: Icon(Icons.search),
+          ),
+          onSubmitted: (query) {
+            if (query.isNotEmpty) {
+              // Используем context из диалога, но получаем BLoC из родительского контекста
+              final bloc = context.read<PersonBloc>();
+              bloc.add(SearchPersonsEvent(query));
+              Navigator.pop(dialogContext);
+            }
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Отмена'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddPersonDialog(BuildContext context) {
+    // Сохраняем ссылку на BLoC перед созданием диалога
+    final personBloc = context.read<PersonBloc>();
+
+    final nameController = TextEditingController();
+    final surnameController = TextEditingController();
+    Gender selectedGender = Gender.male;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Добавить человека'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'Имя',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: surnameController,
+              decoration: const InputDecoration(
+                labelText: 'Фамилия',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<Gender>(
+              value: selectedGender,
+              decoration: const InputDecoration(
+                labelText: 'Пол',
+                border: OutlineInputBorder(),
+              ),
+              items: Gender.values.map((gender) {
+                return DropdownMenuItem(
+                  value: gender,
+                  child: Text(gender.displayName),
                 );
+              }).toList(),
+              onChanged: (value) {
+                if (value != null) selectedGender = value;
               },
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addTestPerson,
-        child: const Icon(Icons.person_add),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Отмена'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (nameController.text.isNotEmpty &&
+                  surnameController.text.isNotEmpty) {
+                final person = Person.create(
+                  firstName: nameController.text,
+                  lastName: surnameController.text,
+                  gender: selectedGender,
+                );
+                // Используем сохраненный BLoC
+                personBloc.add(AddPersonEvent(person));
+                Navigator.pop(dialogContext);
+              }
+            },
+            child: const Text('Добавить'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditPersonDialog(BuildContext context, Person person) {
+    // Сохраняем ссылку на BLoC перед созданием диалога
+    final personBloc = context.read<PersonBloc>();
+
+    final nameController = TextEditingController(text: person.firstName);
+    final surnameController = TextEditingController(text: person.lastName);
+    Gender selectedGender = person.gender;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Редактировать человека'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'Имя',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: surnameController,
+              decoration: const InputDecoration(
+                labelText: 'Фамилия',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<Gender>(
+              value: selectedGender,
+              decoration: const InputDecoration(
+                labelText: 'Пол',
+                border: OutlineInputBorder(),
+              ),
+              items: Gender.values.map((gender) {
+                return DropdownMenuItem(
+                  value: gender,
+                  child: Text(gender.displayName),
+                );
+              }).toList(),
+              onChanged: (value) {
+                if (value != null) selectedGender = value;
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Отмена'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (nameController.text.isNotEmpty &&
+                  surnameController.text.isNotEmpty) {
+                final updatedPerson = person.copyWith(
+                  firstName: nameController.text,
+                  lastName: surnameController.text,
+                  gender: selectedGender,
+                );
+                // Используем сохраненный BLoC
+                personBloc.add(UpdatePersonEvent(updatedPerson));
+                Navigator.pop(dialogContext);
+              }
+            },
+            child: const Text('Сохранить'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDelete(BuildContext context, String personId, String name) {
+    // Сохраняем ссылку на BLoC перед созданием диалога
+    final personBloc = context.read<PersonBloc>();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Удаление человека'),
+        content: Text('Вы уверены, что хотите удалить "$name"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Отмена'),
+          ),
+          TextButton(
+            onPressed: () {
+              // Используем сохраненный BLoC
+              personBloc.add(DeletePersonEvent(personId));
+              Navigator.pop(dialogContext);
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Удалить'),
+          ),
+        ],
       ),
     );
   }
