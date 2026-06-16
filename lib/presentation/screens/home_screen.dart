@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nm_gen/core/enums/gender.dart';
 import 'package:nm_gen/domain/entities/person.dart';
-import 'package:nm_gen/presentation/blocs/family/family_bloc.dart';
+import 'package:nm_gen/presentation/blocs/family/family_bloc.dart'; // <-- Добавляем
 import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
 import 'package:nm_gen/presentation/blocs/person/person_event.dart';
 import 'package:nm_gen/presentation/blocs/person/person_state.dart';
@@ -317,14 +317,8 @@ class HomeScreen extends StatelessWidget {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => MultiBlocProvider(
-          providers: [
-            BlocProvider.value(
-              value: context
-                  .read<PersonBloc>(), // Передаем существующий PersonBloc
-            ),
-            BlocProvider(create: (context) => getIt<FamilyBloc>()),
-          ],
+        builder: (context) => BlocProvider(
+          create: (context) => getIt<FamilyBloc>(),
           child: FamilyScreen(personId: personId, personName: personName),
         ),
       ),
