@@ -1,79 +1,59 @@
 import 'package:injectable/injectable.dart';
+import 'package:nm_gen/data/datasources/local/person_local_datasource.dart';
+import 'package:nm_gen/data/datasources/local/database/person_model.dart';
 import 'package:nm_gen/domain/entities/person.dart';
 import 'package:nm_gen/domain/repositories/person_repository.dart';
 
-/// Реализация репозитория в памяти (для разработки)
-@Injectable(as: PersonRepository) // <-- Добавляем аннотацию
+@Injectable(as: PersonRepository)
 class PersonRepositoryImpl implements PersonRepository {
-  final Map<String, Person> _storage = {};
+  final PersonLocalDataSource localDataSource;
+
+  PersonRepositoryImpl(this.localDataSource);
 
   @override
   Future<Person> addPerson(Person person) async {
-    await Future.delayed(const Duration(milliseconds: 100));
-
-    if (_storage.containsKey(person.id)) {
-      throw Exception('Person with id ${person.id} already exists');
-    }
-
-    _storage[person.id] = person;
-    return person;
+    final model = PersonModel.fromDomain(person);
+    final savedModel = await localDataSource.insertPerson(model);
+    return savedModel.toDomain();
   }
 
   @override
   Future<Person?> getPerson(String id) async {
-    await Future.delayed(const Duration(milliseconds: 50));
-    return _storage[id];
+    final model = await localDataSource.getPerson(id);
+    return model?.toDomain();
   }
 
   @override
   Future<List<Person>> getAllPersons() async {
-    await Future.delayed(const Duration(milliseconds: 150));
-    return _storage.values.toList();
+    final models = await localDataSource.getAllPersons();
+    return models.map((model) => model.toDomain()).toList();
   }
 
   @override
   Future<Person> updatePerson(Person person) async {
-    await Future.delayed(const Duration(milliseconds: 100));
-
-    if (!_storage.containsKey(person.id)) {
-      throw Exception('Person with id ${person.id} not found');
-    }
-
-    final updatedPerson = person.copyWith(updatedAt: DateTime.now());
-    _storage[person.id] = updatedPerson;
-    return updatedPerson;
+    final model = PersonModel.fromDomain(person);
+    final updatedModel = await localDataSource.updatePerson(model);
+    return updatedModel.toDomain();
   }
 
   @override
   Future<void> deletePerson(String id) async {
-    await Future.delayed(const Duration(milliseconds: 100));
-    _storage.remove(id);
+    await localDataSource.deletePerson(id);
   }
 
   @override
   Future<List<Person>> searchPersons(String query) async {
-    await Future.delayed(const Duration(milliseconds: 100));
-
     if (query.isEmpty) {
-      return _storage.values.toList();
+      return getAllPersons();
     }
-
-    final lowerQuery = query.toLowerCase();
-    return _storage.values.where((person) {
-      return person.firstName.toLowerCase().contains(lowerQuery) ||
-          person.lastName.toLowerCase().contains(lowerQuery) ||
-          person.fullName.toLowerCase().contains(lowerQuery);
-    }).toList();
+    final models = await localDataSource.searchPersons(query);
+    return models.map((model) => model.toDomain()).toList();
   }
 
   @override
   Future<List<Person>> getPersonsByIds(List<String> ids) async {
-    await Future.delayed(const Duration(milliseconds: 100));
-
-    return ids.map((id) => _storage[id]).whereType<Person>().toList();
-  }
-
-  void clear() {
-    _storage.clear();
+    if (ids.isEmpty) return [];
+    final models = await localDataSource.getPersonsByIds(ids);
+    return models.map((model) => model.toDomain()).toList();
   }
 }

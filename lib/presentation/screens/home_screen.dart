@@ -2,9 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nm_gen/core/enums/gender.dart';
 import 'package:nm_gen/domain/entities/person.dart';
+import 'package:nm_gen/presentation/blocs/family/family_bloc.dart';
 import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
 import 'package:nm_gen/presentation/blocs/person/person_event.dart';
 import 'package:nm_gen/presentation/blocs/person/person_state.dart';
+import 'package:nm_gen/presentation/blocs/tree/tree_bloc.dart';
+import 'package:nm_gen/presentation/screens/family_screen.dart';
+import 'package:nm_gen/presentation/screens/tree_screen.dart';
+import 'package:nm_gen/di/injector.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -17,14 +22,21 @@ class HomeScreen extends StatelessWidget {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           IconButton(
+            icon: const Icon(Icons.family_restroom),
+            onPressed: () => _navigateToTree(context),
+            tooltip: 'Просмотр древа',
+          ),
+          IconButton(
             icon: const Icon(Icons.search),
             onPressed: () => _showSearchDialog(context),
+            tooltip: 'Поиск',
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
               context.read<PersonBloc>().add(const LoadPersonsEvent());
             },
+            tooltip: 'Обновить',
           ),
         ],
       ),
@@ -98,9 +110,19 @@ class HomeScreen extends StatelessWidget {
                         child: const Text('Очистить поиск'),
                       )
                     else
-                      ElevatedButton(
-                        onPressed: () => _showAddPersonDialog(context),
-                        child: const Text('Добавить человека'),
+                      Column(
+                        children: [
+                          ElevatedButton(
+                            onPressed: () => _showAddPersonDialog(context),
+                            child: const Text('Добавить человека'),
+                          ),
+                          const SizedBox(height: 8),
+                          OutlinedButton.icon(
+                            onPressed: () => _navigateToTree(context),
+                            icon: const Icon(Icons.family_restroom),
+                            label: const Text('Перейти к древу'),
+                          ),
+                        ],
                       ),
                   ],
                 ),
@@ -166,6 +188,33 @@ class HomeScreen extends StatelessWidget {
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              // Кнопка "Семья"
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.family_restroom,
+                                  color: Colors.orange,
+                                ),
+                                onPressed: () {
+                                  _navigateToFamily(
+                                    context,
+                                    person.id,
+                                    person.displayName,
+                                  );
+                                },
+                                tooltip: 'Управление семьей',
+                              ),
+                              // Кнопка "Древо"
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.account_tree,
+                                  color: Colors.green,
+                                ),
+                                onPressed: () {
+                                  _navigateToTreeWithPerson(context, person.id);
+                                },
+                                tooltip: 'Показать в древе',
+                              ),
+                              // Кнопка "Редактировать"
                               IconButton(
                                 icon: const Icon(
                                   Icons.edit,
@@ -173,7 +222,9 @@ class HomeScreen extends StatelessWidget {
                                 ),
                                 onPressed: () =>
                                     _showEditPersonDialog(context, person),
+                                tooltip: 'Редактировать',
                               ),
+                              // Кнопка "Удалить"
                               IconButton(
                                 icon: const Icon(
                                   Icons.delete,
@@ -184,16 +235,12 @@ class HomeScreen extends StatelessWidget {
                                   person.id,
                                   person.displayName,
                                 ),
+                                tooltip: 'Удалить',
                               ),
                             ],
                           ),
                           onTap: () {
-                            // TODO: Перейти на экран деталей
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Выбран: ${person.fullName}'),
-                              ),
-                            );
+                            _navigateToTreeWithPerson(context, person.id);
                           },
                         ),
                       );
@@ -207,12 +254,86 @@ class HomeScreen extends StatelessWidget {
           return const SizedBox.shrink();
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddPersonDialog(context),
-        child: const Icon(Icons.person_add),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Кнопка "Древо"
+          FloatingActionButton(
+            heroTag: 'tree',
+            onPressed: () => _navigateToTree(context),
+            backgroundColor: Colors.green,
+            child: const Icon(Icons.account_tree),
+          ),
+          const SizedBox(height: 16),
+          // Кнопка "Добавить"
+          FloatingActionButton(
+            heroTag: 'add',
+            onPressed: () => _showAddPersonDialog(context),
+            child: const Icon(Icons.person_add),
+          ),
+        ],
       ),
     );
   }
+
+  // =========================================================================
+  // НАВИГАЦИЯ
+  // =========================================================================
+
+  /// Навигация к древу с корневым человеком (первый в списке)
+  void _navigateToTree(BuildContext context) {
+    final state = context.read<PersonBloc>().state;
+    if (state is PersonsLoaded && state.persons.isNotEmpty) {
+      _navigateToTreeWithPerson(context, state.persons.first.id);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Добавьте хотя бы одного человека для просмотра древа'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
+  }
+
+  /// Навигация к древу с конкретным человеком
+  void _navigateToTreeWithPerson(BuildContext context, String personId) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BlocProvider(
+          create: (context) => getIt<TreeBloc>(),
+          child: TreeScreen(rootPersonId: personId),
+        ),
+      ),
+    );
+  }
+
+  /// Навигация к экрану семьи
+  void _navigateToFamily(
+    BuildContext context,
+    String personId,
+    String personName,
+  ) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MultiBlocProvider(
+          providers: [
+            BlocProvider.value(
+              value: context
+                  .read<PersonBloc>(), // Передаем существующий PersonBloc
+            ),
+            BlocProvider(create: (context) => getIt<FamilyBloc>()),
+          ],
+          child: FamilyScreen(personId: personId, personName: personName),
+        ),
+      ),
+    );
+  }
+
+  // =========================================================================
+  // ДИАЛОГИ
+  // =========================================================================
 
   void _showSearchDialog(BuildContext context) {
     showDialog(
@@ -227,7 +348,6 @@ class HomeScreen extends StatelessWidget {
           ),
           onSubmitted: (query) {
             if (query.isNotEmpty) {
-              // Используем context из диалога, но получаем BLoC из родительского контекста
               final bloc = context.read<PersonBloc>();
               bloc.add(SearchPersonsEvent(query));
               Navigator.pop(dialogContext);
@@ -245,7 +365,6 @@ class HomeScreen extends StatelessWidget {
   }
 
   void _showAddPersonDialog(BuildContext context) {
-    // Сохраняем ссылку на BLoC перед созданием диалога
     final personBloc = context.read<PersonBloc>();
 
     final nameController = TextEditingController();
@@ -307,7 +426,6 @@ class HomeScreen extends StatelessWidget {
                   lastName: surnameController.text,
                   gender: selectedGender,
                 );
-                // Используем сохраненный BLoC
                 personBloc.add(AddPersonEvent(person));
                 Navigator.pop(dialogContext);
               }
@@ -320,7 +438,6 @@ class HomeScreen extends StatelessWidget {
   }
 
   void _showEditPersonDialog(BuildContext context, Person person) {
-    // Сохраняем ссылку на BLoC перед созданием диалога
     final personBloc = context.read<PersonBloc>();
 
     final nameController = TextEditingController(text: person.firstName);
@@ -382,7 +499,6 @@ class HomeScreen extends StatelessWidget {
                   lastName: surnameController.text,
                   gender: selectedGender,
                 );
-                // Используем сохраненный BLoC
                 personBloc.add(UpdatePersonEvent(updatedPerson));
                 Navigator.pop(dialogContext);
               }
@@ -395,7 +511,6 @@ class HomeScreen extends StatelessWidget {
   }
 
   void _confirmDelete(BuildContext context, String personId, String name) {
-    // Сохраняем ссылку на BLoC перед созданием диалога
     final personBloc = context.read<PersonBloc>();
 
     showDialog(
@@ -410,7 +525,6 @@ class HomeScreen extends StatelessWidget {
           ),
           TextButton(
             onPressed: () {
-              // Используем сохраненный BLoC
               personBloc.add(DeletePersonEvent(personId));
               Navigator.pop(dialogContext);
             },

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nm_gen/di/injector.dart';
 import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
-import 'package:nm_gen/presentation/screens/home_screen.dart';
 import 'package:nm_gen/presentation/blocs/person/person_event.dart';
+import 'package:nm_gen/presentation/screens/home_screen.dart';
 
 void main() {
   // Настраиваем DI контейнер
@@ -27,7 +27,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: BlocProvider(
-        create: (context) => getIt<PersonBloc>()..add(LoadPersonsEvent()),
+        create: (context) => getIt<PersonBloc>()..add(const LoadPersonsEvent()),
         child: const HomeScreen(),
       ),
     );

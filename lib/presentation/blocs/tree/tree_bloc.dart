@@ -3,16 +3,15 @@ import 'package:nm_gen/domain/use_cases/tree/get_family_tree.dart';
 import 'package:nm_gen/presentation/blocs/tree/tree_event.dart';
 import 'package:nm_gen/presentation/blocs/tree/tree_state.dart';
 
-/// BLoC для управления генеалогическим древом
 class TreeBloc extends Bloc<TreeEvent, TreeState> {
   final GetFamilyTreeUseCase getFamilyTreeUseCase;
 
   TreeBloc({required this.getFamilyTreeUseCase}) : super(TreeInitial()) {
     on<LoadTreeEvent>(_onLoadTree);
     on<ChangeRootPersonEvent>(_onChangeRootPerson);
+    on<SelectPersonEvent>(_onSelectPerson);
   }
 
-  /// Обработчик: Загрузка древа
   Future<void> _onLoadTree(LoadTreeEvent event, Emitter<TreeState> emit) async {
     emit(TreeLoading());
 
@@ -20,13 +19,12 @@ class TreeBloc extends Bloc<TreeEvent, TreeState> {
 
     result.fold(
       (failure) => emit(TreeError(failure.message)),
-      (familyTree) => emit(
-        TreeLoaded(familyTree: familyTree, rootPersonId: event.rootPersonId),
+      (rootNode) => emit(
+        TreeLoaded(rootNode: rootNode, rootPersonId: event.rootPersonId),
       ),
     );
   }
 
-  /// Обработчик: Смена корневого человека
   Future<void> _onChangeRootPerson(
     ChangeRootPersonEvent event,
     Emitter<TreeState> emit,
@@ -37,9 +35,21 @@ class TreeBloc extends Bloc<TreeEvent, TreeState> {
 
     result.fold(
       (failure) => emit(TreeError(failure.message)),
-      (familyTree) => emit(
-        TreeLoaded(familyTree: familyTree, rootPersonId: event.personId),
-      ),
+      (rootNode) =>
+          emit(TreeLoaded(rootNode: rootNode, rootPersonId: event.personId)),
     );
+  }
+
+  void _onSelectPerson(SelectPersonEvent event, Emitter<TreeState> emit) {
+    final currentState = state;
+    if (currentState is TreeLoaded) {
+      emit(
+        TreeLoaded(
+          rootNode: currentState.rootNode,
+          rootPersonId: currentState.rootPersonId,
+          selectedPersonId: event.personId,
+        ),
+      );
+    }
   }
 }

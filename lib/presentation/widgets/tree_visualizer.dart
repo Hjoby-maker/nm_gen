@@ -1,0 +1,144 @@
+import 'package:flutter/material.dart';
+import 'package:nm_gen/domain/entities/tree_node.dart';
+import 'package:nm_gen/presentation/widgets/tree_node_widget.dart';
+import 'package:nm_gen/domain/entities/person.dart';
+
+/// Виджет для визуализации генеалогического древа
+class TreeVisualizer extends StatelessWidget {
+  final TreeNode rootNode;
+  final Function(String) onPersonTap;
+  final String? selectedPersonId;
+
+  const TreeVisualizer({
+    Key? key,
+    required this.rootNode,
+    required this.onPersonTap,
+    this.selectedPersonId,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Center(child: _buildNode(context, rootNode, true)),
+    );
+  }
+
+  Widget _buildNode(BuildContext context, TreeNode node, bool isRoot) {
+    final isSelected = selectedPersonId == node.person.id;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Узел
+        TreeNodeWidget(
+          node: node,
+          isRoot: isRoot,
+          isSelected: isSelected,
+          onTap: () => onPersonTap(node.person.id),
+        ),
+        // Супруги (если есть)
+        if (node.spouses.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.favorite, color: Colors.red, size: 16),
+              const SizedBox(width: 8),
+              Text(
+                'Супруг(и)',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8,
+            children: node.spouses.map((spouse) {
+              return _buildSpouseNode(context, spouse);
+            }).toList(),
+          ),
+        ],
+        // Дети
+        if (node.children.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          _buildVerticalLine(),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(
+              'Дети (${node.children.length})',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            ),
+          ),
+          const SizedBox(height: 8),
+          _buildChildrenRow(context, node.children),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildSpouseNode(BuildContext context, TreeNode spouse) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: TreeNodeWidget(
+        node: spouse,
+        onTap: () => onPersonTap(spouse.person.id),
+        isSelected: selectedPersonId == spouse.person.id,
+      ),
+    );
+  }
+
+  Widget _buildChildrenRow(BuildContext context, List<TreeNode> children) {
+    if (children.length <= 3) {
+      // Если детей мало, показываем в ряд
+      return Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 16,
+        runSpacing: 16,
+        children: children.map((child) {
+          return _buildChildNode(context, child);
+        }).toList(),
+      );
+    } else {
+      // Если детей много, показываем в несколько рядов
+      return Column(
+        children: [
+          for (int i = 0; i < children.length; i += 3)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 16,
+                children: children
+                    .skip(i)
+                    .take(3)
+                    .map((child) => _buildChildNode(context, child))
+                    .toList(),
+              ),
+            ),
+        ],
+      );
+    }
+  }
+
+  Widget _buildChildNode(BuildContext context, TreeNode child) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      child: TreeNodeWidget(
+        node: child,
+        onTap: () => onPersonTap(child.person.id),
+        isSelected: selectedPersonId == child.person.id,
+      ),
+    );
+  }
+
+  Widget _buildVerticalLine() {
+    return Container(width: 2, height: 20, color: Colors.grey.shade400);
+  }
+}

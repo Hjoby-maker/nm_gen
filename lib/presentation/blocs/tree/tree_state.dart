@@ -1,8 +1,6 @@
 import 'package:equatable/equatable.dart';
-import 'package:nm_gen/domain/entities/family_tree.dart';
-import 'package:nm_gen/domain/entities/person.dart';
+import 'package:nm_gen/domain/entities/tree_node.dart';
 
-/// Базовое состояние Tree
 abstract class TreeState extends Equatable {
   const TreeState();
 
@@ -10,36 +8,25 @@ abstract class TreeState extends Equatable {
   List<Object?> get props => [];
 }
 
-/// Начальное состояние
 class TreeInitial extends TreeState {}
 
-/// Состояние загрузки
 class TreeLoading extends TreeState {}
 
-/// Состояние с загруженным древом
 class TreeLoaded extends TreeState {
-  final FamilyTree familyTree;
+  final TreeNode rootNode;
   final String rootPersonId;
+  final String? selectedPersonId;
 
-  const TreeLoaded({required this.familyTree, required this.rootPersonId});
-
-  /// Получить корневого человека
-  Person get rootPerson => familyTree.rootPerson;
-
-  /// Получить всех людей в древе
-  List<Person> get allPersons => familyTree.allPersons;
-
-  /// Получить количество людей
-  int get personCount => familyTree.personCount;
-
-  /// Получить количество семей
-  int get familyCount => familyTree.familyCount;
+  const TreeLoaded({
+    required this.rootNode,
+    required this.rootPersonId,
+    this.selectedPersonId,
+  });
 
   @override
-  List<Object?> get props => [familyTree, rootPersonId];
+  List<Object?> get props => [rootNode, rootPersonId, selectedPersonId];
 }
 
-/// Состояние ошибки
 class TreeError extends TreeState {
   final String message;
   const TreeError(this.message);
