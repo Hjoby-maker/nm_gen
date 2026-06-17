@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:file_selector/file_selector.dart';
+import 'package:nm_gen/di/injector.dart'; // <-- Добавляем
 import 'package:nm_gen/domain/use_cases/gedcom/import_gedcom.dart';
 import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
 import 'package:nm_gen/presentation/blocs/person/person_event.dart';
@@ -16,6 +17,9 @@ class _ImportGedcomScreenState extends State<ImportGedcomScreen> {
   bool _isLoading = false;
   String? _message;
   bool _isSuccess = false;
+
+  // Получаем Use Case из DI
+  ImportGedcomUseCase get _importUseCase => getIt<ImportGedcomUseCase>();
 
   @override
   Widget build(BuildContext context) {
@@ -156,8 +160,7 @@ class _ImportGedcomScreenState extends State<ImportGedcomScreen> {
         return;
       }
 
-      final importUseCase = context.read<ImportGedcomUseCase>();
-      final importResult = await importUseCase.execute(content);
+      final importResult = await _importUseCase.execute(content);
 
       importResult.fold(
         (failure) {

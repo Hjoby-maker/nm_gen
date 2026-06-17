@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:file_selector/file_selector.dart';
+import 'package:nm_gen/di/injector.dart'; // <-- Добавляем
 import 'package:nm_gen/domain/use_cases/gedcom/export_gedcom.dart';
 
 class ExportGedcomScreen extends StatefulWidget {
@@ -15,6 +16,9 @@ class _ExportGedcomScreenState extends State<ExportGedcomScreen> {
   bool _isLoading = false;
   String? _message;
   bool _isSuccess = false;
+
+  // Получаем Use Case из DI
+  ExportGedcomUseCase get _exportUseCase => getIt<ExportGedcomUseCase>();
 
   @override
   Widget build(BuildContext context) {
@@ -134,8 +138,7 @@ class _ExportGedcomScreenState extends State<ExportGedcomScreen> {
     });
 
     try {
-      final exportUseCase = context.read<ExportGedcomUseCase>();
-      final result = await exportUseCase.execute();
+      final result = await _exportUseCase.execute();
 
       result.fold(
         (failure) {
@@ -147,7 +150,6 @@ class _ExportGedcomScreenState extends State<ExportGedcomScreen> {
         },
         (gedcom) async {
           try {
-            // Предлагаем сохранить файл
             const gedcomTypeGroup = XTypeGroup(
               label: 'GEDCOM',
               extensions: ['ged'],
@@ -157,14 +159,12 @@ class _ExportGedcomScreenState extends State<ExportGedcomScreen> {
             final fileName =
                 'family_tree_${DateTime.now().millisecondsSinceEpoch}.ged';
 
-            // getSaveLocation возвращает FileSaveLocation?
             final FileSaveLocation? saveLocation = await getSaveLocation(
               acceptedTypeGroups: [gedcomTypeGroup],
               suggestedName: fileName,
             );
 
             if (saveLocation == null) {
-              // Пользователь отменил сохранение
               setState(() {
                 _isLoading = false;
                 _message = '❌ Экспорт отменен';
@@ -173,10 +173,7 @@ class _ExportGedcomScreenState extends State<ExportGedcomScreen> {
               return;
             }
 
-            // Получаем путь из FileSaveLocation
             final String path = saveLocation.path;
-
-            // Создаем файл и записываем данные
             final file = File(path);
             await file.writeAsString(gedcom);
 
@@ -186,7 +183,6 @@ class _ExportGedcomScreenState extends State<ExportGedcomScreen> {
               _isSuccess = true;
             });
 
-            // Автоматически закрываем через 2 секунды
             Future.delayed(const Duration(seconds: 2), () {
               if (mounted) Navigator.pop(context);
             });
