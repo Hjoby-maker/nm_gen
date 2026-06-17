@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:get_it/get_it.dart';
-import 'package:nm_gen/domain/entities/person.dart';
 import 'package:nm_gen/domain/entities/family.dart';
+import 'package:nm_gen/domain/entities/person.dart';
 import 'package:nm_gen/domain/use_cases/family/get_family_with_details.dart';
 import 'package:nm_gen/presentation/blocs/family/family_bloc.dart';
 import 'package:nm_gen/presentation/blocs/family/family_event.dart';
 import 'package:nm_gen/presentation/blocs/family/family_state.dart';
 import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
+import 'package:nm_gen/presentation/blocs/person/person_event.dart';
+import 'package:nm_gen/presentation/blocs/person/person_state.dart';
 import 'package:nm_gen/presentation/widgets/add_child_dialog.dart';
 import 'package:nm_gen/presentation/widgets/family_card.dart';
 import 'package:nm_gen/presentation/widgets/family_form_dialog.dart';
-import 'package:nm_gen/presentation/blocs/person/person_event.dart'; // <-- Добавляем
-import 'package:nm_gen/presentation/blocs/person/person_state.dart';
+import 'package:nm_gen/core/enums/gender.dart';
 
 class FamilyScreen extends StatefulWidget {
   final String personId;
@@ -34,6 +34,10 @@ class _FamilyScreenState extends State<FamilyScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<FamilyBloc>().add(LoadFamiliesEvent(widget.personId));
+      final personState = context.read<PersonBloc>().state;
+      if (personState is! PersonsLoaded) {
+        context.read<PersonBloc>().add(const LoadPersonsEvent());
+      }
     });
   }
 
@@ -69,6 +73,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
                 backgroundColor: Colors.green,
               ),
             );
+            context.read<FamilyBloc>().add(LoadFamiliesEvent(widget.personId));
           } else if (state is FamilyError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -168,6 +173,22 @@ class _FamilyScreenState extends State<FamilyScreen> {
                   onTap: () => _showFamilyDetails(context, family.id),
                   onEdit: () => _showEditFamilyDialog(context, family),
                   onDelete: () => _confirmDeleteFamily(context, family.id),
+                  onDeleteChild: (childId) {
+                    final child = children.firstWhere(
+                      (c) => c.id == childId,
+                      orElse: () => Person.empty(),
+                    );
+                    if (child.id.isNotEmpty) {
+                      _confirmRemoveChild(
+                        context,
+                        family.id,
+                        childId,
+                        child.displayName,
+                      );
+                    }
+                  },
+                  // Добавляем кнопку "Добавить ребенка" в карточку
+                  onAddChild: () => _showAddChildDialog(context, family.id),
                 );
               },
             );
@@ -187,13 +208,17 @@ class _FamilyScreenState extends State<FamilyScreen> {
     );
   }
 
+  // =========================================================================
+  // ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ
+  // =========================================================================
+
   Widget _buildFamilyDetailsView(BuildContext context, FamilyDetails details) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Заголовок
+          // Карточка с информацией о семье
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -232,7 +257,8 @@ class _FamilyScreenState extends State<FamilyScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          // Дети
+
+          // Карточка с детьми
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -271,7 +297,18 @@ class _FamilyScreenState extends State<FamilyScreen> {
                     ...details.children.map((child) {
                       return ListTile(
                         leading: CircleAvatar(
-                          child: Text(child.displayName.substring(0, 1)),
+                          backgroundColor: child.gender == Gender.male
+                              ? Colors.blue.shade100
+                              : Colors.pink.shade100,
+                          child: Text(
+                            child.displayName.substring(0, 1).toUpperCase(),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: child.gender == Gender.male
+                                  ? Colors.blue.shade700
+                                  : Colors.pink.shade700,
+                            ),
+                          ),
                         ),
                         title: Text(child.displayName),
                         subtitle: Text(child.formattedAge),
@@ -286,7 +323,11 @@ class _FamilyScreenState extends State<FamilyScreen> {
                             child.id,
                             child.displayName,
                           ),
+                          tooltip: 'Удалить из семьи',
                         ),
+                        onTap: () {
+                          // TODO: Перейти к просмотру ребенка
+                        },
                       );
                     }),
                 ],
@@ -294,6 +335,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
             ),
           ),
           const SizedBox(height: 16),
+
           // Кнопки действий
           Row(
             children: [
@@ -321,6 +363,8 @@ class _FamilyScreenState extends State<FamilyScreen> {
             ],
           ),
           const SizedBox(height: 16),
+
+          // Кнопка возврата к списку
           Center(
             child: TextButton(
               onPressed: () {
@@ -362,73 +406,102 @@ class _FamilyScreenState extends State<FamilyScreen> {
   // ДИАЛОГИ
   // =========================================================================
 
+  /// Диалог добавления новой семьи
   void _showAddFamilyDialog(BuildContext context) {
-    final personBloc = context.read<PersonBloc>();
-    final state = personBloc.state;
+    final personState = context.read<PersonBloc>().state;
 
-    if (state is! PersonsLoaded) {
-      personBloc.add(const LoadPersonsEvent());
+    if (personState is! PersonsLoaded) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Загрузка списка людей...'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      context.read<PersonBloc>().add(const LoadPersonsEvent());
       return;
     }
 
+    final familyBloc = context.read<FamilyBloc>();
+
     showDialog(
       context: context,
-      builder: (context) => FamilyFormDialog(
-        availablePersons: state.persons,
+      builder: (dialogContext) => FamilyFormDialog(
+        availablePersons: personState.persons,
         onSave: (family) {
-          context.read<FamilyBloc>().add(AddFamilyEvent(family));
+          familyBloc.add(AddFamilyEvent(family));
         },
       ),
     );
   }
 
+  /// Диалог редактирования семьи
   void _showEditFamilyDialog(BuildContext context, Family family) {
-    final personBloc = context.read<PersonBloc>();
-    final state = personBloc.state;
+    final personState = context.read<PersonBloc>().state;
 
-    if (state is! PersonsLoaded) {
-      personBloc.add(const LoadPersonsEvent());
+    if (personState is! PersonsLoaded) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Загрузка списка людей...'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      context.read<PersonBloc>().add(const LoadPersonsEvent());
       return;
     }
 
+    final familyBloc = context.read<FamilyBloc>();
+
     showDialog(
       context: context,
-      builder: (context) => FamilyFormDialog(
+      builder: (dialogContext) => FamilyFormDialog(
         existingFamily: family,
-        availablePersons: state.persons,
+        availablePersons: personState.persons,
         onSave: (updatedFamily) {
-          context.read<FamilyBloc>().add(UpdateFamilyEvent(updatedFamily));
+          familyBloc.add(UpdateFamilyEvent(updatedFamily));
         },
       ),
     );
   }
 
+  /// Показать детали семьи
   void _showFamilyDetails(BuildContext context, String familyId) {
     context.read<FamilyBloc>().add(LoadFamilyDetailsEvent(familyId));
   }
 
+  /// Диалог добавления ребенка в семью
   void _showAddChildDialog(BuildContext context, String familyId) {
-    final personBloc = context.read<PersonBloc>();
-    final state = personBloc.state;
+    final personState = context.read<PersonBloc>().state;
 
-    if (state is! PersonsLoaded) {
-      personBloc.add(const LoadPersonsEvent());
+    if (personState is! PersonsLoaded) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Загрузка списка людей...'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      context.read<PersonBloc>().add(const LoadPersonsEvent());
       return;
     }
 
-    // Получаем текущие семьи, чтобы исключить уже добавленных детей
     final familyState = context.read<FamilyBloc>().state;
     List<String> existingChildIds = [];
+    List<String> parentIds = [];
+
     if (familyState is FamiliesLoaded) {
       final family = familyState.families.firstWhere(
         (f) => f.id == familyId,
         orElse: () => Family.empty(),
       );
       existingChildIds = family.childrenIds;
+      parentIds = [
+        if (family.husbandId != null) family.husbandId!,
+        if (family.wifeId != null) family.wifeId!,
+      ];
     }
 
-    final availableChildren = state.persons
+    final availableChildren = personState.persons
         .where((person) => person.id != widget.personId)
+        .where((person) => !parentIds.contains(person.id))
         .where((person) => !existingChildIds.contains(person.id))
         .toList();
 
@@ -442,38 +515,38 @@ class _FamilyScreenState extends State<FamilyScreen> {
       return;
     }
 
+    final familyBloc = context.read<FamilyBloc>();
+
     showDialog(
       context: context,
-      builder: (context) => AddChildDialog(
+      builder: (dialogContext) => AddChildDialog(
         availableChildren: availableChildren,
         onAddChild: (childId) {
-          context.read<FamilyBloc>().add(
-            AddChildToFamilyEvent(familyId, childId),
-          );
+          familyBloc.add(AddChildToFamilyEvent(familyId, childId));
         },
       ),
     );
   }
 
+  /// Подтверждение удаления семьи
   void _confirmDeleteFamily(BuildContext context, String familyId) {
+    final familyBloc = context.read<FamilyBloc>();
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Удаление семьи'),
         content: const Text('Вы уверены, что хотите удалить эту семью?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Отмена'),
           ),
           TextButton(
             onPressed: () {
-              context.read<FamilyBloc>().add(DeleteFamilyEvent(familyId));
-              Navigator.pop(context);
-              // Возвращаемся к списку
-              context.read<FamilyBloc>().add(
-                LoadFamiliesEvent(widget.personId),
-              );
+              familyBloc.add(DeleteFamilyEvent(familyId));
+              Navigator.pop(dialogContext);
+              familyBloc.add(LoadFamiliesEvent(widget.personId));
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Удалить'),
@@ -483,28 +556,31 @@ class _FamilyScreenState extends State<FamilyScreen> {
     );
   }
 
+  /// Подтверждение удаления ребенка из семьи
   void _confirmRemoveChild(
     BuildContext context,
     String familyId,
     String childId,
     String childName,
   ) {
+    final familyBloc = context.read<FamilyBloc>();
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Удаление ребенка'),
         content: Text('Вы уверены, что хотите удалить "$childName" из семьи?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Отмена'),
           ),
           TextButton(
             onPressed: () {
-              context.read<FamilyBloc>().add(
-                RemoveChildFromFamilyEvent(familyId, childId),
-              );
-              Navigator.pop(context);
+              familyBloc.add(RemoveChildFromFamilyEvent(familyId, childId));
+              Navigator.pop(dialogContext);
+              // Обновляем список
+              familyBloc.add(LoadFamiliesEvent(widget.personId));
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Удалить'),
@@ -513,6 +589,10 @@ class _FamilyScreenState extends State<FamilyScreen> {
       ),
     );
   }
+
+  // =========================================================================
+  // УТИЛИТЫ
+  // =========================================================================
 
   String _formatDate(DateTime date) {
     return '${date.day}.${date.month}.${date.year}';

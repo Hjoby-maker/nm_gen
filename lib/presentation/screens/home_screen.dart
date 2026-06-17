@@ -9,6 +9,7 @@ import 'package:nm_gen/presentation/blocs/person/person_state.dart';
 import 'package:nm_gen/presentation/blocs/tree/tree_bloc.dart';
 import 'package:nm_gen/presentation/screens/family_screen.dart';
 import 'package:nm_gen/presentation/screens/tree_screen.dart';
+import 'package:nm_gen/presentation/screens/person_detail_screen.dart';
 import 'package:nm_gen/di/injector.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -240,7 +241,8 @@ class HomeScreen extends StatelessWidget {
                             ],
                           ),
                           onTap: () {
-                            _navigateToTreeWithPerson(context, person.id);
+                            // Навигация на PersonDetailScreen с правильными провайдерами
+                            _navigateToPersonDetail(context, person.id);
                           },
                         ),
                       );
@@ -314,12 +316,35 @@ class HomeScreen extends StatelessWidget {
     String personId,
     String personName,
   ) {
+    final personBloc = context.read<PersonBloc>();
+
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => BlocProvider(
-          create: (context) => getIt<FamilyBloc>(),
+        builder: (context) => MultiBlocProvider(
+          providers: [
+            BlocProvider.value(value: personBloc),
+            BlocProvider(create: (context) => getIt<FamilyBloc>()),
+          ],
           child: FamilyScreen(personId: personId, personName: personName),
+        ),
+      ),
+    );
+  }
+
+  /// Навигация к экрану деталей человека
+  void _navigateToPersonDetail(BuildContext context, String personId) {
+    final personBloc = context.read<PersonBloc>();
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MultiBlocProvider(
+          providers: [
+            BlocProvider.value(value: personBloc),
+            BlocProvider(create: (context) => getIt<FamilyBloc>()),
+          ],
+          child: PersonDetailScreen(personId: personId),
         ),
       ),
     );

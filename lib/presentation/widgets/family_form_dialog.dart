@@ -23,8 +23,9 @@ class _FamilyFormDialogState extends State<FamilyFormDialog> {
   String? _selectedWifeId;
   DateTime? _marriageDate;
   DateTime? _divorceDate;
-  TextEditingController _marriagePlaceController = TextEditingController();
-  TextEditingController _notesController = TextEditingController();
+  final TextEditingController _marriagePlaceController =
+      TextEditingController();
+  final TextEditingController _notesController = TextEditingController();
 
   @override
   void initState() {
@@ -60,9 +61,12 @@ class _FamilyFormDialogState extends State<FamilyFormDialog> {
                 border: OutlineInputBorder(),
               ),
               items: [
-                const DropdownMenuItem(value: null, child: Text('Не выбран')),
+                const DropdownMenuItem<String>(
+                  value: null,
+                  child: Text('Не выбран'),
+                ),
                 ...persons.map((person) {
-                  return DropdownMenuItem(
+                  return DropdownMenuItem<String>(
                     value: person.id,
                     child: Text(person.displayName),
                   );
@@ -83,9 +87,12 @@ class _FamilyFormDialogState extends State<FamilyFormDialog> {
                 border: OutlineInputBorder(),
               ),
               items: [
-                const DropdownMenuItem(value: null, child: Text('Не выбрана')),
+                const DropdownMenuItem<String>(
+                  value: null,
+                  child: Text('Не выбрана'),
+                ),
                 ...persons.map((person) {
-                  return DropdownMenuItem(
+                  return DropdownMenuItem<String>(
                     value: person.id,
                     child: Text(person.displayName),
                   );
@@ -208,7 +215,10 @@ class _FamilyFormDialogState extends State<FamilyFormDialog> {
       notes: _notesController.text.isNotEmpty ? _notesController.text : null,
     );
 
+    // Используем переданную функцию onSave
     widget.onSave(family);
+
+    // Закрываем диалог только после вызова onSave
     Navigator.pop(context);
   }
 

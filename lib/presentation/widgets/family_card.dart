@@ -12,6 +12,8 @@ class FamilyCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
+  final Function(String childId)? onDeleteChild;
+  final VoidCallback? onAddChild; // <-- Добавляем
 
   const FamilyCard({
     Key? key,
@@ -22,6 +24,8 @@ class FamilyCard extends StatelessWidget {
     this.onTap,
     this.onEdit,
     this.onDelete,
+    this.onDeleteChild,
+    this.onAddChild, // <-- Добавляем
   }) : super(key: key);
 
   @override
@@ -80,6 +84,15 @@ class FamilyCard extends StatelessWidget {
                         color: Colors.grey.shade700,
                       ),
                     ),
+                    const Spacer(),
+                    // Кнопка "Добавить ребенка"
+                    if (onAddChild != null)
+                      IconButton(
+                        icon: const Icon(Icons.person_add, size: 18),
+                        onPressed: onAddChild,
+                        tooltip: 'Добавить ребенка',
+                        color: Colors.green,
+                      ),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -104,11 +117,35 @@ class FamilyCard extends StatelessWidget {
                               : Colors.pink,
                         ),
                       ),
-                      onDeleted: () {
-                        // TODO: Удалить ребенка из семьи
-                      },
+                      onDeleted: onDeleteChild != null
+                          ? () => onDeleteChild!(child.id)
+                          : null,
                     );
                   }).toList(),
+                ),
+              ] else ...[
+                const Divider(height: 24),
+                Row(
+                  children: [
+                    const Icon(Icons.child_care, size: 16, color: Colors.grey),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Нет детей',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                    const Spacer(),
+                    // Кнопка "Добавить ребенка" даже если детей нет
+                    if (onAddChild != null)
+                      IconButton(
+                        icon: const Icon(Icons.person_add, size: 18),
+                        onPressed: onAddChild,
+                        tooltip: 'Добавить ребенка',
+                        color: Colors.green,
+                      ),
+                  ],
                 ),
               ],
               // Даты
