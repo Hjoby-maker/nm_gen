@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nm_gen/core/enums/gender.dart';
 import 'package:nm_gen/domain/entities/person.dart';
-import 'package:nm_gen/presentation/blocs/family/family_bloc.dart'; // <-- Добавляем
+import 'package:nm_gen/presentation/blocs/family/family_bloc.dart';
 import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
 import 'package:nm_gen/presentation/blocs/person/person_event.dart';
 import 'package:nm_gen/presentation/blocs/person/person_state.dart';
 import 'package:nm_gen/presentation/blocs/tree/tree_bloc.dart';
+import 'package:nm_gen/presentation/screens/export_gedcom_screen.dart';
 import 'package:nm_gen/presentation/screens/family_screen.dart';
-import 'package:nm_gen/presentation/screens/tree_screen.dart';
+import 'package:nm_gen/presentation/screens/import_gedcom_screen.dart';
 import 'package:nm_gen/presentation/screens/person_detail_screen.dart';
+import 'package:nm_gen/presentation/screens/tree_screen.dart';
 import 'package:nm_gen/di/injector.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -22,16 +24,53 @@ class HomeScreen extends StatelessWidget {
         title: const Text('Генеалогическое древо'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          // Импорт GEDCOM
+          IconButton(
+            icon: const Icon(Icons.upload_file),
+            onPressed: () {
+              final personBloc = context.read<PersonBloc>();
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => BlocProvider.value(
+                    value: personBloc,
+                    child: const ImportGedcomScreen(),
+                  ),
+                ),
+              );
+            },
+            tooltip: 'Импорт GEDCOM',
+          ),
+          // Экспорт GEDCOM
+          IconButton(
+            icon: const Icon(Icons.download),
+            onPressed: () {
+              final personBloc = context.read<PersonBloc>();
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => BlocProvider.value(
+                    value: personBloc,
+                    child: const ExportGedcomScreen(),
+                  ),
+                ),
+              );
+            },
+            tooltip: 'Экспорт GEDCOM',
+          ),
+          // Древо
           IconButton(
             icon: const Icon(Icons.family_restroom),
             onPressed: () => _navigateToTree(context),
             tooltip: 'Просмотр древа',
           ),
+          // Поиск
           IconButton(
             icon: const Icon(Icons.search),
             onPressed: () => _showSearchDialog(context),
             tooltip: 'Поиск',
           ),
+          // Обновить
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
@@ -106,7 +145,9 @@ class HomeScreen extends StatelessWidget {
                     if (state.isSearching)
                       ElevatedButton(
                         onPressed: () {
-                          context.read<PersonBloc>().add(ClearSearchEvent());
+                          context.read<PersonBloc>().add(
+                            const ClearSearchEvent(),
+                          );
                         },
                         child: const Text('Очистить поиск'),
                       )
@@ -145,7 +186,9 @@ class HomeScreen extends StatelessWidget {
                         ),
                         TextButton(
                           onPressed: () {
-                            context.read<PersonBloc>().add(ClearSearchEvent());
+                            context.read<PersonBloc>().add(
+                              const ClearSearchEvent(),
+                            );
                           },
                           child: const Text('Очистить'),
                         ),
@@ -189,7 +232,6 @@ class HomeScreen extends StatelessWidget {
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              // Кнопка "Семья"
                               IconButton(
                                 icon: const Icon(
                                   Icons.family_restroom,
@@ -204,7 +246,6 @@ class HomeScreen extends StatelessWidget {
                                 },
                                 tooltip: 'Управление семьей',
                               ),
-                              // Кнопка "Древо"
                               IconButton(
                                 icon: const Icon(
                                   Icons.account_tree,
@@ -215,7 +256,6 @@ class HomeScreen extends StatelessWidget {
                                 },
                                 tooltip: 'Показать в древе',
                               ),
-                              // Кнопка "Редактировать"
                               IconButton(
                                 icon: const Icon(
                                   Icons.edit,
@@ -225,7 +265,6 @@ class HomeScreen extends StatelessWidget {
                                     _showEditPersonDialog(context, person),
                                 tooltip: 'Редактировать',
                               ),
-                              // Кнопка "Удалить"
                               IconButton(
                                 icon: const Icon(
                                   Icons.delete,
@@ -241,7 +280,6 @@ class HomeScreen extends StatelessWidget {
                             ],
                           ),
                           onTap: () {
-                            // Навигация на PersonDetailScreen с правильными провайдерами
                             _navigateToPersonDetail(context, person.id);
                           },
                         ),
@@ -259,7 +297,6 @@ class HomeScreen extends StatelessWidget {
       floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Кнопка "Древо"
           FloatingActionButton(
             heroTag: 'tree',
             onPressed: () => _navigateToTree(context),
@@ -267,7 +304,6 @@ class HomeScreen extends StatelessWidget {
             child: const Icon(Icons.account_tree),
           ),
           const SizedBox(height: 16),
-          // Кнопка "Добавить"
           FloatingActionButton(
             heroTag: 'add',
             onPressed: () => _showAddPersonDialog(context),
@@ -282,7 +318,6 @@ class HomeScreen extends StatelessWidget {
   // НАВИГАЦИЯ
   // =========================================================================
 
-  /// Навигация к древу с корневым человеком (первый в списке)
   void _navigateToTree(BuildContext context) {
     final state = context.read<PersonBloc>().state;
     if (state is PersonsLoaded && state.persons.isNotEmpty) {
@@ -297,7 +332,6 @@ class HomeScreen extends StatelessWidget {
     }
   }
 
-  /// Навигация к древу с конкретным человеком
   void _navigateToTreeWithPerson(BuildContext context, String personId) {
     Navigator.push(
       context,
@@ -310,7 +344,6 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  /// Навигация к экрану семьи
   void _navigateToFamily(
     BuildContext context,
     String personId,
@@ -332,7 +365,6 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  /// Навигация к экрану деталей человека
   void _navigateToPersonDetail(BuildContext context, String personId) {
     final personBloc = context.read<PersonBloc>();
 

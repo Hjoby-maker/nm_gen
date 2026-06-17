@@ -20,6 +20,8 @@ import 'package:nm_gen/presentation/blocs/family/family_bloc.dart';
 import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
 import 'package:nm_gen/presentation/blocs/tree/tree_bloc.dart';
 import 'package:nm_gen/domain/use_cases/family/get_family_with_details.dart';
+import 'package:nm_gen/domain/use_cases/gedcom/import_gedcom.dart';
+import 'package:nm_gen/domain/use_cases/gedcom/export_gedcom.dart';
 import 'injector.config.dart';
 
 final getIt = GetIt.instance;
@@ -119,4 +121,17 @@ void registerUseCasesAndBlocs() {
       familyRepository: familyRepo, // <-- Добавляем
     ),
   );
+
+  // Регистрируем Use Cases для GEDCOM
+  final importGedcomUseCase = ImportGedcomUseCase(
+    personRepository: personRepo,
+    familyRepository: familyRepo,
+  );
+  getIt.registerLazySingleton(() => importGedcomUseCase);
+
+  final exportGedcomUseCase = ExportGedcomUseCase(
+    personRepository: personRepo,
+    familyRepository: familyRepo,
+  );
+  getIt.registerLazySingleton(() => exportGedcomUseCase);
 }
