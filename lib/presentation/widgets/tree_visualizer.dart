@@ -34,48 +34,49 @@ class TreeVisualizer extends StatelessWidget {
   Widget _buildNode(BuildContext context, TreeNode node, bool isRoot) {
     final isSelected = selectedPersonId == node.person.id;
 
+    // Собираем всех супругов вместе с основным узлом в один горизонтальный ряд
+    final List<Widget> spouseAndMainRow = [];
+
+    // Добавляем основного человека
+    spouseAndMainRow.add(
+      TreeNodeWidget(
+        node: node,
+        isRoot: isRoot,
+        isSelected: isSelected,
+        onTap: () => onPersonTap(node.person.id),
+        detailLevel: detailLevel,
+      ),
+    );
+
+    // Добавляем супругов горизонтально
+    if (node.spouses.isNotEmpty) {
+      spouseAndMainRow.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: _buildSpouseConnector(),
+        ),
+      );
+
+      for (int i = 0; i < node.spouses.length; i++) {
+        final spouse = node.spouses[i];
+        spouseAndMainRow.add(_buildSpouseNode(context, spouse));
+        if (i < node.spouses.length - 1) {
+          spouseAndMainRow.add(const SizedBox(width: 8));
+        }
+      }
+    }
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Узел
-        TreeNodeWidget(
-          node: node,
-          isRoot: isRoot,
-          isSelected: isSelected,
-          onTap: () => onPersonTap(node.person.id),
-          detailLevel: detailLevel,
+        // Горизонтальный ряд: основной человек + супруги
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: spouseAndMainRow,
         ),
 
-        // Супруги - располагаем горизонтально в Row
-        if (node.spouses.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.favorite, color: Colors.red, size: 16),
-              const SizedBox(width: 8),
-              Text(
-                'Супруг(и)',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          // Горизонтальное расположение супругов в Row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ...node.spouses.map((spouse) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  child: _buildSpouseNode(context, spouse),
-                );
-              }),
-            ],
-          ),
-        ],
-
-        // Дети
+        // Дети (под всей этой горизонтальной группой)
         if (node.children.isNotEmpty) ...[
           const SizedBox(height: 16),
           _buildVerticalLine(),
@@ -90,6 +91,19 @@ class TreeVisualizer extends StatelessWidget {
           const SizedBox(height: 8),
           _buildChildrenRow(context, node.children),
         ],
+      ],
+    );
+  }
+
+  Widget _buildSpouseConnector() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.favorite, color: Colors.red, size: 16),
+        Text(
+          'Супруг(а)',
+          style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+        ),
       ],
     );
   }
@@ -115,7 +129,6 @@ class TreeVisualizer extends StatelessWidget {
   }
 
   Widget _buildChildrenRow(BuildContext context, List<TreeNode> children) {
-    // Если детей мало, показываем в ряд
     if (children.length <= 4) {
       return Wrap(
         alignment: WrapAlignment.center,
@@ -126,7 +139,6 @@ class TreeVisualizer extends StatelessWidget {
         }).toList(),
       );
     } else {
-      // Если детей много, показываем в несколько рядов
       return Column(
         children: [
           for (int i = 0; i < children.length; i += 4)
