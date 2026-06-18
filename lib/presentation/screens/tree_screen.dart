@@ -18,15 +18,26 @@ class TreeScreen extends StatefulWidget {
 }
 
 class _TreeScreenState extends State<TreeScreen> {
+  final TransformationController _transformationController =
+      TransformationController();
+  double _currentScale = 1.0;
+  static const double _minScale = 0.3;
+  static const double _maxScale = 3.0;
+
   @override
   void initState() {
     super.initState();
-    // Загружаем дерево при инициализации
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         context.read<TreeBloc>().add(LoadTreeEvent(widget.rootPersonId));
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _transformationController.dispose();
+    super.dispose();
   }
 
   @override
@@ -36,23 +47,31 @@ class _TreeScreenState extends State<TreeScreen> {
         title: const Text('Генеалогическое древо'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          // Кнопка "Увеличить"
           IconButton(
             icon: const Icon(Icons.zoom_in),
-            onPressed: () {
-              // TODO: Увеличить масштаб
-            },
+            onPressed: () => _zoomIn(),
+            tooltip: 'Увеличить',
           ),
+          // Кнопка "Уменьшить"
           IconButton(
             icon: const Icon(Icons.zoom_out),
-            onPressed: () {
-              // TODO: Уменьшить масштаб
-            },
+            onPressed: () => _zoomOut(),
+            tooltip: 'Уменьшить',
           ),
+          // Кнопка "Сбросить масштаб"
+          IconButton(
+            icon: const Icon(Icons.fit_screen),
+            onPressed: () => _resetZoom(),
+            tooltip: 'Сбросить масштаб',
+          ),
+          // Кнопка "Обновить"
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
               context.read<TreeBloc>().add(LoadTreeEvent(widget.rootPersonId));
             },
+            tooltip: 'Обновить',
           ),
         ],
       ),
@@ -108,13 +127,55 @@ class _TreeScreenState extends State<TreeScreen> {
           }
 
           if (state is TreeLoaded) {
-            return TreeVisualizer(
-              rootNode: state.rootNode,
-              selectedPersonId: state.selectedPersonId,
-              onPersonTap: (personId) {
-                context.read<TreeBloc>().add(SelectPersonEvent(personId));
-                _showPersonInfo(context, personId, state);
-              },
+            // Определяем уровень детализации на основе масштаба
+            final detailLevel = _getDetailLevel(_currentScale);
+
+            return Stack(
+              children: [
+                // Основной виджет с InteractiveViewer
+                InteractiveViewer(
+                  transformationController: _transformationController,
+                  minScale: _minScale,
+                  maxScale: _maxScale,
+                  onInteractionUpdate: (details) {
+                    setState(() {
+                      _currentScale = details.scale;
+                    });
+                  },
+                  child: TreeVisualizer(
+                    rootNode: state.rootNode,
+                    selectedPersonId: state.selectedPersonId,
+                    onPersonTap: (personId) {
+                      context.read<TreeBloc>().add(SelectPersonEvent(personId));
+                      _showPersonInfo(context, personId, state);
+                    },
+                    detailLevel: detailLevel, // Передаем уровень детализации
+                  ),
+                ),
+                // Индикатор масштаба в углу
+                Positioned(
+                  bottom: 16,
+                  right: 16,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.7),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '${(_currentScale * 100).round()}%',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             );
           }
 
@@ -124,19 +185,59 @@ class _TreeScreenState extends State<TreeScreen> {
     );
   }
 
-  /// Показать информацию о человеке в BottomSheet
+  // =========================================================================
+  // УПРАВЛЕНИЕ МАСШТАБОМ
+  // =========================================================================
+
+  void _zoomIn() {
+    final newScale = (_currentScale + 0.2).clamp(_minScale, _maxScale);
+    _updateScale(newScale);
+  }
+
+  void _zoomOut() {
+    final newScale = (_currentScale - 0.2).clamp(_minScale, _maxScale);
+    _updateScale(newScale);
+  }
+
+  void _resetZoom() {
+    _updateScale(1.0);
+  }
+
+  void _updateScale(double scale) {
+    setState(() {
+      _currentScale = scale;
+      _transformationController.value = Matrix4.identity()..scale(scale);
+    });
+  }
+
+  DetailLevel _getDetailLevel(double scale) {
+    if (scale >= 1.5) {
+      return DetailLevel.full; // Полная информация
+    } else if (scale >= 0.8) {
+      return DetailLevel.medium; // Средняя информация
+    } else {
+      return DetailLevel.minimal; // Минимальная информация
+    }
+  }
+
+  // =========================================================================
+  // ОТОБРАЖЕНИЕ ИНФОРМАЦИИ О ЧЕЛОВЕКЕ
+  // =========================================================================
+
   void _showPersonInfo(
     BuildContext context,
     String personId,
     TreeLoaded state,
   ) {
-    // Находим человека в дереве
     final person = _findPerson(state.rootNode, personId);
     if (person == null) return;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
       builder: (context) => DraggableScrollableSheet(
         initialChildSize: 0.5,
         minChildSize: 0.3,
@@ -238,8 +339,8 @@ class _TreeScreenState extends State<TreeScreen> {
                   const SizedBox(width: 8),
                   ElevatedButton.icon(
                     onPressed: () {
-                      // TODO: Перейти на экран редактирования
                       Navigator.pop(context);
+                      // TODO: Перейти на экран редактирования
                     },
                     icon: const Icon(Icons.edit),
                     label: const Text('Редактировать'),
@@ -253,7 +354,6 @@ class _TreeScreenState extends State<TreeScreen> {
     );
   }
 
-  /// Строка информации
   Widget _buildInfoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -276,12 +376,10 @@ class _TreeScreenState extends State<TreeScreen> {
     );
   }
 
-  /// Форматирование даты
   String _formatDate(DateTime date) {
     return '${date.day}.${date.month}.${date.year}';
   }
 
-  /// Рекурсивный поиск человека в дереве
   Person? _findPerson(TreeNode node, String personId) {
     if (node.person.id == personId) return node.person;
     for (final child in node.children) {
@@ -294,4 +392,11 @@ class _TreeScreenState extends State<TreeScreen> {
     }
     return null;
   }
+}
+
+/// Уровень детализации отображения узлов
+enum DetailLevel {
+  minimal, // Только имя и иконка
+  medium, // Имя + возраст + иконка
+  full, // Полная информация
 }

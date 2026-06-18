@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nm_gen/core/enums/gender.dart';
 import 'package:nm_gen/domain/entities/tree_node.dart';
+import 'package:nm_gen/presentation/screens/tree_screen.dart';
 
 /// Виджет для отображения узла дерева
 class TreeNodeWidget extends StatelessWidget {
@@ -8,6 +9,8 @@ class TreeNodeWidget extends StatelessWidget {
   final VoidCallback? onTap;
   final bool isSelected;
   final bool isRoot;
+  final DetailLevel detailLevel;
+  final bool isCompact;
 
   const TreeNodeWidget({
     Key? key,
@@ -15,6 +18,8 @@ class TreeNodeWidget extends StatelessWidget {
     this.onTap,
     this.isSelected = false,
     this.isRoot = false,
+    this.detailLevel = DetailLevel.medium,
+    this.isCompact = false,
   }) : super(key: key);
 
   @override
@@ -22,16 +27,26 @@ class TreeNodeWidget extends StatelessWidget {
     final person = node.person;
     final colorScheme = Theme.of(context).colorScheme;
 
+    // Определяем размеры в зависимости от уровня детализации
+    final isMinimal = detailLevel == DetailLevel.minimal || isCompact;
+    final isFull = detailLevel == DetailLevel.full && !isCompact;
+
+    final avatarRadius = isMinimal ? 16 : (isFull ? 28 : 22);
+    final iconSize = isMinimal ? 18 : (isFull ? 28 : 22);
+    final fontSize = isMinimal ? 10 : (isFull ? 14 : 12);
+    final padding = isMinimal ? 4.0 : (isFull ? 12.0 : 8.0);
+
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
           color: isSelected
               ? colorScheme.primary.withOpacity(0.2)
               : isRoot
               ? colorScheme.primary.withOpacity(0.15)
               : Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(isMinimal ? 8 : 12),
           border: Border.all(
             color: isSelected
                 ? colorScheme.primary
@@ -42,20 +57,20 @@ class TreeNodeWidget extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.2),
+              color: Colors.grey.withOpacity(0.15),
               spreadRadius: 1,
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
           ],
         ),
-        padding: const EdgeInsets.all(8),
+        padding: EdgeInsets.all(padding),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             // Аватар
             CircleAvatar(
-              radius: 24,
+              radius: avatarRadius.toDouble(),
               backgroundColor: _getGenderColor(context),
               child: Icon(
                 person.gender == Gender.male
@@ -64,38 +79,60 @@ class TreeNodeWidget extends StatelessWidget {
                     ? Icons.female
                     : Icons.person,
                 color: Colors.white,
-                size: 28,
+                size: iconSize.toDouble(),
               ),
             ),
-            const SizedBox(height: 4),
-            // Имя
-            Text(
-              person.displayName,
-              style: TextStyle(
-                fontWeight: isRoot ? FontWeight.bold : FontWeight.normal,
-                fontSize: 12,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-            ),
-            // Возраст
-            if (person.formattedAge != 'Возраст неизвестен')
+            // Имя (всегда показываем)
+            if (!isMinimal || isRoot) ...[
+              const SizedBox(height: 4),
               Text(
-                person.formattedAge,
-                style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
-              ),
-            // Статус (жив/умер)
-            if (!person.isAlive)
-              Container(
-                margin: const EdgeInsets.only(top: 2),
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(4),
+                person.displayName,
+                style: TextStyle(
+                  fontWeight: isRoot ? FontWeight.bold : FontWeight.normal,
+                  fontSize: fontSize.toDouble(),
                 ),
-                child: const Text('†', style: TextStyle(fontSize: 10)),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
               ),
+            ],
+            // Дополнительная информация для среднего и полного режимов
+            if (!isMinimal) ...[
+              // Возраст
+              if (person.formattedAge != 'Возраст неизвестен' && !isCompact)
+                Text(
+                  person.formattedAge,
+                  style: TextStyle(
+                    fontSize: (fontSize - 2).toDouble(),
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              // Статус (жив/умер)
+              if (!person.isAlive && isFull)
+                Container(
+                  margin: const EdgeInsets.only(top: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 1,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text('†', style: TextStyle(fontSize: 10)),
+                ),
+              // Профессия (только в полном режиме)
+              if (isFull && person.occupation != null)
+                Text(
+                  person.occupation!,
+                  style: TextStyle(
+                    fontSize: (fontSize - 2).toDouble(),
+                    color: Colors.grey.shade500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+            ],
           ],
         ),
       ),

@@ -1,6 +1,5 @@
 import 'package:dartz/dartz.dart';
 import 'package:nm_gen/core/errors/failures.dart';
-import 'package:nm_gen/domain/entities/family.dart';
 import 'package:nm_gen/domain/entities/person.dart';
 import 'package:nm_gen/domain/entities/tree_node.dart';
 import 'package:nm_gen/domain/repositories/family_repository.dart';

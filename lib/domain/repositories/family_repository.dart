@@ -1,5 +1,4 @@
 import '../entities/family.dart';
-import '../entities/person.dart';
 
 /// Интерфейс репозитория для работы с семьями
 abstract class FamilyRepository {

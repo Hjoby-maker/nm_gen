@@ -10,7 +10,6 @@ import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
 import 'package:nm_gen/presentation/blocs/person/person_event.dart';
 import 'package:nm_gen/presentation/blocs/person/person_state.dart';
 import 'package:nm_gen/presentation/screens/family_screen.dart';
-import 'package:nm_gen/presentation/widgets/add_child_dialog.dart';
 import 'package:nm_gen/presentation/widgets/family_form_dialog.dart';
 
 class PersonDetailScreen extends StatefulWidget {

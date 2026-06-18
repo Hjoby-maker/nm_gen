@@ -1,25 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:nm_gen/domain/entities/tree_node.dart';
 import 'package:nm_gen/presentation/widgets/tree_node_widget.dart';
-import 'package:nm_gen/domain/entities/person.dart';
+import 'package:nm_gen/presentation/screens/tree_screen.dart';
 
 /// Виджет для визуализации генеалогического древа
 class TreeVisualizer extends StatelessWidget {
   final TreeNode rootNode;
   final Function(String) onPersonTap;
   final String? selectedPersonId;
+  final DetailLevel detailLevel;
 
   const TreeVisualizer({
     Key? key,
     required this.rootNode,
     required this.onPersonTap,
     this.selectedPersonId,
+    this.detailLevel = DetailLevel.medium,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      child: Center(child: _buildNode(context, rootNode, true)),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: _buildNode(context, rootNode, true),
+        ),
+      ),
     );
   }
 
@@ -35,10 +42,11 @@ class TreeVisualizer extends StatelessWidget {
           isRoot: isRoot,
           isSelected: isSelected,
           onTap: () => onPersonTap(node.person.id),
+          detailLevel: detailLevel,
         ),
-        // Супруги (если есть)
+        // Супруги - располагаем горизонтально
         if (node.spouses.isNotEmpty) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -51,9 +59,11 @@ class TreeVisualizer extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
+          // Горизонтальное расположение супругов
           Wrap(
             alignment: WrapAlignment.center,
-            spacing: 8,
+            spacing: 16,
+            runSpacing: 8,
             children: node.spouses.map((spouse) {
               return _buildSpouseNode(context, spouse);
             }).toList(),
@@ -79,6 +89,8 @@ class TreeVisualizer extends StatelessWidget {
   }
 
   Widget _buildSpouseNode(BuildContext context, TreeNode spouse) {
+    final isSelected = selectedPersonId == spouse.person.id;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -89,14 +101,16 @@ class TreeVisualizer extends StatelessWidget {
       child: TreeNodeWidget(
         node: spouse,
         onTap: () => onPersonTap(spouse.person.id),
-        isSelected: selectedPersonId == spouse.person.id,
+        isSelected: isSelected,
+        detailLevel: detailLevel,
+        isCompact: true, // Компактный режим для супругов
       ),
     );
   }
 
   Widget _buildChildrenRow(BuildContext context, List<TreeNode> children) {
-    if (children.length <= 3) {
-      // Если детей мало, показываем в ряд
+    // Если детей мало, показываем в ряд
+    if (children.length <= 4) {
       return Wrap(
         alignment: WrapAlignment.center,
         spacing: 16,
@@ -109,7 +123,7 @@ class TreeVisualizer extends StatelessWidget {
       // Если детей много, показываем в несколько рядов
       return Column(
         children: [
-          for (int i = 0; i < children.length; i += 3)
+          for (int i = 0; i < children.length; i += 4)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Wrap(
@@ -117,7 +131,7 @@ class TreeVisualizer extends StatelessWidget {
                 spacing: 16,
                 children: children
                     .skip(i)
-                    .take(3)
+                    .take(4)
                     .map((child) => _buildChildNode(context, child))
                     .toList(),
               ),
@@ -128,12 +142,16 @@ class TreeVisualizer extends StatelessWidget {
   }
 
   Widget _buildChildNode(BuildContext context, TreeNode child) {
+    final isSelected = selectedPersonId == child.person.id;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       child: TreeNodeWidget(
         node: child,
         onTap: () => onPersonTap(child.person.id),
-        isSelected: selectedPersonId == child.person.id,
+        isSelected: isSelected,
+        detailLevel: detailLevel,
+        isCompact: detailLevel == DetailLevel.minimal,
       ),
     );
   }
