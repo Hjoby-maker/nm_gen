@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nm_gen/domain/entities/person.dart';
 import 'package:nm_gen/domain/entities/tree_node.dart';
 import 'package:nm_gen/presentation/widgets/tree_node_widget.dart';
 import 'package:nm_gen/presentation/screens/tree_screen.dart';
@@ -44,7 +45,8 @@ class TreeVisualizer extends StatelessWidget {
           onTap: () => onPersonTap(node.person.id),
           detailLevel: detailLevel,
         ),
-        // Супруги - располагаем горизонтально
+
+        // Супруги - располагаем горизонтально в Row
         if (node.spouses.isNotEmpty) ...[
           const SizedBox(height: 12),
           Row(
@@ -59,16 +61,20 @@ class TreeVisualizer extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          // Горизонтальное расположение супругов
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 16,
-            runSpacing: 8,
-            children: node.spouses.map((spouse) {
-              return _buildSpouseNode(context, spouse);
-            }).toList(),
+          // Горизонтальное расположение супругов в Row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ...node.spouses.map((spouse) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: _buildSpouseNode(context, spouse),
+                );
+              }),
+            ],
           ),
         ],
+
         // Дети
         if (node.children.isNotEmpty) ...[
           const SizedBox(height: 16),
@@ -103,7 +109,7 @@ class TreeVisualizer extends StatelessWidget {
         onTap: () => onPersonTap(spouse.person.id),
         isSelected: isSelected,
         detailLevel: detailLevel,
-        isCompact: true, // Компактный режим для супругов
+        isCompact: true,
       ),
     );
   }
