@@ -2,14 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:nm_gen/domain/entities/person.dart';
 
 class AddChildDialog extends StatefulWidget {
-  final List<Person> availableChildren;
-  final Function(String) onAddChild;
-
   const AddChildDialog({
     Key? key,
     required this.availableChildren,
     required this.onAddChild,
   }) : super(key: key);
+  final List<Person> availableChildren;
+  final Function(String) onAddChild;
 
   @override
   State<AddChildDialog> createState() => _AddChildDialogState();
@@ -24,26 +23,26 @@ class _AddChildDialogState extends State<AddChildDialog> {
       title: const Text('Добавить ребенка'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
-        children: [
+        children: <Widget>[
           DropdownButtonFormField<String>(
-            value: _selectedChildId,
+            initialValue: _selectedChildId,
             decoration: const InputDecoration(
               labelText: 'Выберите ребенка',
               border: OutlineInputBorder(),
             ),
-            items: [
+            items: <DropdownMenuItem<String>>[
               const DropdownMenuItem(
                 value: null,
                 child: Text('Выберите человека'),
               ),
-              ...widget.availableChildren.map((person) {
+              ...widget.availableChildren.map((Person person) {
                 return DropdownMenuItem(
                   value: person.id,
                   child: Text(person.displayName),
                 );
               }),
             ],
-            onChanged: (value) {
+            onChanged: (String? value) {
               setState(() {
                 _selectedChildId = value;
               });
@@ -51,7 +50,7 @@ class _AddChildDialogState extends State<AddChildDialog> {
           ),
         ],
       ),
-      actions: [
+      actions: <Widget>[
         TextButton(
           onPressed: () => Navigator.pop(context),
           child: const Text('Отмена'),

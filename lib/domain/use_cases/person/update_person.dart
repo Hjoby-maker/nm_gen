@@ -5,24 +5,25 @@ import 'package:nm_gen/domain/repositories/person_repository.dart';
 
 /// Use Case: Обновление данных человека
 class UpdatePersonUseCase {
-  final PersonRepository repository;
-
   UpdatePersonUseCase(this.repository);
+  final PersonRepository repository;
 
   Future<Either<Failure, Person>> execute(Person person) async {
     try {
       // Валидация
       if (person.id.isEmpty) {
-        return Left(ValidationFailure('ID человека не может быть пустым'));
+        return const Left(
+          ValidationFailure('ID человека не может быть пустым'),
+        );
       }
 
       if (person.firstName.isEmpty || person.lastName.isEmpty) {
-        return Left(
+        return const Left(
           ValidationFailure('Имя и фамилия обязательны для заполнения'),
         );
       }
 
-      final result = await repository.updatePerson(person);
+      final Person result = await repository.updatePerson(person);
       return Right(result);
     } catch (e) {
       return Left(ServerFailure(e.toString()));

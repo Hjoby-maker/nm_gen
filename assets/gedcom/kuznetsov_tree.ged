@@ -1,0 +1,270 @@
+0 HEAD
+1 SOUR GENERATED
+2 VERS 1.0
+1 DEST DISKETTE
+1 DATE 19 JUN 2026
+1 GEDC
+2 VERS 5.5.1
+2 FORM LINEAGE-LINKED
+1 CHAR UTF-8
+
+# ========== ПОКОЛЕНИЕ 1 (БАБУШКА И ДЕДУШКА) ==========
+
+0 @I1@ INDI
+1 NAME Александр /Соколов/
+1 SEX M
+1 BIRT
+2 DATE 15 MAR 1940
+1 DEAT
+2 DATE 20 JAN 2010
+1 _BIRT_PLACE Москва
+1 OCCU Военный
+
+0 @I2@ INDI
+1 NAME Екатерина /Соколова/
+1 SEX F
+1 BIRT
+2 DATE 22 AUG 1943
+1 DEAT
+2 DATE 05 MAY 2015
+1 _BIRT_PLACE Москва
+1 OCCU Врач
+
+# БРАТЬЯ И СЕСТРЫ БАБУШКИ (ЕКАТЕРИНЫ)
+0 @I3@ INDI
+1 NAME Николай /Петров/        # брат Екатерины
+1 SEX M
+1 BIRT
+2 DATE 10 JAN 1941
+1 _BIRT_PLACE Москва
+1 OCCU Инженер
+
+0 @I4@ INDI
+1 NAME Ольга /Петрова/          # сестра Екатерины
+1 SEX F
+1 BIRT
+2 DATE 05 MAY 1945
+1 _BIRT_PLACE Москва
+1 OCCU Учительница
+
+# БРАТЬЯ И СЕСТРЫ ДЕДУШКИ (АЛЕКСАНДРА)
+0 @I5@ INDI
+1 NAME Владимир /Соколов/       # брат Александра
+1 SEX M
+1 BIRT
+2 DATE 12 JUN 1938
+1 DEAT
+2 DATE 03 NOV 2005
+1 _BIRT_PLACE Москва
+1 OCCU Художник
+
+0 @I6@ INDI
+1 NAME Людмила /Соколова/        # сестра Александра
+1 SEX F
+1 BIRT
+2 DATE 18 SEP 1942
+1 _BIRT_PLACE Москва
+1 OCCU Библиотекарь
+
+# СЕМЬЯ БАБУШКИ И ДЕДУШКИ
+0 @F1@ FAM
+1 HUSB @I1@
+1 WIFE @I2@
+1 CHIL @I7@
+1 CHIL @I8@
+1 CHIL @I9@
+1 CHIL @I10@
+1 MARR
+2 DATE 01 JUN 1965
+
+# ========== ПОКОЛЕНИЕ 2 (ДЕТИ) ==========
+
+# ДЕТИ АЛЕКСАНДРА И ЕКАТЕРИНЫ (4 ЧЕЛОВЕКА)
+0 @I7@ INDI
+1 NAME Ирина /Соколова/
+1 SEX F
+1 BIRT
+2 DATE 10 APR 1966
+1 _BIRT_PLACE Москва
+1 OCCU Экономист
+
+0 @I8@ INDI
+1 NAME Олег /Соколов/
+1 SEX M
+1 BIRT
+2 DATE 25 JUL 1968
+1 _BIRT_PLACE Москва
+1 OCCU Водитель
+
+0 @I9@ INDI
+1 NAME Татьяна /Соколова/
+1 SEX F
+1 BIRT
+2 DATE 03 DEC 1970
+1 _BIRT_PLACE Москва
+1 OCCU Медсестра
+
+0 @I10@ INDI
+1 NAME Павел /Соколов/
+1 SEX M
+1 BIRT
+2 DATE 14 MAY 1973
+1 _BIRT_PLACE Москва
+1 OCCУ Программист
+
+# СУПРУГИ ДЛЯ 2 ДЕТЕЙ (СЕМЬИ)
+0 @I11@ INDI
+1 NAME Анна /Иванова/
+1 SEX F
+1 BIRT
+2 DATE 12 AUG 1968
+1 _BIRT_PLACE Москва
+1 OCCU Бухгалтер
+
+0 @F2@ FAM
+1 HUSB @I8@
+1 WIFE @I11@
+1 CHIL @I12@
+1 CHIL @I13@
+1 CHIL @I14@
+1 MARR
+2 DATE 15 SEP 1992
+
+0 @I15@ INDI
+1 NAME Елена /Козлова/
+1 SEX F
+1 BIRT
+2 DATE 20 FEB 1975
+1 _BIRT_PLACE Москва
+1 OCCU Дизайнер
+
+0 @F3@ FAM
+1 HUSB @I10@
+1 WIFE @I15@
+1 CHIL @I16@
+1 CHIL @I17@
+1 MARR
+2 DATE 10 OCT 1998
+
+# ========== ПОКОЛЕНИЕ 3 (ВНУКИ) ==========
+
+# ДЕТИ ОЛЕГА И АННЫ (3 ЧЕЛОВЕКА)
+0 @I12@ INDI
+1 NAME Сергей /Соколов/
+1 SEX M
+1 BIRT
+2 DATE 20 JAN 1993
+1 _BIRT_PLACE Москва
+
+0 @I13@ INDI
+1 NAME Наталья /Соколова/
+1 SEX F
+1 BIRT
+2 DATE 15 JUN 1995
+1 _BIRT_PLACE Москва
+
+0 @I14@ INDI
+1 NAME Дмитрий /Соколов/
+1 SEX M
+1 BIRT
+2 DATE 08 SEP 1997
+1 _BIRT_PLACE Москва
+
+# ДЕТИ ПАВЛА И ЕЛЕНЫ (2 ЧЕЛОВЕКА)
+0 @I16@ INDI
+1 NAME Карина /Соколова/
+1 SEX F
+1 BIRT
+2 DATE 25 DEC 1999
+1 _BIRT_PLACE Москва
+
+0 @I17@ INDI
+1 NAME Алексей /Соколов/
+1 SEX M
+1 BIRT
+2 DATE 01 APR 2002
+1 _BIRT_PLACE Москва
+
+# СУПРУГА ДЛЯ ОДНОГО ИЗ ВНУКОВ (СЕМЬЯ)
+0 @I18@ INDI
+1 NAME Мария /Морозова/
+1 SEX F
+1 BIRT
+2 DATE 15 MAR 1995
+1 _BIRT_PLACE Москва
+1 OCCU Фотограф
+
+0 @F4@ FAM
+1 HUSB @I14@
+1 WIFE @I18@
+1 CHIL @I19@
+1 CHIL @I20@
+1 MARR
+2 DATE 20 DEC 2020
+
+# ========== ПОКОЛЕНИЕ 4 (ПРАВНУКИ) ==========
+
+# ДЕТИ ДМИТРИЯ И МАРИИ (2 ЧЕЛОВЕКА)
+0 @I19@ INDI
+1 NAME София /Соколова/
+1 SEX F
+1 BIRT
+2 DATE 05 MAR 2022
+1 _BIRT_PLACE Москва
+
+0 @I20@ INDI
+1 NAME Максим /Соколов/
+1 SEX M
+1 BIRT
+2 DATE 18 OCT 2023
+1 _BIRT_PLACE Москва
+
+# ========== СЕМЬИ БРАТЬЕВ И СЕСТЕР (ДЛЯ СВЯЗИ) ==========
+
+# Братья и сестры бабушки (Екатерины)
+0 @F5@ FAM
+1 HUSB @I3@
+1 WIFE @I21@
+1 CHIL @I22@
+1 MARR
+2 DATE 10 MAY 1965
+
+0 @I21@ INDI
+1 NAME Галина /Петрова/
+1 SEX F
+1 BIRT
+2 DATE 01 APR 1944
+1 _BIRT_PLACE Москва
+
+0 @I22@ INDI
+1 NAME Алексей /Петров/
+1 SEX M
+1 BIRT
+2 DATE 12 AUG 1966
+1 _BIRT_PLACE Москва
+
+# Братья и сестры дедушки (Александра)
+0 @F6@ FAM
+1 HUSB @I5@
+1 WIFE @I23@
+1 CHIL @I24@
+1 MARR
+2 DATE 15 JUN 1960
+
+0 @I23@ INDI
+1 NAME Зинаида /Соколова/
+1 SEX F
+1 BIRT
+2 DATE 20 FEB 1941
+1 _BIRT_PLACE Москва
+
+0 @I24@ INDI
+1 NAME Виктор /Соколов/
+1 SEX M
+1 BIRT
+2 DATE 25 MAR 1962
+1 _BIRT_PLACE Москва
+
+# ========== ЗАВЕРШЕНИЕ ==========
+
+0 TRLR

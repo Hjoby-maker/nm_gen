@@ -4,20 +4,19 @@ import 'family.dart';
 
 /// Полное генеалогическое древо
 class FamilyTree extends Equatable {
-  final Person rootPerson;
-  final List<Person> allPersons;
-  final List<Family> families;
-
   const FamilyTree({
     required this.rootPerson,
     this.allPersons = const [],
     this.families = const [],
   });
+  final Person rootPerson;
+  final List<Person> allPersons;
+  final List<Family> families;
 
   /// Найти человека по ID
   Person? findPerson(String id) {
     try {
-      return allPersons.firstWhere((p) => p.id == id);
+      return allPersons.firstWhere((Person p) => p.id == id);
     } catch (_) {
       return null;
     }
@@ -26,7 +25,7 @@ class FamilyTree extends Equatable {
   /// Найти семью по ID
   Family? findFamily(String id) {
     try {
-      return families.firstWhere((f) => f.id == id);
+      return families.firstWhere((Family f) => f.id == id);
     } catch (_) {
       return null;
     }
@@ -34,11 +33,11 @@ class FamilyTree extends Equatable {
 
   /// Получить детей человека
   List<Person> getChildren(String personId) {
-    final children = <Person>[];
-    for (final family in families) {
+    final List<Person> children = <Person>[];
+    for (final Family family in families) {
       if (family.parentIds.contains(personId)) {
-        for (final childId in family.childrenIds) {
-          final child = findPerson(childId);
+        for (final String childId in family.childrenIds) {
+          final Person? child = findPerson(childId);
           if (child != null) {
             children.add(child);
           }
@@ -50,11 +49,11 @@ class FamilyTree extends Equatable {
 
   /// Получить родителей человека
   List<Person> getParents(String personId) {
-    final parents = <Person>[];
-    for (final family in families) {
+    final List<Person> parents = <Person>[];
+    for (final Family family in families) {
       if (family.childrenIds.contains(personId)) {
-        for (final parentId in family.parentIds) {
-          final parent = findPerson(parentId);
+        for (final String parentId in family.parentIds) {
+          final Person? parent = findPerson(parentId);
           if (parent != null) {
             parents.add(parent);
           }
@@ -66,13 +65,13 @@ class FamilyTree extends Equatable {
 
   /// Получить супругов человека
   List<Person> getSpouses(String personId) {
-    final spouses = <Person>[];
-    for (final family in families) {
+    final List<Person> spouses = <Person>[];
+    for (final Family family in families) {
       if (family.husbandId == personId) {
-        final spouse = findPerson(family.wifeId ?? '');
+        final Person? spouse = findPerson(family.wifeId ?? '');
         if (spouse != null) spouses.add(spouse);
       } else if (family.wifeId == personId) {
-        final spouse = findPerson(family.husbandId ?? '');
+        final Person? spouse = findPerson(family.husbandId ?? '');
         if (spouse != null) spouses.add(spouse);
       }
     }
@@ -83,7 +82,7 @@ class FamilyTree extends Equatable {
   List<Family> getFamiliesForPerson(String personId) {
     return families
         .where(
-          (f) =>
+          (Family f) =>
               f.parentIds.contains(personId) ||
               f.childrenIds.contains(personId),
         )
@@ -97,5 +96,5 @@ class FamilyTree extends Equatable {
   int get familyCount => families.length;
 
   @override
-  List<Object?> get props => [rootPerson, allPersons, families];
+  List<Object?> get props => <Object?>[rootPerson, allPersons, families];
 }

@@ -9,9 +9,8 @@ import 'package:nm_gen/presentation/blocs/tree/tree_state.dart';
 import 'package:nm_gen/presentation/widgets/tree_visualizer.dart';
 
 class TreeScreen extends StatefulWidget {
-  final String rootPersonId;
-
   const TreeScreen({Key? key, required this.rootPersonId}) : super(key: key);
+  final String rootPersonId;
 
   @override
   State<TreeScreen> createState() => _TreeScreenState();
@@ -46,7 +45,7 @@ class _TreeScreenState extends State<TreeScreen> {
       appBar: AppBar(
         title: const Text('Генеалогическое древо'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        actions: [
+        actions: <Widget>[
           // Кнопка "Увеличить"
           IconButton(
             icon: const Icon(Icons.zoom_in),
@@ -76,7 +75,7 @@ class _TreeScreenState extends State<TreeScreen> {
         ],
       ),
       body: BlocConsumer<TreeBloc, TreeState>(
-        listener: (context, state) {
+        listener: (BuildContext context, TreeState state) {
           if (state is TreeError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -86,12 +85,12 @@ class _TreeScreenState extends State<TreeScreen> {
             );
           }
         },
-        builder: (context, state) {
+        builder: (BuildContext context, TreeState state) {
           if (state is TreeLoading) {
             return const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+                children: <Widget>[
                   CircularProgressIndicator(),
                   SizedBox(height: 16),
                   Text('Загрузка генеалогического древа...'),
@@ -104,7 +103,7 @@ class _TreeScreenState extends State<TreeScreen> {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+                children: <Widget>[
                   const Icon(Icons.error_outline, size: 64, color: Colors.red),
                   const SizedBox(height: 16),
                   Text(
@@ -126,13 +125,12 @@ class _TreeScreenState extends State<TreeScreen> {
             );
           }
 
+          // В build методе, где создается TreeVisualizer:
           if (state is TreeLoaded) {
-            // Определяем уровень детализации на основе масштаба
             final detailLevel = _getDetailLevel(_currentScale);
 
             return Stack(
               children: [
-                // Основной виджет с InteractiveViewer
                 InteractiveViewer(
                   transformationController: _transformationController,
                   minScale: _minScale,
@@ -145,14 +143,16 @@ class _TreeScreenState extends State<TreeScreen> {
                   child: TreeVisualizer(
                     rootNode: state.rootNode,
                     selectedPersonId: state.selectedPersonId,
+                    centerPersonId: widget
+                        .rootPersonId, // <-- Передаем центрального человека
                     onPersonTap: (personId) {
                       context.read<TreeBloc>().add(SelectPersonEvent(personId));
                       _showPersonInfo(context, personId, state);
                     },
-                    detailLevel: detailLevel, // Передаем уровень детализации
+                    detailLevel: detailLevel,
                   ),
                 ),
-                // Индикатор масштаба в углу
+                // Индикатор масштаба
                 Positioned(
                   bottom: 16,
                   right: 16,
@@ -175,6 +175,67 @@ class _TreeScreenState extends State<TreeScreen> {
                     ),
                   ),
                 ),
+                // Легенда
+                Positioned(
+                  bottom: 70,
+                  right: 16,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.7),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: Colors.green,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            const Text(
+                              'Выбранный человек',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: Colors.blue,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            const Text(
+                              'Корень дерева',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             );
           }
@@ -190,12 +251,12 @@ class _TreeScreenState extends State<TreeScreen> {
   // =========================================================================
 
   void _zoomIn() {
-    final newScale = (_currentScale + 0.2).clamp(_minScale, _maxScale);
+    final double newScale = (_currentScale + 0.2).clamp(_minScale, _maxScale);
     _updateScale(newScale);
   }
 
   void _zoomOut() {
-    final newScale = (_currentScale - 0.2).clamp(_minScale, _maxScale);
+    final double newScale = (_currentScale - 0.2).clamp(_minScale, _maxScale);
     _updateScale(newScale);
   }
 
@@ -229,7 +290,7 @@ class _TreeScreenState extends State<TreeScreen> {
     String personId,
     TreeLoaded state,
   ) {
-    final person = _findPerson(state.rootNode, personId);
+    final Person? person = _findPerson(state.rootNode, personId);
     if (person == null) return;
 
     showModalBottomSheet(
@@ -238,118 +299,119 @@ class _TreeScreenState extends State<TreeScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (context) => DraggableScrollableSheet(
+      builder: (BuildContext context) => DraggableScrollableSheet(
         initialChildSize: 0.5,
         minChildSize: 0.3,
         maxChildSize: 0.8,
         expand: false,
-        builder: (context, scrollController) => Container(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Заголовок
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: person.gender == Gender.male
-                        ? Colors.blue
-                        : person.gender == Gender.female
-                        ? Colors.pink
-                        : Colors.grey,
-                    child: Icon(
-                      person.gender == Gender.male
-                          ? Icons.male
-                          : person.gender == Gender.female
-                          ? Icons.female
-                          : Icons.person,
-                      color: Colors.white,
-                      size: 30,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          person.fullName,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
+        builder: (BuildContext context, ScrollController scrollController) =>
+            Container(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  // Заголовок
+                  Row(
+                    children: <Widget>[
+                      CircleAvatar(
+                        radius: 30,
+                        backgroundColor: person.gender == Gender.male
+                            ? Colors.blue
+                            : person.gender == Gender.female
+                            ? Colors.pink
+                            : Colors.grey,
+                        child: Icon(
+                          person.gender == Gender.male
+                              ? Icons.male
+                              : person.gender == Gender.female
+                              ? Icons.female
+                              : Icons.person,
+                          color: Colors.white,
+                          size: 30,
                         ),
-                        if (person.occupation != null)
-                          Text(
-                            person.occupation!,
-                            style: TextStyle(color: Colors.grey.shade600),
-                          ),
-                        Text(
-                          person.formattedAge,
-                          style: TextStyle(color: Colors.grey.shade600),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(
+                              person.fullName,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (person.occupation != null)
+                              Text(
+                                person.occupation!,
+                                style: TextStyle(color: Colors.grey.shade600),
+                              ),
+                            Text(
+                              person.formattedAge,
+                              style: TextStyle(color: Colors.grey.shade600),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              const Divider(),
-              const SizedBox(height: 8),
-              // Информация
-              Expanded(
-                child: SingleChildScrollView(
-                  controller: scrollController,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (person.birthDate != null)
-                        _buildInfoRow(
-                          'Дата рождения',
-                          _formatDate(person.birthDate!),
-                        ),
-                      if (person.deathDate != null)
-                        _buildInfoRow(
-                          'Дата смерти',
-                          _formatDate(person.deathDate!),
-                        ),
-                      if (person.birthPlace != null)
-                        _buildInfoRow('Место рождения', person.birthPlace!),
-                      if (person.deathPlace != null)
-                        _buildInfoRow('Место смерти', person.deathPlace!),
-                      if (person.occupation != null)
-                        _buildInfoRow('Профессия', person.occupation!),
-                      if (person.biography != null)
-                        _buildInfoRow('Биография', person.biography!),
-                      const SizedBox(height: 16),
+                      ),
                     ],
                   ),
-                ),
-              ),
-              // Кнопки
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Закрыть'),
+                  const SizedBox(height: 16),
+                  const Divider(),
+                  const SizedBox(height: 8),
+                  // Информация
+                  Expanded(
+                    child: SingleChildScrollView(
+                      controller: scrollController,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          if (person.birthDate != null)
+                            _buildInfoRow(
+                              'Дата рождения',
+                              _formatDate(person.birthDate!),
+                            ),
+                          if (person.deathDate != null)
+                            _buildInfoRow(
+                              'Дата смерти',
+                              _formatDate(person.deathDate!),
+                            ),
+                          if (person.birthPlace != null)
+                            _buildInfoRow('Место рождения', person.birthPlace!),
+                          if (person.deathPlace != null)
+                            _buildInfoRow('Место смерти', person.deathPlace!),
+                          if (person.occupation != null)
+                            _buildInfoRow('Профессия', person.occupation!),
+                          if (person.biography != null)
+                            _buildInfoRow('Биография', person.biography!),
+                          const SizedBox(height: 16),
+                        ],
+                      ),
+                    ),
                   ),
-                  const SizedBox(width: 8),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      // TODO: Перейти на экран редактирования
-                    },
-                    icon: const Icon(Icons.edit),
-                    label: const Text('Редактировать'),
+                  // Кнопки
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: <Widget>[
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Закрыть'),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          // TODO: Перейти на экран редактирования
+                        },
+                        icon: const Icon(Icons.edit),
+                        label: const Text('Редактировать'),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
-          ),
-        ),
+            ),
       ),
     );
   }
@@ -359,7 +421,7 @@ class _TreeScreenState extends State<TreeScreen> {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        children: <Widget>[
           SizedBox(
             width: 120,
             child: Text(
@@ -382,12 +444,12 @@ class _TreeScreenState extends State<TreeScreen> {
 
   Person? _findPerson(TreeNode node, String personId) {
     if (node.person.id == personId) return node.person;
-    for (final child in node.children) {
-      final found = _findPerson(child, personId);
+    for (final TreeNode child in node.children) {
+      final Person? found = _findPerson(child, personId);
       if (found != null) return found;
     }
-    for (final spouse in node.spouses) {
-      final found = _findPerson(spouse, personId);
+    for (final TreeNode spouse in node.spouses) {
+      final Person? found = _findPerson(spouse, personId);
       if (found != null) return found;
     }
     return null;

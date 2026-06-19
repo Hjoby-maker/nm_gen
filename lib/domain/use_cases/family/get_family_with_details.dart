@@ -7,17 +7,16 @@ import 'package:nm_gen/domain/repositories/person_repository.dart';
 
 /// Детальная информация о семье
 class FamilyDetails {
-  final Family family;
-  final Person? husband;
-  final Person? wife;
-  final List<Person> children;
-
   const FamilyDetails({
     required this.family,
     this.husband,
     this.wife,
     this.children = const [],
   });
+  final Family family;
+  final Person? husband;
+  final Person? wife;
+  final List<Person> children;
 
   int get memberCount {
     int count = 0;
@@ -32,21 +31,20 @@ class FamilyDetails {
 
 /// Use Case: Получение семьи с деталями
 class GetFamilyWithDetailsUseCase {
-  final FamilyRepository familyRepository;
-  final PersonRepository personRepository;
-
   GetFamilyWithDetailsUseCase({
     required this.familyRepository,
     required this.personRepository,
   });
+  final FamilyRepository familyRepository;
+  final PersonRepository personRepository;
 
   Future<Either<Failure, FamilyDetails>> execute(String familyId) async {
     try {
       if (familyId.isEmpty) {
-        return Left(ValidationFailure('ID семьи не может быть пустым'));
+        return const Left(ValidationFailure('ID семьи не может быть пустым'));
       }
 
-      final family = await familyRepository.getFamily(familyId);
+      final Family? family = await familyRepository.getFamily(familyId);
       if (family == null) {
         return Left(NotFoundFailure('Семья с ID $familyId не найдена'));
       }
@@ -63,9 +61,9 @@ class GetFamilyWithDetailsUseCase {
       }
 
       // Загружаем детей
-      final children = <Person>[];
-      for (final childId in family.childrenIds) {
-        final child = await personRepository.getPerson(childId);
+      final List<Person> children = <Person>[];
+      for (final String childId in family.childrenIds) {
+        final Person? child = await personRepository.getPerson(childId);
         if (child != null) {
           children.add(child);
         }

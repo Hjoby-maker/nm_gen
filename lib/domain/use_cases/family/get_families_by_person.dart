@@ -5,17 +5,20 @@ import 'package:nm_gen/domain/repositories/family_repository.dart';
 
 /// Use Case: Получение всех семей, где участвует человек
 class GetFamiliesByPersonUseCase {
-  final FamilyRepository repository;
-
   GetFamiliesByPersonUseCase(this.repository);
+  final FamilyRepository repository;
 
   Future<Either<Failure, List<Family>>> execute(String personId) async {
     try {
       if (personId.isEmpty) {
-        return Left(ValidationFailure('ID человека не может быть пустым'));
+        return const Left(
+          ValidationFailure('ID человека не может быть пустым'),
+        );
       }
 
-      final families = await repository.getFamiliesByPerson(personId);
+      final List<Family> families = await repository.getFamiliesByPerson(
+        personId,
+      );
       return Right(families);
     } catch (e) {
       return Left(ServerFailure(e.toString()));

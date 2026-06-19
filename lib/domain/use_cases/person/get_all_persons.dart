@@ -5,13 +5,12 @@ import 'package:nm_gen/domain/repositories/person_repository.dart';
 
 /// Use Case: Получение всех людей
 class GetAllPersonsUseCase {
-  final PersonRepository repository;
-
   GetAllPersonsUseCase(this.repository);
+  final PersonRepository repository;
 
   Future<Either<Failure, List<Person>>> execute() async {
     try {
-      final persons = await repository.getAllPersons();
+      final List<Person> persons = await repository.getAllPersons();
       return Right(persons);
     } catch (e) {
       return Left(ServerFailure(e.toString()));

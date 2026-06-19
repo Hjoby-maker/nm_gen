@@ -9,6 +9,7 @@ class TreeVisualizer extends StatelessWidget {
   final TreeNode rootNode;
   final Function(String) onPersonTap;
   final String? selectedPersonId;
+  final String? centerPersonId;
   final DetailLevel detailLevel;
 
   const TreeVisualizer({
@@ -16,6 +17,7 @@ class TreeVisualizer extends StatelessWidget {
     required this.rootNode,
     required this.onPersonTap,
     this.selectedPersonId,
+    this.centerPersonId,
     this.detailLevel = DetailLevel.medium,
   }) : super(key: key);
 
@@ -33,8 +35,9 @@ class TreeVisualizer extends StatelessWidget {
 
   Widget _buildNode(BuildContext context, TreeNode node, bool isRoot) {
     final isSelected = selectedPersonId == node.person.id;
+    final isCenter = centerPersonId == node.person.id;
 
-    // Собираем всех супругов вместе с основным узлом в один горизонтальный ряд
+    // Собираем всех супругов вместе с основным узлом
     final List<Widget> spouseAndMainRow = [];
 
     // Добавляем основного человека
@@ -43,6 +46,7 @@ class TreeVisualizer extends StatelessWidget {
         node: node,
         isRoot: isRoot,
         isSelected: isSelected,
+        isCenter: isCenter,
         onTap: () => onPersonTap(node.person.id),
         detailLevel: detailLevel,
       ),
@@ -50,19 +54,15 @@ class TreeVisualizer extends StatelessWidget {
 
     // Добавляем супругов горизонтально
     if (node.spouses.isNotEmpty) {
-      spouseAndMainRow.add(
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: _buildSpouseConnector(),
-        ),
-      );
-
       for (int i = 0; i < node.spouses.length; i++) {
         final spouse = node.spouses[i];
+        spouseAndMainRow.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: _buildSpouseConnector(context, spouse),
+          ),
+        );
         spouseAndMainRow.add(_buildSpouseNode(context, spouse));
-        if (i < node.spouses.length - 1) {
-          spouseAndMainRow.add(const SizedBox(width: 8));
-        }
       }
     }
 
@@ -95,33 +95,56 @@ class TreeVisualizer extends StatelessWidget {
     );
   }
 
-  Widget _buildSpouseConnector() {
+  Widget _buildSpouseConnector(BuildContext context, TreeNode spouse) {
+    // Определяем тип связи
+    String relationType = 'Супруг(а)';
+
+    // Проверяем, является ли супруг родителем
+    final childFamilies = <String>[];
+    // Здесь можно добавить логику определения типа связи
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.favorite, color: Colors.red, size: 16),
-        Text(
-          'Супруг(а)',
-          style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          decoration: BoxDecoration(
+            color: Colors.red.shade50,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            relationType,
+            style: TextStyle(
+              fontSize: 8,
+              color: Colors.red.shade700,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ),
+        const Icon(Icons.favorite, color: Colors.red, size: 12),
       ],
     );
   }
 
   Widget _buildSpouseNode(BuildContext context, TreeNode spouse) {
     final isSelected = selectedPersonId == spouse.person.id;
+    final isCenter = centerPersonId == spouse.person.id;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: isCenter ? Colors.green.shade50 : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(
+          color: isCenter ? Colors.green : Colors.grey.shade300,
+          width: isCenter ? 2 : 1,
+        ),
       ),
       child: TreeNodeWidget(
         node: spouse,
         onTap: () => onPersonTap(spouse.person.id),
         isSelected: isSelected,
+        isCenter: isCenter,
         detailLevel: detailLevel,
         isCompact: true,
       ),
@@ -161,6 +184,7 @@ class TreeVisualizer extends StatelessWidget {
 
   Widget _buildChildNode(BuildContext context, TreeNode child) {
     final isSelected = selectedPersonId == child.person.id;
+    final isCenter = centerPersonId == child.person.id;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
@@ -168,6 +192,7 @@ class TreeVisualizer extends StatelessWidget {
         node: child,
         onTap: () => onPersonTap(child.person.id),
         isSelected: isSelected,
+        isCenter: isCenter,
         detailLevel: detailLevel,
         isCompact: detailLevel == DetailLevel.minimal,
       ),

@@ -27,7 +27,8 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: BlocProvider(
-        create: (context) => getIt<PersonBloc>()..add(const LoadPersonsEvent()),
+        create: (BuildContext context) =>
+            getIt<PersonBloc>()..add(const LoadPersonsEvent()),
         child: const HomeScreen(),
       ),
     );

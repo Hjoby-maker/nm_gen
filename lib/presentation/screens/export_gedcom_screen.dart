@@ -1,8 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:file_selector/file_selector.dart';
-import 'package:nm_gen/di/injector.dart'; // <-- Добавляем
+import 'package:nm_gen/di/injector.dart';
 import 'package:nm_gen/domain/use_cases/gedcom/export_gedcom.dart';
+
+// Импортируем dartz с псевдонимом для избежания конфликта
+import 'package:dartz/dartz.dart' as dartz;
 
 class ExportGedcomScreen extends StatefulWidget {
   const ExportGedcomScreen({Key? key}) : super(key: key);
@@ -16,7 +20,6 @@ class _ExportGedcomScreenState extends State<ExportGedcomScreen> {
   String? _message;
   bool _isSuccess = false;
 
-  // Получаем Use Case из DI
   ExportGedcomUseCase get _exportUseCase => getIt<ExportGedcomUseCase>();
 
   @override
@@ -95,10 +98,35 @@ class _ExportGedcomScreenState extends State<ExportGedcomScreen> {
             else ...[
               ElevatedButton.icon(
                 onPressed: _exportGedcom,
-                icon: const Icon(Icons.file_download),
-                label: const Text('Экспортировать'),
+                icon: const Icon(Icons.save),
+                label: const Text('Сохранить GEDCOM файл'),
                 style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(200, 50),
+                  minimumSize: const Size(250, 50),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.info_outline, size: 16, color: Colors.green),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Выберите папку и имя для сохранения .ged файла',
+                        style: TextStyle(fontSize: 12, color: Colors.green),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 16),
@@ -143,7 +171,7 @@ class _ExportGedcomScreenState extends State<ExportGedcomScreen> {
         (failure) {
           setState(() {
             _isLoading = false;
-            _message = 'Ошибка: ${failure.message}';
+            _message = '❌ Ошибка: ${failure.message}';
             _isSuccess = false;
           });
         },
@@ -172,8 +200,7 @@ class _ExportGedcomScreenState extends State<ExportGedcomScreen> {
               return;
             }
 
-            final String path = saveLocation.path;
-            final file = File(path);
+            final file = File(saveLocation.path);
             await file.writeAsString(gedcom);
 
             setState(() {
@@ -188,7 +215,7 @@ class _ExportGedcomScreenState extends State<ExportGedcomScreen> {
           } catch (e) {
             setState(() {
               _isLoading = false;
-              _message = 'Ошибка сохранения: ${e.toString()}';
+              _message = '❌ Ошибка сохранения: ${e.toString()}';
               _isSuccess = false;
             });
           }
@@ -197,7 +224,7 @@ class _ExportGedcomScreenState extends State<ExportGedcomScreen> {
     } catch (e) {
       setState(() {
         _isLoading = false;
-        _message = 'Ошибка: ${e.toString()}';
+        _message = '❌ Ошибка: ${e.toString()}';
         _isSuccess = false;
       });
     }

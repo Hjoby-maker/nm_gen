@@ -3,16 +3,15 @@ import 'package:nm_gen/domain/entities/family.dart';
 import 'package:nm_gen/domain/entities/person.dart';
 
 class FamilyFormDialog extends StatefulWidget {
-  final Family? existingFamily;
-  final List<Person> availablePersons;
-  final Function(Family) onSave;
-
   const FamilyFormDialog({
     Key? key,
     this.existingFamily,
     required this.availablePersons,
     required this.onSave,
   }) : super(key: key);
+  final Family? existingFamily;
+  final List<Person> availablePersons;
+  final Function(Family) onSave;
 
   @override
   State<FamilyFormDialog> createState() => _FamilyFormDialogState();
@@ -43,7 +42,7 @@ class _FamilyFormDialogState extends State<FamilyFormDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final persons = widget.availablePersons;
+    final List<Person> persons = widget.availablePersons;
 
     return AlertDialog(
       title: Text(
@@ -52,27 +51,27 @@ class _FamilyFormDialogState extends State<FamilyFormDialog> {
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: [
+          children: <Widget>[
             // Муж
             DropdownButtonFormField<String>(
-              value: _selectedHusbandId,
+              initialValue: _selectedHusbandId,
               decoration: const InputDecoration(
                 labelText: 'Муж',
                 border: OutlineInputBorder(),
               ),
-              items: [
+              items: <DropdownMenuItem<String>>[
                 const DropdownMenuItem<String>(
                   value: null,
                   child: Text('Не выбран'),
                 ),
-                ...persons.map((person) {
+                ...persons.map((Person person) {
                   return DropdownMenuItem<String>(
                     value: person.id,
                     child: Text(person.displayName),
                   );
                 }),
               ],
-              onChanged: (value) {
+              onChanged: (String? value) {
                 setState(() {
                   _selectedHusbandId = value;
                 });
@@ -81,24 +80,24 @@ class _FamilyFormDialogState extends State<FamilyFormDialog> {
             const SizedBox(height: 8),
             // Жена
             DropdownButtonFormField<String>(
-              value: _selectedWifeId,
+              initialValue: _selectedWifeId,
               decoration: const InputDecoration(
                 labelText: 'Жена',
                 border: OutlineInputBorder(),
               ),
-              items: [
+              items: <DropdownMenuItem<String>>[
                 const DropdownMenuItem<String>(
                   value: null,
                   child: Text('Не выбрана'),
                 ),
-                ...persons.map((person) {
+                ...persons.map((Person person) {
                   return DropdownMenuItem<String>(
                     value: person.id,
                     child: Text(person.displayName),
                   );
                 }),
               ],
-              onChanged: (value) {
+              onChanged: (String? value) {
                 setState(() {
                   _selectedWifeId = value;
                 });
@@ -114,7 +113,7 @@ class _FamilyFormDialogState extends State<FamilyFormDialog> {
               ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
-                children: [
+                children: <Widget>[
                   if (_marriageDate != null)
                     IconButton(
                       icon: const Icon(Icons.clear, size: 20),
@@ -140,7 +139,7 @@ class _FamilyFormDialogState extends State<FamilyFormDialog> {
               ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
-                children: [
+                children: <Widget>[
                   if (_divorceDate != null)
                     IconButton(
                       icon: const Icon(Icons.clear, size: 20),
@@ -179,7 +178,7 @@ class _FamilyFormDialogState extends State<FamilyFormDialog> {
           ],
         ),
       ),
-      actions: [
+      actions: <Widget>[
         TextButton(
           onPressed: () => Navigator.pop(context),
           child: const Text('Отмена'),
@@ -200,13 +199,13 @@ class _FamilyFormDialogState extends State<FamilyFormDialog> {
       return;
     }
 
-    final family = Family(
+    final Family family = Family(
       id:
           widget.existingFamily?.id ??
           DateTime.now().millisecondsSinceEpoch.toString(),
       husbandId: _selectedHusbandId,
       wifeId: _selectedWifeId,
-      childrenIds: widget.existingFamily?.childrenIds ?? [],
+      childrenIds: widget.existingFamily?.childrenIds ?? <String>[],
       marriageDate: _marriageDate,
       divorceDate: _divorceDate,
       marriagePlace: _marriagePlaceController.text.isNotEmpty
@@ -223,7 +222,7 @@ class _FamilyFormDialogState extends State<FamilyFormDialog> {
   }
 
   Future<void> _selectDate(BuildContext context, bool isMarriage) async {
-    final picked = await showDatePicker(
+    final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime(1900),

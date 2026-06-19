@@ -5,15 +5,7 @@ import 'package:nm_gen/core/enums/gender.dart';
 
 /// Карточка семьи для отображения
 class FamilyCard extends StatelessWidget {
-  final Family family;
-  final Person? husband;
-  final Person? wife;
-  final List<Person> children;
-  final VoidCallback? onTap;
-  final VoidCallback? onEdit;
-  final VoidCallback? onDelete;
-  final Function(String childId)? onDeleteChild;
-  final VoidCallback? onAddChild; // <-- Добавляем
+  // <-- Добавляем
 
   const FamilyCard({
     Key? key,
@@ -27,6 +19,15 @@ class FamilyCard extends StatelessWidget {
     this.onDeleteChild,
     this.onAddChild, // <-- Добавляем
   }) : super(key: key);
+  final Family family;
+  final Person? husband;
+  final Person? wife;
+  final List<Person> children;
+  final VoidCallback? onTap;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+  final Function(String childId)? onDeleteChild;
+  final VoidCallback? onAddChild;
 
   @override
   Widget build(BuildContext context) {
@@ -41,15 +42,15 @@ class FamilyCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+            children: <Widget>[
               // Родители
               Row(
-                children: [
+                children: <Widget>[
                   Expanded(
                     child: _buildParentChip(
                       context,
                       husband,
-                      '${husband?.displayName ?? 'Не указан'}',
+                      husband?.displayName ?? 'Не указан',
                       Icons.male,
                       Colors.blue,
                     ),
@@ -62,7 +63,7 @@ class FamilyCard extends StatelessWidget {
                     child: _buildParentChip(
                       context,
                       wife,
-                      '${wife?.displayName ?? 'Не указан'}',
+                      wife?.displayName ?? 'Не указан',
                       Icons.female,
                       Colors.pink,
                     ),
@@ -70,10 +71,10 @@ class FamilyCard extends StatelessWidget {
                 ],
               ),
               // Дети
-              if (children.isNotEmpty) ...[
+              if (children.isNotEmpty) ...<Widget>[
                 const Divider(height: 24),
                 Row(
-                  children: [
+                  children: <Widget>[
                     const Icon(Icons.child_care, size: 16, color: Colors.grey),
                     const SizedBox(width: 8),
                     Text(
@@ -99,7 +100,7 @@ class FamilyCard extends StatelessWidget {
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: children.map((child) {
+                  children: children.map((Person child) {
                     return Chip(
                       label: Text(child.displayName),
                       avatar: CircleAvatar(
@@ -123,10 +124,10 @@ class FamilyCard extends StatelessWidget {
                     );
                   }).toList(),
                 ),
-              ] else ...[
+              ] else ...<Widget>[
                 const Divider(height: 24),
                 Row(
-                  children: [
+                  children: <Widget>[
                     const Icon(Icons.child_care, size: 16, color: Colors.grey),
                     const SizedBox(width: 8),
                     Text(
@@ -153,7 +154,7 @@ class FamilyCard extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Row(
-                    children: [
+                    children: <Widget>[
                       if (family.marriageDate != null)
                         Text(
                           'Брак: ${_formatDate(family.marriageDate!)}',
@@ -182,7 +183,7 @@ class FamilyCard extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 8),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
+                    children: <Widget>[
                       if (onEdit != null)
                         IconButton(
                           icon: const Icon(Icons.edit, size: 20),
@@ -219,7 +220,9 @@ class FamilyCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: person != null ? color.withOpacity(0.1) : Colors.grey.shade100,
+        color: person != null
+            ? color.withValues(alpha: 0.1)
+            : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: person != null ? color : Colors.grey.shade300,
@@ -228,7 +231,7 @@ class FamilyCard extends StatelessWidget {
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: [
+        children: <Widget>[
           Icon(icon, size: 16, color: person != null ? color : Colors.grey),
           const SizedBox(width: 4),
           Expanded(

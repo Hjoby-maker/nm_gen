@@ -3,21 +3,6 @@ import 'package:nm_gen/core/enums/gender.dart';
 
 /// Сущность человека в генеалогическом древе
 class Person extends Equatable {
-  final String id;
-  final String firstName;
-  final String lastName;
-  final String? middleName;
-  final Gender gender;
-  final DateTime? birthDate;
-  final DateTime? deathDate;
-  final String? birthPlace;
-  final String? deathPlace;
-  final String? occupation;
-  final String? biography;
-  final List<String> photoUrls;
-  final DateTime createdAt;
-  final DateTime updatedAt;
-
   const Person({
     required this.id,
     required this.firstName,
@@ -35,9 +20,56 @@ class Person extends Equatable {
     required this.updatedAt, // Теперь обязательный параметр
   });
 
+  /// Создать нового человека с автоматической генерацией ID
+  factory Person.create({
+    required String firstName,
+    required String lastName,
+    String? middleName,
+    required Gender gender,
+    DateTime? birthDate,
+    DateTime? deathDate,
+    String? birthPlace,
+    String? deathPlace,
+    String? occupation,
+    String? biography,
+    List<String>? photoUrls,
+  }) {
+    final now = DateTime.now();
+    return Person(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      firstName: firstName,
+      lastName: lastName,
+      middleName: middleName,
+      gender: gender,
+      birthDate: birthDate,
+      deathDate: deathDate,
+      birthPlace: birthPlace,
+      deathPlace: deathPlace,
+      occupation: occupation,
+      biography: biography,
+      photoUrls: photoUrls ?? const [],
+      createdAt: now,
+      updatedAt: now,
+    );
+  }
+  final String id;
+  final String firstName;
+  final String lastName;
+  final String? middleName;
+  final Gender gender;
+  final DateTime? birthDate;
+  final DateTime? deathDate;
+  final String? birthPlace;
+  final String? deathPlace;
+  final String? occupation;
+  final String? biography;
+  final List<String> photoUrls;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
   /// Полное имя (Фамилия Имя Отчество)
   String get fullName {
-    final parts = <String>[];
+    final List<String> parts = <String>[];
     if (lastName.isNotEmpty) parts.add(lastName);
     if (firstName.isNotEmpty) parts.add(firstName);
     if (middleName != null && middleName!.isNotEmpty) parts.add(middleName!);
@@ -46,7 +78,7 @@ class Person extends Equatable {
 
   /// Имя для отображения
   String get displayName {
-    final parts = <String>[];
+    final List<String> parts = <String>[];
     if (firstName.isNotEmpty) parts.add(firstName);
     if (lastName.isNotEmpty) parts.add(lastName);
     return parts.join(' ');
@@ -57,10 +89,10 @@ class Person extends Equatable {
 
   /// Возраст (целыми годами)
   int? get age {
-    final birth = birthDate;
+    final DateTime? birth = birthDate;
     if (birth == null) return null;
 
-    final endDate = deathDate ?? DateTime.now();
+    final DateTime endDate = deathDate ?? DateTime.now();
     int age = endDate.year - birth.year;
     if (endDate.month < birth.month ||
         (endDate.month == birth.month && endDate.day < birth.day)) {
@@ -71,7 +103,7 @@ class Person extends Equatable {
 
   /// Форматированный возраст с указанием "лет/год/года"
   String get formattedAge {
-    final years = age;
+    final int? years = age;
     if (years == null) return 'Возраст неизвестен';
 
     if (!isAlive) {
@@ -114,7 +146,7 @@ class Person extends Equatable {
   }
 
   @override
-  List<Object?> get props => [
+  List<Object?> get props => <Object?>[
     id,
     firstName,
     lastName,
@@ -140,37 +172,4 @@ class Person extends Equatable {
     createdAt: DateTime.now(),
     updatedAt: DateTime.now(),
   );
-
-  /// Создать нового человека с автоматической генерацией ID
-  factory Person.create({
-    required String firstName,
-    required String lastName,
-    String? middleName,
-    required Gender gender,
-    DateTime? birthDate,
-    DateTime? deathDate,
-    String? birthPlace,
-    String? deathPlace,
-    String? occupation,
-    String? biography,
-    List<String>? photoUrls,
-  }) {
-    final now = DateTime.now();
-    return Person(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      firstName: firstName,
-      lastName: lastName,
-      middleName: middleName,
-      gender: gender,
-      birthDate: birthDate,
-      deathDate: deathDate,
-      birthPlace: birthPlace,
-      deathPlace: deathPlace,
-      occupation: occupation,
-      biography: biography,
-      photoUrls: photoUrls ?? const [],
-      createdAt: now,
-      updatedAt: now,
-    );
-  }
 }

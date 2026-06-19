@@ -2,15 +2,6 @@ import 'package:nm_gen/domain/entities/family.dart';
 
 /// Модель Family для SQLite
 class FamilyModel {
-  final String id;
-  final String? husbandId;
-  final String? wifeId;
-  final String childrenIds; // JSON строка
-  final int? marriageDate;
-  final int? divorceDate;
-  final String? marriagePlace;
-  final String? notes;
-
   FamilyModel({
     required this.id,
     this.husbandId,
@@ -36,24 +27,6 @@ class FamilyModel {
     );
   }
 
-  /// Конвертация в Domain Entity
-  Family toDomain() {
-    return Family(
-      id: id,
-      husbandId: husbandId,
-      wifeId: wifeId,
-      childrenIds: childrenIds.isEmpty ? [] : childrenIds.split(','),
-      marriageDate: marriageDate != null
-          ? DateTime.fromMillisecondsSinceEpoch(marriageDate!)
-          : null,
-      divorceDate: divorceDate != null
-          ? DateTime.fromMillisecondsSinceEpoch(divorceDate!)
-          : null,
-      marriagePlace: marriagePlace,
-      notes: notes,
-    );
-  }
-
   /// Создание из Map (для SQLite)
   factory FamilyModel.fromMap(Map<String, dynamic> map) {
     return FamilyModel(
@@ -67,10 +40,36 @@ class FamilyModel {
       notes: map['notes'] as String?,
     );
   }
+  final String id;
+  final String? husbandId;
+  final String? wifeId;
+  final String childrenIds; // JSON строка
+  final int? marriageDate;
+  final int? divorceDate;
+  final String? marriagePlace;
+  final String? notes;
+
+  /// Конвертация в Domain Entity
+  Family toDomain() {
+    return Family(
+      id: id,
+      husbandId: husbandId,
+      wifeId: wifeId,
+      childrenIds: childrenIds.isEmpty ? <String>[] : childrenIds.split(','),
+      marriageDate: marriageDate != null
+          ? DateTime.fromMillisecondsSinceEpoch(marriageDate!)
+          : null,
+      divorceDate: divorceDate != null
+          ? DateTime.fromMillisecondsSinceEpoch(divorceDate!)
+          : null,
+      marriagePlace: marriagePlace,
+      notes: notes,
+    );
+  }
 
   /// Конвертация в Map (для SQLite)
   Map<String, dynamic> toMap() {
-    return {
+    return <String, dynamic>{
       'id': id,
       'husband_id': husbandId,
       'wife_id': wifeId,

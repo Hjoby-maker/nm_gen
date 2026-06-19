@@ -4,14 +4,13 @@ import 'package:nm_gen/domain/repositories/family_repository.dart';
 
 /// Use Case: Удаление ребенка из семьи
 class RemoveChildFromFamilyUseCase {
-  final FamilyRepository repository;
-
   RemoveChildFromFamilyUseCase(this.repository);
+  final FamilyRepository repository;
 
   Future<Either<Failure, void>> execute(String familyId, String childId) async {
     try {
       if (familyId.isEmpty || childId.isEmpty) {
-        return Left(
+        return const Left(
           ValidationFailure('ID семьи и ребенка не могут быть пустыми'),
         );
       }

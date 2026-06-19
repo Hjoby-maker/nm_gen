@@ -15,14 +15,13 @@ import 'package:nm_gen/presentation/widgets/family_form_dialog.dart';
 import 'package:nm_gen/core/enums/gender.dart';
 
 class FamilyScreen extends StatefulWidget {
-  final String personId;
-  final String personName;
-
   const FamilyScreen({
     Key? key,
     required this.personId,
     required this.personName,
   }) : super(key: key);
+  final String personId;
+  final String personName;
 
   @override
   State<FamilyScreen> createState() => _FamilyScreenState();
@@ -34,7 +33,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<FamilyBloc>().add(LoadFamiliesEvent(widget.personId));
-      final personState = context.read<PersonBloc>().state;
+      final PersonState personState = context.read<PersonBloc>().state;
       if (personState is! PersonsLoaded) {
         context.read<PersonBloc>().add(const LoadPersonsEvent());
       }
@@ -47,7 +46,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
       appBar: AppBar(
         title: Text('Семья ${widget.personName}'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        actions: [
+        actions: <Widget>[
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () => _showAddFamilyDialog(context),
@@ -65,7 +64,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
         ],
       ),
       body: BlocConsumer<FamilyBloc, FamilyState>(
-        listener: (context, state) {
+        listener: (BuildContext context, FamilyState state) {
           if (state is FamilyOperationSuccess) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -83,12 +82,12 @@ class _FamilyScreenState extends State<FamilyScreen> {
             );
           }
         },
-        builder: (context, state) {
+        builder: (BuildContext context, FamilyState state) {
           if (state is FamilyLoading) {
             return const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+                children: <Widget>[
                   CircularProgressIndicator(),
                   SizedBox(height: 16),
                   Text('Загрузка семей...'),
@@ -101,7 +100,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+                children: <Widget>[
                   const Icon(Icons.error_outline, size: 64, color: Colors.red),
                   const SizedBox(height: 16),
                   Text(state.message, textAlign: TextAlign.center),
@@ -124,7 +123,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
               return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
+                  children: <Widget>[
                     const Icon(
                       Icons.family_restroom,
                       size: 64,
@@ -156,12 +155,12 @@ class _FamilyScreenState extends State<FamilyScreen> {
             return ListView.builder(
               padding: const EdgeInsets.symmetric(vertical: 8),
               itemCount: state.families.length,
-              itemBuilder: (context, index) {
-                final family = state.families[index];
-                final husband = state.persons[family.husbandId];
-                final wife = state.persons[family.wifeId];
-                final children = family.childrenIds
-                    .map((id) => state.persons[id])
+              itemBuilder: (BuildContext context, int index) {
+                final Family family = state.families[index];
+                final Person? husband = state.persons[family.husbandId];
+                final Person? wife = state.persons[family.wifeId];
+                final List<Person> children = family.childrenIds
+                    .map((String id) => state.persons[id])
                     .whereType<Person>()
                     .toList();
 
@@ -173,9 +172,9 @@ class _FamilyScreenState extends State<FamilyScreen> {
                   onTap: () => _showFamilyDetails(context, family.id),
                   onEdit: () => _showEditFamilyDialog(context, family),
                   onDelete: () => _confirmDeleteFamily(context, family.id),
-                  onDeleteChild: (childId) {
-                    final child = children.firstWhere(
-                      (c) => c.id == childId,
+                  onDeleteChild: (String childId) {
+                    final Person child = children.firstWhere(
+                      (Person c) => c.id == childId,
                       orElse: () => Person.empty(),
                     );
                     if (child.id.isNotEmpty) {
@@ -217,14 +216,14 @@ class _FamilyScreenState extends State<FamilyScreen> {
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        children: <Widget>[
           // Карточка с информацией о семье
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                children: <Widget>[
                   const Text(
                     'Информация о семье',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -264,9 +263,9 @@ class _FamilyScreenState extends State<FamilyScreen> {
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                children: <Widget>[
                   Row(
-                    children: [
+                    children: <Widget>[
                       const Text(
                         'Дети',
                         style: TextStyle(
@@ -294,7 +293,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
                       ),
                     )
                   else
-                    ...details.children.map((child) {
+                    ...details.children.map((Person child) {
                       return ListTile(
                         leading: CircleAvatar(
                           backgroundColor: child.gender == Gender.male
@@ -338,7 +337,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
 
           // Кнопки действий
           Row(
-            children: [
+            children: <Widget>[
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () =>
@@ -385,7 +384,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        children: <Widget>[
           SizedBox(
             width: 100,
             child: Text(
@@ -408,7 +407,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
 
   /// Диалог добавления новой семьи
   void _showAddFamilyDialog(BuildContext context) {
-    final personState = context.read<PersonBloc>().state;
+    final PersonState personState = context.read<PersonBloc>().state;
 
     if (personState is! PersonsLoaded) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -421,13 +420,13 @@ class _FamilyScreenState extends State<FamilyScreen> {
       return;
     }
 
-    final familyBloc = context.read<FamilyBloc>();
+    final FamilyBloc familyBloc = context.read<FamilyBloc>();
 
     showDialog(
       context: context,
-      builder: (dialogContext) => FamilyFormDialog(
+      builder: (BuildContext dialogContext) => FamilyFormDialog(
         availablePersons: personState.persons,
-        onSave: (family) {
+        onSave: (Family family) {
           familyBloc.add(AddFamilyEvent(family));
         },
       ),
@@ -436,7 +435,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
 
   /// Диалог редактирования семьи
   void _showEditFamilyDialog(BuildContext context, Family family) {
-    final personState = context.read<PersonBloc>().state;
+    final PersonState personState = context.read<PersonBloc>().state;
 
     if (personState is! PersonsLoaded) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -449,14 +448,14 @@ class _FamilyScreenState extends State<FamilyScreen> {
       return;
     }
 
-    final familyBloc = context.read<FamilyBloc>();
+    final FamilyBloc familyBloc = context.read<FamilyBloc>();
 
     showDialog(
       context: context,
-      builder: (dialogContext) => FamilyFormDialog(
+      builder: (BuildContext dialogContext) => FamilyFormDialog(
         existingFamily: family,
         availablePersons: personState.persons,
-        onSave: (updatedFamily) {
+        onSave: (Family updatedFamily) {
           familyBloc.add(UpdateFamilyEvent(updatedFamily));
         },
       ),
@@ -470,7 +469,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
 
   /// Диалог добавления ребенка в семью
   void _showAddChildDialog(BuildContext context, String familyId) {
-    final personState = context.read<PersonBloc>().state;
+    final PersonState personState = context.read<PersonBloc>().state;
 
     if (personState is! PersonsLoaded) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -483,26 +482,26 @@ class _FamilyScreenState extends State<FamilyScreen> {
       return;
     }
 
-    final familyState = context.read<FamilyBloc>().state;
-    List<String> existingChildIds = [];
-    List<String> parentIds = [];
+    final FamilyState familyState = context.read<FamilyBloc>().state;
+    List<String> existingChildIds = <String>[];
+    List<String> parentIds = <String>[];
 
     if (familyState is FamiliesLoaded) {
-      final family = familyState.families.firstWhere(
-        (f) => f.id == familyId,
+      final Family family = familyState.families.firstWhere(
+        (Family f) => f.id == familyId,
         orElse: () => Family.empty(),
       );
       existingChildIds = family.childrenIds;
-      parentIds = [
+      parentIds = <String>[
         if (family.husbandId != null) family.husbandId!,
         if (family.wifeId != null) family.wifeId!,
       ];
     }
 
-    final availableChildren = personState.persons
-        .where((person) => person.id != widget.personId)
-        .where((person) => !parentIds.contains(person.id))
-        .where((person) => !existingChildIds.contains(person.id))
+    final List<Person> availableChildren = personState.persons
+        .where((Person person) => person.id != widget.personId)
+        .where((Person person) => !parentIds.contains(person.id))
+        .where((Person person) => !existingChildIds.contains(person.id))
         .toList();
 
     if (availableChildren.isEmpty) {
@@ -515,13 +514,13 @@ class _FamilyScreenState extends State<FamilyScreen> {
       return;
     }
 
-    final familyBloc = context.read<FamilyBloc>();
+    final FamilyBloc familyBloc = context.read<FamilyBloc>();
 
     showDialog(
       context: context,
-      builder: (dialogContext) => AddChildDialog(
+      builder: (BuildContext dialogContext) => AddChildDialog(
         availableChildren: availableChildren,
-        onAddChild: (childId) {
+        onAddChild: (String childId) {
           familyBloc.add(AddChildToFamilyEvent(familyId, childId));
         },
       ),
@@ -530,14 +529,14 @@ class _FamilyScreenState extends State<FamilyScreen> {
 
   /// Подтверждение удаления семьи
   void _confirmDeleteFamily(BuildContext context, String familyId) {
-    final familyBloc = context.read<FamilyBloc>();
+    final FamilyBloc familyBloc = context.read<FamilyBloc>();
 
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (BuildContext dialogContext) => AlertDialog(
         title: const Text('Удаление семьи'),
         content: const Text('Вы уверены, что хотите удалить эту семью?'),
-        actions: [
+        actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Отмена'),
@@ -563,14 +562,14 @@ class _FamilyScreenState extends State<FamilyScreen> {
     String childId,
     String childName,
   ) {
-    final familyBloc = context.read<FamilyBloc>();
+    final FamilyBloc familyBloc = context.read<FamilyBloc>();
 
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (BuildContext dialogContext) => AlertDialog(
         title: const Text('Удаление ребенка'),
         content: Text('Вы уверены, что хотите удалить "$childName" из семьи?'),
-        actions: [
+        actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Отмена'),

@@ -2,15 +2,6 @@ import 'package:equatable/equatable.dart';
 
 /// Сущность семьи (брака/союза) между двумя людьми
 class Family extends Equatable {
-  final String id;
-  final String? husbandId; // ID мужа/партнера 1
-  final String? wifeId; // ID жены/партнера 2
-  final List<String> childrenIds;
-  final DateTime? marriageDate;
-  final DateTime? divorceDate;
-  final String? marriagePlace;
-  final String? notes;
-
   const Family({
     required this.id,
     this.husbandId,
@@ -21,6 +12,14 @@ class Family extends Equatable {
     this.marriagePlace,
     this.notes,
   });
+  final String id;
+  final String? husbandId; // ID мужа/партнера 1
+  final String? wifeId; // ID жены/партнера 2
+  final List<String> childrenIds;
+  final DateTime? marriageDate;
+  final DateTime? divorceDate;
+  final String? marriagePlace;
+  final String? notes;
 
   /// Активен ли брак
   bool get isActive => divorceDate == null && marriageDate != null;
@@ -32,10 +31,7 @@ class Family extends Equatable {
   int get childrenCount => childrenIds.length;
 
   /// Получить ID родителя для проверки
-  List<String> get parentIds => [
-    if (husbandId != null) husbandId!,
-    if (wifeId != null) wifeId!,
-  ];
+  List<String> get parentIds => <String>[?husbandId, ?wifeId];
 
   Family copyWith({
     String? id,
@@ -60,7 +56,7 @@ class Family extends Equatable {
   }
 
   @override
-  List<Object?> get props => [
+  List<Object?> get props => <Object?>[
     id,
     husbandId,
     wifeId,
@@ -72,6 +68,10 @@ class Family extends Equatable {
   ];
 
   /// Пустая семья
-  static Family empty() =>
-      Family(id: '', husbandId: null, wifeId: null, childrenIds: const []);
+  static Family empty() => const Family(
+    id: '',
+    husbandId: null,
+    wifeId: null,
+    childrenIds: <String>[],
+  );
 }

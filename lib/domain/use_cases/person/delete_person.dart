@@ -4,14 +4,15 @@ import 'package:nm_gen/domain/repositories/person_repository.dart';
 
 /// Use Case: Удаление человека
 class DeletePersonUseCase {
-  final PersonRepository repository;
-
   DeletePersonUseCase(this.repository);
+  final PersonRepository repository;
 
   Future<Either<Failure, void>> execute(String id) async {
     try {
       if (id.isEmpty) {
-        return Left(ValidationFailure('ID человека не может быть пустым'));
+        return const Left(
+          ValidationFailure('ID человека не может быть пустым'),
+        );
       }
 
       await repository.deletePerson(id);

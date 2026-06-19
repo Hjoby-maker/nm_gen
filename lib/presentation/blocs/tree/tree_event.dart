@@ -4,29 +4,29 @@ abstract class TreeEvent extends Equatable {
   const TreeEvent();
 
   @override
-  List<Object?> get props => [];
+  List<Object?> get props => <Object?>[];
 }
 
 class LoadTreeEvent extends TreeEvent {
-  final String rootPersonId;
   const LoadTreeEvent(this.rootPersonId);
+  final String rootPersonId;
 
   @override
-  List<Object?> get props => [rootPersonId];
+  List<Object?> get props => <Object?>[rootPersonId];
 }
 
 class ChangeRootPersonEvent extends TreeEvent {
-  final String personId;
   const ChangeRootPersonEvent(this.personId);
+  final String personId;
 
   @override
-  List<Object?> get props => [personId];
+  List<Object?> get props => <Object?>[personId];
 }
 
 class SelectPersonEvent extends TreeEvent {
-  final String personId;
   const SelectPersonEvent(this.personId);
+  final String personId;
 
   @override
-  List<Object?> get props => [personId];
+  List<Object?> get props => <Object?>[personId];
 }

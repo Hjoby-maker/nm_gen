@@ -76,6 +76,10 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+
+  assets:
+    - assets/gedcom/kuznetsov_tree.ged
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - assets/images/

@@ -5,17 +5,18 @@ import 'package:nm_gen/domain/repositories/person_repository.dart';
 
 /// Use Case: Получение человека по ID
 class GetPersonUseCase {
-  final PersonRepository repository;
-
   GetPersonUseCase(this.repository);
+  final PersonRepository repository;
 
   Future<Either<Failure, Person>> execute(String id) async {
     try {
       if (id.isEmpty) {
-        return Left(ValidationFailure('ID человека не может быть пустым'));
+        return const Left(
+          ValidationFailure('ID человека не может быть пустым'),
+        );
       }
 
-      final person = await repository.getPerson(id);
+      final Person? person = await repository.getPerson(id);
 
       if (person == null) {
         return Left(NotFoundFailure('Человек с ID $id не найден'));

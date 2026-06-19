@@ -3,14 +3,6 @@ import 'package:nm_gen/core/enums/event_type.dart';
 
 /// Событие в жизни человека (рождение, смерть, брак и т.д.)
 class Event extends Equatable {
-  final String id;
-  final String personId;
-  final EventType type;
-  final DateTime? date;
-  final String? place;
-  final String? description;
-  final List<String> mediaUrls;
-
   const Event({
     required this.id,
     required this.personId,
@@ -20,6 +12,13 @@ class Event extends Equatable {
     this.description,
     this.mediaUrls = const [],
   });
+  final String id;
+  final String personId;
+  final EventType type;
+  final DateTime? date;
+  final String? place;
+  final String? description;
+  final List<String> mediaUrls;
 
   Event copyWith({
     String? id,
@@ -42,7 +41,7 @@ class Event extends Equatable {
   }
 
   @override
-  List<Object?> get props => [
+  List<Object?> get props => <Object?>[
     id,
     personId,
     type,

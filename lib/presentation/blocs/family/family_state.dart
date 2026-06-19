@@ -7,7 +7,7 @@ abstract class FamilyState extends Equatable {
   const FamilyState();
 
   @override
-  List<Object?> get props => [];
+  List<Object?> get props => <Object?>[];
 }
 
 class FamilyInitial extends FamilyState {}
@@ -16,50 +16,48 @@ class FamilyLoading extends FamilyState {}
 
 /// Состояние со списком семей
 class FamiliesLoaded extends FamilyState {
-  final List<Family> families;
-  final Map<String, Person> persons;
-  final String? selectedFamilyId;
-
   const FamiliesLoaded({
     required this.families,
     this.persons = const {},
     this.selectedFamilyId,
   });
+  final List<Family> families;
+  final Map<String, Person> persons;
+  final String? selectedFamilyId;
 
   Family? get selectedFamily {
     try {
-      return families.firstWhere((f) => f.id == selectedFamilyId);
+      return families.firstWhere((Family f) => f.id == selectedFamilyId);
     } catch (_) {
       return null;
     }
   }
 
   @override
-  List<Object?> get props => [families, persons, selectedFamilyId];
+  List<Object?> get props => <Object?>[families, persons, selectedFamilyId];
 }
 
 /// Состояние с деталями семьи
 class FamilyDetailsLoaded extends FamilyState {
+  const FamilyDetailsLoaded(this.details);
   final FamilyDetails details;
 
-  const FamilyDetailsLoaded(this.details);
-
   @override
-  List<Object?> get props => [details];
+  List<Object?> get props => <Object?>[details];
 }
 
 class FamilyOperationSuccess extends FamilyState {
-  final String message;
   const FamilyOperationSuccess(this.message);
+  final String message;
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => <Object?>[message];
 }
 
 class FamilyError extends FamilyState {
-  final String message;
   const FamilyError(this.message);
+  final String message;
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => <Object?>[message];
 }

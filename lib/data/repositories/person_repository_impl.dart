@@ -6,33 +6,32 @@ import 'package:nm_gen/domain/repositories/person_repository.dart';
 
 @Injectable(as: PersonRepository)
 class PersonRepositoryImpl implements PersonRepository {
-  final PersonLocalDataSource localDataSource;
-
   PersonRepositoryImpl(this.localDataSource);
+  final PersonLocalDataSource localDataSource;
 
   @override
   Future<Person> addPerson(Person person) async {
-    final model = PersonModel.fromDomain(person);
-    final savedModel = await localDataSource.insertPerson(model);
+    final PersonModel model = PersonModel.fromDomain(person);
+    final PersonModel savedModel = await localDataSource.insertPerson(model);
     return savedModel.toDomain();
   }
 
   @override
   Future<Person?> getPerson(String id) async {
-    final model = await localDataSource.getPerson(id);
+    final PersonModel? model = await localDataSource.getPerson(id);
     return model?.toDomain();
   }
 
   @override
   Future<List<Person>> getAllPersons() async {
-    final models = await localDataSource.getAllPersons();
-    return models.map((model) => model.toDomain()).toList();
+    final List<PersonModel> models = await localDataSource.getAllPersons();
+    return models.map((PersonModel model) => model.toDomain()).toList();
   }
 
   @override
   Future<Person> updatePerson(Person person) async {
-    final model = PersonModel.fromDomain(person);
-    final updatedModel = await localDataSource.updatePerson(model);
+    final PersonModel model = PersonModel.fromDomain(person);
+    final PersonModel updatedModel = await localDataSource.updatePerson(model);
     return updatedModel.toDomain();
   }
 
@@ -46,14 +45,14 @@ class PersonRepositoryImpl implements PersonRepository {
     if (query.isEmpty) {
       return getAllPersons();
     }
-    final models = await localDataSource.searchPersons(query);
-    return models.map((model) => model.toDomain()).toList();
+    final List<PersonModel> models = await localDataSource.searchPersons(query);
+    return models.map((PersonModel model) => model.toDomain()).toList();
   }
 
   @override
   Future<List<Person>> getPersonsByIds(List<String> ids) async {
-    if (ids.isEmpty) return [];
-    final models = await localDataSource.getPersonsByIds(ids);
-    return models.map((model) => model.toDomain()).toList();
+    if (ids.isEmpty) return <Person>[];
+    final List<PersonModel> models = await localDataSource.getPersonsByIds(ids);
+    return models.map((PersonModel model) => model.toDomain()).toList();
   }
 }

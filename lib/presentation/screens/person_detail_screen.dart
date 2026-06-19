@@ -13,10 +13,9 @@ import 'package:nm_gen/presentation/screens/family_screen.dart';
 import 'package:nm_gen/presentation/widgets/family_form_dialog.dart';
 
 class PersonDetailScreen extends StatefulWidget {
-  final String personId;
-
   const PersonDetailScreen({Key? key, required this.personId})
     : super(key: key);
+  final String personId;
 
   @override
   State<PersonDetailScreen> createState() => _PersonDetailScreenState();
@@ -24,9 +23,9 @@ class PersonDetailScreen extends StatefulWidget {
 
 class _PersonDetailScreenState extends State<PersonDetailScreen> {
   Person? _person;
-  List<Family> _familiesAsChild = [];
-  List<Family> _familiesAsParent = [];
-  Map<String, Person> _familyMembers = {};
+  final List<Family> _familiesAsChild = <Family>[];
+  final List<Family> _familiesAsParent = <Family>[];
+  final Map<String, Person> _familyMembers = <String, Person>{};
 
   @override
   void initState() {
@@ -35,15 +34,15 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
   }
 
   Future<void> _loadData() async {
-    final personBloc = context.read<PersonBloc>();
-    final familyBloc = context.read<FamilyBloc>();
+    final PersonBloc personBloc = context.read<PersonBloc>();
+    final FamilyBloc familyBloc = context.read<FamilyBloc>();
 
     // Загружаем человека
-    final personState = personBloc.state;
+    final PersonState personState = personBloc.state;
     if (personState is PersonsLoaded) {
       setState(() {
         _person = personState.persons.firstWhere(
-          (p) => p.id == widget.personId,
+          (Person p) => p.id == widget.personId,
           orElse: () => Person.empty(),
         );
       });
@@ -61,7 +60,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
       appBar: AppBar(
         title: Text(_person?.displayName ?? 'Загрузка...'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        actions: [
+        actions: <Widget>[
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () => _showEditPersonDialog(context),
@@ -70,7 +69,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
         ],
       ),
       body: BlocConsumer<FamilyBloc, FamilyState>(
-        listener: (context, state) {
+        listener: (BuildContext context, FamilyState state) {
           if (state is FamilyOperationSuccess) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -89,7 +88,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
             );
           }
         },
-        builder: (context, state) {
+        builder: (BuildContext context, FamilyState state) {
           if (_person == null) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -98,7 +97,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+              children: <Widget>[
                 // Информация о человеке
                 _buildPersonInfo(),
                 const SizedBox(height: 24),
@@ -130,15 +129,15 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
   }
 
   Widget _buildPersonInfo() {
-    final person = _person!;
+    final Person person = _person!;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: <Widget>[
             Row(
-              children: [
+              children: <Widget>[
                 CircleAvatar(
                   radius: 40,
                   backgroundColor: person.gender == Gender.male
@@ -156,7 +155,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                    children: <Widget>[
                       Text(
                         person.fullName,
                         style: const TextStyle(
@@ -198,7 +197,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        children: <Widget>[
           SizedBox(
             width: 120,
             child: Text(
@@ -226,7 +225,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+            children: <Widget>[
               Text(
                 title,
                 style: const TextStyle(
@@ -256,9 +255,9 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: <Widget>[
             Row(
-              children: [
+              children: <Widget>[
                 Text(
                   title,
                   style: const TextStyle(
@@ -274,7 +273,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
               ],
             ),
             const SizedBox(height: 8),
-            ...families.map((family) {
+            ...families.map((Family family) {
               return ListTile(
                 title: Text(_getFamilyLabel(family, isChild)),
                 subtitle: Text(
@@ -287,7 +286,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => FamilyScreen(
+                      builder: (BuildContext context) => FamilyScreen(
                         personId: widget.personId,
                         personName: _person?.displayName ?? '',
                       ),
@@ -295,7 +294,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
                   );
                 },
               );
-            }).toList(),
+            }),
           ],
         ),
       ),
@@ -306,7 +305,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
-      children: [
+      children: <Widget>[
         // Добавить брата/сестру
         ElevatedButton.icon(
           onPressed: () => _showAddSiblingDialog(context),
@@ -346,17 +345,17 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
   // =========================================================================
 
   List<Family> _getFamiliesAsChild(FamilyState state) {
-    if (state is! FamiliesLoaded) return [];
+    if (state is! FamiliesLoaded) return <Family>[];
     return state.families
-        .where((family) => family.childrenIds.contains(widget.personId))
+        .where((Family family) => family.childrenIds.contains(widget.personId))
         .toList();
   }
 
   List<Family> _getFamiliesAsParent(FamilyState state) {
-    if (state is! FamiliesLoaded) return [];
+    if (state is! FamiliesLoaded) return <Family>[];
     return state.families
         .where(
-          (family) =>
+          (Family family) =>
               family.husbandId == widget.personId ||
               family.wifeId == widget.personId,
         )
@@ -365,12 +364,12 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
 
   String _getFamilyLabel(Family family, bool isChild) {
     if (isChild) {
-      final parents = <String>[];
+      final List<String> parents = <String>[];
       if (family.husbandId != null) parents.add('отец: ${family.husbandId}');
       if (family.wifeId != null) parents.add('мать: ${family.wifeId}');
       return parents.isNotEmpty ? parents.join(', ') : 'Семья';
     } else {
-      final spouseId = family.husbandId == widget.personId
+      final String? spouseId = family.husbandId == widget.personId
           ? family.wifeId
           : family.husbandId;
       return spouseId != null ? 'Супруг: $spouseId' : 'Семья';
@@ -382,14 +381,14 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
   // =========================================================================
 
   void _showAddSiblingDialog(BuildContext context) {
-    final personState = context.read<PersonBloc>().state;
-    final familyState = context.read<FamilyBloc>().state;
+    final PersonState personState = context.read<PersonBloc>().state;
+    final FamilyState familyState = context.read<FamilyBloc>().state;
 
     if (personState is! PersonsLoaded || familyState is! FamiliesLoaded) return;
 
     // Находим семьи, где человек является ребенком
-    final parentFamilies = familyState.families
-        .where((family) => family.childrenIds.contains(widget.personId))
+    final List<Family> parentFamilies = familyState.families
+        .where((Family family) => family.childrenIds.contains(widget.personId))
         .toList();
 
     if (parentFamilies.isEmpty) {
@@ -416,11 +415,11 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
   ) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (BuildContext context) => AlertDialog(
         title: const Text('Выберите семью'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          children: families.map((family) {
+          children: families.map((Family family) {
             return ListTile(
               title: Text('Семья #${family.id.substring(0, 8)}'),
               subtitle: Text(
@@ -438,14 +437,14 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
   }
 
   void _showAddSiblingToFamilyDialog(BuildContext context, Family family) {
-    final personState = context.read<PersonBloc>().state;
+    final PersonState personState = context.read<PersonBloc>().state;
     if (personState is! PersonsLoaded) return;
 
-    final availableSiblings = personState.persons
-        .where((p) => p.id != widget.personId)
-        .where((p) => p.id != family.husbandId)
-        .where((p) => p.id != family.wifeId)
-        .where((p) => !family.childrenIds.contains(p.id))
+    final List<Person> availableSiblings = personState.persons
+        .where((Person p) => p.id != widget.personId)
+        .where((Person p) => p.id != family.husbandId)
+        .where((Person p) => p.id != family.wifeId)
+        .where((Person p) => !family.childrenIds.contains(p.id))
         .toList();
 
     if (availableSiblings.isEmpty) {
@@ -460,11 +459,11 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (BuildContext context) => AlertDialog(
         title: const Text('Добавить брата/сестру'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          children: availableSiblings.map((person) {
+          children: availableSiblings.map((Person person) {
             return ListTile(
               leading: CircleAvatar(
                 child: Text(person.displayName.substring(0, 1).toUpperCase()),
@@ -486,45 +485,47 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
 
   void _showAddSpouseDialog(BuildContext context) {
     // Создаем новую семью с текущим человеком и выбранным супругом
-    final personState = context.read<PersonBloc>().state;
+    final PersonState personState = context.read<PersonBloc>().state;
     if (personState is! PersonsLoaded) return;
 
     // Показываем диалог выбора супруга
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (BuildContext context) => AlertDialog(
         title: const Text('Добавить супруга'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          children: [
+          children: <Widget>[
             const Text('Выберите супруга для создания семьи:'),
             const SizedBox(height: 8),
-            ...personState.persons.where((p) => p.id != widget.personId).map((
-              person,
-            ) {
-              return ListTile(
-                leading: CircleAvatar(
-                  child: Text(person.displayName.substring(0, 1).toUpperCase()),
-                ),
-                title: Text(person.displayName),
-                subtitle: Text(person.formattedAge),
-                onTap: () {
-                  // Создаем семью
-                  final family = Family(
-                    id: DateTime.now().millisecondsSinceEpoch.toString(),
-                    husbandId: _person?.gender == Gender.male
-                        ? widget.personId
-                        : person.id,
-                    wifeId: _person?.gender == Gender.female
-                        ? widget.personId
-                        : person.id,
-                    childrenIds: [],
+            ...personState.persons
+                .where((Person p) => p.id != widget.personId)
+                .map((Person person) {
+                  return ListTile(
+                    leading: CircleAvatar(
+                      child: Text(
+                        person.displayName.substring(0, 1).toUpperCase(),
+                      ),
+                    ),
+                    title: Text(person.displayName),
+                    subtitle: Text(person.formattedAge),
+                    onTap: () {
+                      // Создаем семью
+                      final Family family = Family(
+                        id: DateTime.now().millisecondsSinceEpoch.toString(),
+                        husbandId: _person?.gender == Gender.male
+                            ? widget.personId
+                            : person.id,
+                        wifeId: _person?.gender == Gender.female
+                            ? widget.personId
+                            : person.id,
+                        childrenIds: const <String>[],
+                      );
+                      context.read<FamilyBloc>().add(AddFamilyEvent(family));
+                      Navigator.pop(context);
+                    },
                   );
-                  context.read<FamilyBloc>().add(AddFamilyEvent(family));
-                  Navigator.pop(context);
-                },
-              );
-            }).toList(),
+                }),
           ],
         ),
       ),
@@ -533,7 +534,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
 
   void _showAddChildAsParentDialog(BuildContext context) {
     // Создаем новую семью с текущим человеком как родителем
-    final personState = context.read<PersonBloc>().state;
+    final PersonState personState = context.read<PersonBloc>().state;
     if (personState is! PersonsLoaded) return;
 
     // Показываем диалог выбора второго родителя и ребенка
@@ -542,16 +543,16 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
   }
 
   void _showAddFamilyDialog(BuildContext context) {
-    final personState = context.read<PersonBloc>().state;
+    final PersonState personState = context.read<PersonBloc>().state;
     if (personState is! PersonsLoaded) return;
 
-    final familyBloc = context.read<FamilyBloc>();
+    final FamilyBloc familyBloc = context.read<FamilyBloc>();
 
     showDialog(
       context: context,
-      builder: (context) => FamilyFormDialog(
+      builder: (BuildContext context) => FamilyFormDialog(
         availablePersons: personState.persons,
-        onSave: (family) {
+        onSave: (Family family) {
           familyBloc.add(AddFamilyEvent(family));
         },
       ),

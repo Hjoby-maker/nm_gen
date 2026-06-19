@@ -6,7 +6,7 @@ abstract class PersonState extends Equatable {
   const PersonState();
 
   @override
-  List<Object?> get props => [];
+  List<Object?> get props => <Object?>[];
 }
 
 /// Начальное состояние (пустое)
@@ -17,34 +17,33 @@ class PersonLoading extends PersonState {}
 
 /// Состояние успешной загрузки списка
 class PersonsLoaded extends PersonState {
-  final List<Person> persons;
-  final bool isSearching;
-  final String? searchQuery;
-
   const PersonsLoaded({
     required this.persons,
     this.isSearching = false,
     this.searchQuery,
   });
+  final List<Person> persons;
+  final bool isSearching;
+  final String? searchQuery;
 
   @override
-  List<Object?> get props => [persons, isSearching, searchQuery];
+  List<Object?> get props => <Object?>[persons, isSearching, searchQuery];
 }
 
 /// Состояние успешного добавления/обновления
 class PersonOperationSuccess extends PersonState {
-  final String message;
   const PersonOperationSuccess(this.message);
+  final String message;
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => <Object?>[message];
 }
 
 /// Состояние ошибки
 class PersonError extends PersonState {
-  final String message;
   const PersonError(this.message);
+  final String message;
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => <Object?>[message];
 }

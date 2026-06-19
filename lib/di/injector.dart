@@ -3,12 +3,17 @@ import 'package:injectable/injectable.dart';
 import 'package:nm_gen/data/datasources/local/database/db_helper.dart';
 import 'package:nm_gen/data/datasources/local/family_local_datasource.dart';
 import 'package:nm_gen/data/datasources/local/person_local_datasource.dart';
+import 'package:nm_gen/data/repositories/family_repository_impl.dart';
+import 'package:nm_gen/data/repositories/person_repository_impl.dart';
 import 'package:nm_gen/domain/repositories/family_repository.dart';
 import 'package:nm_gen/domain/repositories/person_repository.dart';
 import 'package:nm_gen/domain/use_cases/family/add_child_to_family.dart';
 import 'package:nm_gen/domain/use_cases/family/add_family.dart';
 import 'package:nm_gen/domain/use_cases/family/get_families_by_person.dart';
-import 'package:nm_gen/domain/use_cases/family/remove_child_from_family.dart'; // <-- Добавляем импорт
+import 'package:nm_gen/domain/use_cases/family/get_family_with_details.dart';
+import 'package:nm_gen/domain/use_cases/family/remove_child_from_family.dart';
+import 'package:nm_gen/domain/use_cases/gedcom/export_gedcom.dart';
+import 'package:nm_gen/domain/use_cases/gedcom/import_gedcom.dart';
 import 'package:nm_gen/domain/use_cases/person/add_person.dart';
 import 'package:nm_gen/domain/use_cases/person/delete_person.dart';
 import 'package:nm_gen/domain/use_cases/person/get_all_persons.dart';
@@ -19,9 +24,6 @@ import 'package:nm_gen/domain/use_cases/tree/get_family_tree.dart';
 import 'package:nm_gen/presentation/blocs/family/family_bloc.dart';
 import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
 import 'package:nm_gen/presentation/blocs/tree/tree_bloc.dart';
-import 'package:nm_gen/domain/use_cases/family/get_family_with_details.dart';
-import 'package:nm_gen/domain/use_cases/gedcom/import_gedcom.dart';
-import 'package:nm_gen/domain/use_cases/gedcom/export_gedcom.dart';
 import 'injector.config.dart';
 
 final getIt = GetIt.instance;
@@ -46,18 +48,44 @@ void registerUseCasesAndBlocs() {
     () => FamilyLocalDataSource(getIt<DatabaseHelper>()),
   );
 
-  // Регистрируем репозитории (уже зарегистрированы через @Injectable аннотации)
-  // Получаем репозитории из контейнера
-  final personRepo = getIt<PersonRepository>();
-  final familyRepo = getIt<FamilyRepository>();
+  // ============================================================
+  // РЕГИСТРАЦИЯ РЕПОЗИТОРИЕВ
+  // ============================================================
+  // Регистрируем PersonRepository - передаем как позиционный аргумент
+  getIt.registerLazySingleton<PersonRepository>(
+    () => PersonRepositoryImpl(
+      getIt<PersonLocalDataSource>(), // <-- позиционный аргумент
+    ),
+  );
 
-  // Регистрируем Use Cases для Person
-  final addPersonUseCase = AddPersonUseCase(personRepo);
-  final getPersonUseCase = GetPersonUseCase(personRepo);
-  final getAllPersonsUseCase = GetAllPersonsUseCase(personRepo);
-  final updatePersonUseCase = UpdatePersonUseCase(personRepo);
-  final deletePersonUseCase = DeletePersonUseCase(personRepo);
-  final searchPersonsUseCase = SearchPersonsUseCase(personRepo);
+  // Регистрируем FamilyRepository - передаем как позиционный аргумент
+  getIt.registerLazySingleton<FamilyRepository>(
+    () => FamilyRepositoryImpl(
+      getIt<FamilyLocalDataSource>(), // <-- позиционный аргумент
+    ),
+  );
+
+  // Получаем репозитории из контейнера
+  final PersonRepository personRepo = getIt<PersonRepository>();
+  final FamilyRepository familyRepo = getIt<FamilyRepository>();
+
+  // ============================================================
+  // РЕГИСТРАЦИЯ USE CASES ДЛЯ PERSON
+  // ============================================================
+  final AddPersonUseCase addPersonUseCase = AddPersonUseCase(personRepo);
+  final GetPersonUseCase getPersonUseCase = GetPersonUseCase(personRepo);
+  final GetAllPersonsUseCase getAllPersonsUseCase = GetAllPersonsUseCase(
+    personRepo,
+  );
+  final UpdatePersonUseCase updatePersonUseCase = UpdatePersonUseCase(
+    personRepo,
+  );
+  final DeletePersonUseCase deletePersonUseCase = DeletePersonUseCase(
+    personRepo,
+  );
+  final SearchPersonsUseCase searchPersonsUseCase = SearchPersonsUseCase(
+    personRepo,
+  );
 
   getIt.registerLazySingleton(() => addPersonUseCase);
   getIt.registerLazySingleton(() => getPersonUseCase);
@@ -66,30 +94,56 @@ void registerUseCasesAndBlocs() {
   getIt.registerLazySingleton(() => deletePersonUseCase);
   getIt.registerLazySingleton(() => searchPersonsUseCase);
 
-  // Регистрируем Use Cases для Family
-  final addFamilyUseCase = AddFamilyUseCase(familyRepo);
-  final addChildToFamilyUseCase = AddChildToFamilyUseCase(familyRepo);
-  final removeChildFromFamilyUseCase = RemoveChildFromFamilyUseCase(
-    familyRepo,
-  ); // <-- Добавляем
-  final getFamiliesByPersonUseCase = GetFamiliesByPersonUseCase(familyRepo);
+  // ============================================================
+  // РЕГИСТРАЦИЯ USE CASES ДЛЯ FAMILY
+  // ============================================================
+  final AddFamilyUseCase addFamilyUseCase = AddFamilyUseCase(familyRepo);
+  final AddChildToFamilyUseCase addChildToFamilyUseCase =
+      AddChildToFamilyUseCase(familyRepo);
+  final RemoveChildFromFamilyUseCase removeChildFromFamilyUseCase =
+      RemoveChildFromFamilyUseCase(familyRepo);
+  final GetFamiliesByPersonUseCase getFamiliesByPersonUseCase =
+      GetFamiliesByPersonUseCase(familyRepo);
+  final GetFamilyWithDetailsUseCase getFamilyWithDetailsUseCase =
+      GetFamilyWithDetailsUseCase(
+        familyRepository: familyRepo,
+        personRepository: personRepo,
+      );
 
   getIt.registerLazySingleton(() => addFamilyUseCase);
   getIt.registerLazySingleton(() => addChildToFamilyUseCase);
-  getIt.registerLazySingleton(
-    () => removeChildFromFamilyUseCase,
-  ); // <-- Регистрируем
+  getIt.registerLazySingleton(() => removeChildFromFamilyUseCase);
   getIt.registerLazySingleton(() => getFamiliesByPersonUseCase);
+  getIt.registerLazySingleton(() => getFamilyWithDetailsUseCase);
 
-  // Регистрируем Use Case для Tree
-  final getFamilyTreeUseCase = GetFamilyTreeUseCase(
+  // ============================================================
+  // РЕГИСТРАЦИЯ USE CASES ДЛЯ GEDCOM
+  // ============================================================
+  final ImportGedcomUseCase importGedcomUseCase = ImportGedcomUseCase(
+    personRepository: personRepo,
+    familyRepository: familyRepo,
+  );
+  getIt.registerLazySingleton(() => importGedcomUseCase);
+
+  final ExportGedcomUseCase exportGedcomUseCase = ExportGedcomUseCase(
+    personRepository: personRepo,
+    familyRepository: familyRepo,
+  );
+  getIt.registerLazySingleton(() => exportGedcomUseCase);
+
+  // ============================================================
+  // РЕГИСТРАЦИЯ USE CASES ДЛЯ TREE
+  // ============================================================
+  final GetFamilyTreeUseCase getFamilyTreeUseCase = GetFamilyTreeUseCase(
     personRepository: personRepo,
     familyRepository: familyRepo,
   );
   getIt.registerLazySingleton(() => getFamilyTreeUseCase);
 
-  // Регистрируем BLoC
-  getIt.registerFactory(
+  // ============================================================
+  // РЕГИСТРАЦИЯ BLOC
+  // ============================================================
+  getIt.registerFactory<PersonBloc>(
     () => PersonBloc(
       getAllPersonsUseCase: getAllPersonsUseCase,
       addPersonUseCase: addPersonUseCase,
@@ -99,39 +153,19 @@ void registerUseCasesAndBlocs() {
     ),
   );
 
-  getIt.registerFactory(
+  getIt.registerFactory<TreeBloc>(
     () => TreeBloc(getFamilyTreeUseCase: getFamilyTreeUseCase),
   );
 
-  final getFamilyWithDetailsUseCase = GetFamilyWithDetailsUseCase(
-    familyRepository: familyRepo,
-    personRepository: personRepo,
-  );
-  getIt.registerLazySingleton(() => getFamilyWithDetailsUseCase);
-
-  // Регистрируем FamilyBloc
-  getIt.registerFactory(
+  getIt.registerFactory<FamilyBloc>(
     () => FamilyBloc(
       getFamiliesByPersonUseCase: getFamiliesByPersonUseCase,
-      getFamilyWithDetailsUseCase: getFamilyWithDetailsUseCase, // <-- Добавляем
+      getFamilyWithDetailsUseCase: getFamilyWithDetailsUseCase,
       addFamilyUseCase: addFamilyUseCase,
       addChildToFamilyUseCase: addChildToFamilyUseCase,
       removeChildFromFamilyUseCase: removeChildFromFamilyUseCase,
       personRepository: personRepo,
-      familyRepository: familyRepo, // <-- Добавляем
+      familyRepository: familyRepo,
     ),
   );
-
-  // Регистрируем Use Cases для GEDCOM
-  final importGedcomUseCase = ImportGedcomUseCase(
-    personRepository: personRepo,
-    familyRepository: familyRepo,
-  );
-  getIt.registerLazySingleton(() => importGedcomUseCase);
-
-  final exportGedcomUseCase = ExportGedcomUseCase(
-    personRepository: personRepo,
-    familyRepository: familyRepo,
-  );
-  getIt.registerLazySingleton(() => exportGedcomUseCase);
 }

@@ -23,16 +23,16 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Генеалогическое древо'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        actions: [
+        actions: <Widget>[
           // Импорт GEDCOM
           IconButton(
             icon: const Icon(Icons.upload_file),
             onPressed: () {
-              final personBloc = context.read<PersonBloc>();
+              final PersonBloc personBloc = context.read<PersonBloc>();
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => BlocProvider.value(
+                  builder: (BuildContext context) => BlocProvider.value(
                     value: personBloc,
                     child: const ImportGedcomScreen(),
                   ),
@@ -45,11 +45,11 @@ class HomeScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.download),
             onPressed: () {
-              final personBloc = context.read<PersonBloc>();
+              final PersonBloc personBloc = context.read<PersonBloc>();
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => BlocProvider.value(
+                  builder: (BuildContext context) => BlocProvider.value(
                     value: personBloc,
                     child: const ExportGedcomScreen(),
                   ),
@@ -81,7 +81,7 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
       body: BlocConsumer<PersonBloc, PersonState>(
-        listener: (context, state) {
+        listener: (BuildContext context, PersonState state) {
           if (state is PersonOperationSuccess) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -98,7 +98,7 @@ class HomeScreen extends StatelessWidget {
             );
           }
         },
-        builder: (context, state) {
+        builder: (BuildContext context, PersonState state) {
           if (state is PersonLoading) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -107,7 +107,7 @@ class HomeScreen extends StatelessWidget {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+                children: <Widget>[
                   const Icon(Icons.error_outline, size: 64, color: Colors.red),
                   const SizedBox(height: 16),
                   Text(state.message, textAlign: TextAlign.center),
@@ -128,7 +128,7 @@ class HomeScreen extends StatelessWidget {
               return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
+                  children: <Widget>[
                     const Icon(
                       Icons.family_restroom,
                       size: 64,
@@ -153,7 +153,7 @@ class HomeScreen extends StatelessWidget {
                       )
                     else
                       Column(
-                        children: [
+                        children: <Widget>[
                           ElevatedButton(
                             onPressed: () => _showAddPersonDialog(context),
                             child: const Text('Добавить человека'),
@@ -172,12 +172,12 @@ class HomeScreen extends StatelessWidget {
             }
 
             return Column(
-              children: [
+              children: <Widget>[
                 if (state.isSearching)
                   Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: Row(
-                      children: [
+                      children: <Widget>[
                         Expanded(
                           child: Text(
                             'Результаты поиска: "${state.searchQuery}" (${state.persons.length})',
@@ -198,8 +198,8 @@ class HomeScreen extends StatelessWidget {
                 Expanded(
                   child: ListView.builder(
                     itemCount: state.persons.length,
-                    itemBuilder: (context, index) {
-                      final person = state.persons[index];
+                    itemBuilder: (BuildContext context, int index) {
+                      final Person person = state.persons[index];
                       return Card(
                         margin: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -231,7 +231,8 @@ class HomeScreen extends StatelessWidget {
                           ),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
-                            children: [
+                            children: <Widget>[
+                              // Кнопка "Семья"
                               IconButton(
                                 icon: const Icon(
                                   Icons.family_restroom,
@@ -246,6 +247,7 @@ class HomeScreen extends StatelessWidget {
                                 },
                                 tooltip: 'Управление семьей',
                               ),
+                              // Кнопка "Древо"
                               IconButton(
                                 icon: const Icon(
                                   Icons.account_tree,
@@ -256,6 +258,7 @@ class HomeScreen extends StatelessWidget {
                                 },
                                 tooltip: 'Показать в древе',
                               ),
+                              // Кнопка "Редактировать"
                               IconButton(
                                 icon: const Icon(
                                   Icons.edit,
@@ -265,6 +268,7 @@ class HomeScreen extends StatelessWidget {
                                     _showEditPersonDialog(context, person),
                                 tooltip: 'Редактировать',
                               ),
+                              // Кнопка "Удалить"
                               IconButton(
                                 icon: const Icon(
                                   Icons.delete,
@@ -296,7 +300,8 @@ class HomeScreen extends StatelessWidget {
       ),
       floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,
-        children: [
+        children: <Widget>[
+          // Кнопка "Древо"
           FloatingActionButton(
             heroTag: 'tree',
             onPressed: () => _navigateToTree(context),
@@ -304,10 +309,20 @@ class HomeScreen extends StatelessWidget {
             child: const Icon(Icons.account_tree),
           ),
           const SizedBox(height: 16),
+          // Кнопка "Добавить"
           FloatingActionButton(
             heroTag: 'add',
             onPressed: () => _showAddPersonDialog(context),
             child: const Icon(Icons.person_add),
+          ),
+          const SizedBox(height: 16),
+          // Кнопка "Удалить всё" (красная)
+          FloatingActionButton(
+            heroTag: 'delete_all',
+            onPressed: () => _confirmDeleteAll(context),
+            backgroundColor: Colors.red,
+            child: const Icon(Icons.delete_sweep),
+            tooltip: 'Удалить все данные',
           ),
         ],
       ),
@@ -319,7 +334,7 @@ class HomeScreen extends StatelessWidget {
   // =========================================================================
 
   void _navigateToTree(BuildContext context) {
-    final state = context.read<PersonBloc>().state;
+    final PersonState state = context.read<PersonBloc>().state;
     if (state is PersonsLoaded && state.persons.isNotEmpty) {
       _navigateToTreeWithPerson(context, state.persons.first.id);
     } else {
@@ -336,8 +351,8 @@ class HomeScreen extends StatelessWidget {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => BlocProvider(
-          create: (context) => getIt<TreeBloc>(),
+        builder: (BuildContext context) => BlocProvider(
+          create: (BuildContext context) => getIt<TreeBloc>(),
           child: TreeScreen(rootPersonId: personId),
         ),
       ),
@@ -349,15 +364,17 @@ class HomeScreen extends StatelessWidget {
     String personId,
     String personName,
   ) {
-    final personBloc = context.read<PersonBloc>();
+    final PersonBloc personBloc = context.read<PersonBloc>();
 
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => MultiBlocProvider(
-          providers: [
+        builder: (BuildContext context) => MultiBlocProvider(
+          providers: <BlocProvider>[
             BlocProvider.value(value: personBloc),
-            BlocProvider(create: (context) => getIt<FamilyBloc>()),
+            BlocProvider<FamilyBloc>(
+              create: (BuildContext context) => getIt<FamilyBloc>(),
+            ),
           ],
           child: FamilyScreen(personId: personId, personName: personName),
         ),
@@ -366,15 +383,17 @@ class HomeScreen extends StatelessWidget {
   }
 
   void _navigateToPersonDetail(BuildContext context, String personId) {
-    final personBloc = context.read<PersonBloc>();
+    final PersonBloc personBloc = context.read<PersonBloc>();
 
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => MultiBlocProvider(
-          providers: [
+        builder: (BuildContext context) => MultiBlocProvider(
+          providers: <BlocProvider>[
             BlocProvider.value(value: personBloc),
-            BlocProvider(create: (context) => getIt<FamilyBloc>()),
+            BlocProvider<FamilyBloc>(
+              create: (BuildContext context) => getIt<FamilyBloc>(),
+            ),
           ],
           child: PersonDetailScreen(personId: personId),
         ),
@@ -389,7 +408,7 @@ class HomeScreen extends StatelessWidget {
   void _showSearchDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (BuildContext dialogContext) => AlertDialog(
         title: const Text('Поиск людей'),
         content: TextField(
           autofocus: true,
@@ -397,15 +416,15 @@ class HomeScreen extends StatelessWidget {
             hintText: 'Введите имя или фамилию...',
             prefixIcon: Icon(Icons.search),
           ),
-          onSubmitted: (query) {
+          onSubmitted: (String query) {
             if (query.isNotEmpty) {
-              final bloc = context.read<PersonBloc>();
+              final PersonBloc bloc = context.read<PersonBloc>();
               bloc.add(SearchPersonsEvent(query));
               Navigator.pop(dialogContext);
             }
           },
         ),
-        actions: [
+        actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Отмена'),
@@ -416,19 +435,19 @@ class HomeScreen extends StatelessWidget {
   }
 
   void _showAddPersonDialog(BuildContext context) {
-    final personBloc = context.read<PersonBloc>();
+    final PersonBloc personBloc = context.read<PersonBloc>();
 
-    final nameController = TextEditingController();
-    final surnameController = TextEditingController();
+    final TextEditingController nameController = TextEditingController();
+    final TextEditingController surnameController = TextEditingController();
     Gender selectedGender = Gender.male;
 
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (BuildContext dialogContext) => AlertDialog(
         title: const Text('Добавить человека'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          children: [
+          children: <Widget>[
             TextField(
               controller: nameController,
               decoration: const InputDecoration(
@@ -451,19 +470,19 @@ class HomeScreen extends StatelessWidget {
                 labelText: 'Пол',
                 border: OutlineInputBorder(),
               ),
-              items: Gender.values.map((gender) {
-                return DropdownMenuItem(
+              items: Gender.values.map((Gender gender) {
+                return DropdownMenuItem<Gender>(
                   value: gender,
                   child: Text(gender.displayName),
                 );
               }).toList(),
-              onChanged: (value) {
+              onChanged: (Gender? value) {
                 if (value != null) selectedGender = value;
               },
             ),
           ],
         ),
-        actions: [
+        actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Отмена'),
@@ -472,7 +491,7 @@ class HomeScreen extends StatelessWidget {
             onPressed: () {
               if (nameController.text.isNotEmpty &&
                   surnameController.text.isNotEmpty) {
-                final person = Person.create(
+                final Person person = Person.create(
                   firstName: nameController.text,
                   lastName: surnameController.text,
                   gender: selectedGender,
@@ -489,19 +508,23 @@ class HomeScreen extends StatelessWidget {
   }
 
   void _showEditPersonDialog(BuildContext context, Person person) {
-    final personBloc = context.read<PersonBloc>();
+    final PersonBloc personBloc = context.read<PersonBloc>();
 
-    final nameController = TextEditingController(text: person.firstName);
-    final surnameController = TextEditingController(text: person.lastName);
+    final TextEditingController nameController = TextEditingController(
+      text: person.firstName,
+    );
+    final TextEditingController surnameController = TextEditingController(
+      text: person.lastName,
+    );
     Gender selectedGender = person.gender;
 
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (BuildContext dialogContext) => AlertDialog(
         title: const Text('Редактировать человека'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          children: [
+          children: <Widget>[
             TextField(
               controller: nameController,
               decoration: const InputDecoration(
@@ -524,19 +547,19 @@ class HomeScreen extends StatelessWidget {
                 labelText: 'Пол',
                 border: OutlineInputBorder(),
               ),
-              items: Gender.values.map((gender) {
-                return DropdownMenuItem(
+              items: Gender.values.map((Gender gender) {
+                return DropdownMenuItem<Gender>(
                   value: gender,
                   child: Text(gender.displayName),
                 );
               }).toList(),
-              onChanged: (value) {
+              onChanged: (Gender? value) {
                 if (value != null) selectedGender = value;
               },
             ),
           ],
         ),
-        actions: [
+        actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Отмена'),
@@ -545,7 +568,7 @@ class HomeScreen extends StatelessWidget {
             onPressed: () {
               if (nameController.text.isNotEmpty &&
                   surnameController.text.isNotEmpty) {
-                final updatedPerson = person.copyWith(
+                final Person updatedPerson = person.copyWith(
                   firstName: nameController.text,
                   lastName: surnameController.text,
                   gender: selectedGender,
@@ -562,14 +585,14 @@ class HomeScreen extends StatelessWidget {
   }
 
   void _confirmDelete(BuildContext context, String personId, String name) {
-    final personBloc = context.read<PersonBloc>();
+    final PersonBloc personBloc = context.read<PersonBloc>();
 
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (BuildContext dialogContext) => AlertDialog(
         title: const Text('Удаление человека'),
         content: Text('Вы уверены, что хотите удалить "$name"?'),
-        actions: [
+        actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Отмена'),
@@ -581,6 +604,87 @@ class HomeScreen extends StatelessWidget {
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Удалить'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // =========================================================================
+  // УДАЛЕНИЕ ВСЕХ ДАННЫХ
+  // =========================================================================
+
+  void _confirmDeleteAll(BuildContext context) {
+    final PersonBloc personBloc = context.read<PersonBloc>();
+    final PersonState state = personBloc.state;
+
+    if (state is! PersonsLoaded || state.persons.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Нет данных для удаления'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final int count = state.persons.length;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        title: const Text('⚠️ Удаление всех данных'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              'Вы уверены, что хотите удалить ВСЕХ людей ($count человек) и все связанные семьи?',
+              style: const TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: Colors.red.shade200),
+              ),
+              child: const Row(
+                children: <Widget>[
+                  Icon(Icons.warning, color: Colors.red, size: 16),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Это действие НЕЛЬЗЯ будет отменить!',
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Отмена'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              // Вызываем событие удаления всех людей
+              personBloc.add(const DeleteAllPersonsEvent());
+              Navigator.pop(dialogContext);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Удалить всё'),
           ),
         ],
       ),

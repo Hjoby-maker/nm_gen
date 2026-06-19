@@ -5,24 +5,25 @@ import 'package:nm_gen/domain/entities/person.dart';
 class GedcomParser {
   /// Парсит GEDCOM строку в список людей и семей
   static GedcomData parse(String content) {
-    final lines = content.split('\n');
-    final individuals = <String, GedcomIndividual>{};
-    final families = <String, GedcomFamily>{};
+    final List<String> lines = content.split('\n');
+    final Map<String, GedcomIndividual> individuals =
+        <String, GedcomIndividual>{};
+    final Map<String, GedcomFamily> families = <String, GedcomFamily>{};
 
     String? currentId;
     String? currentType;
-    final buffer = <String>[];
+    final List<String> buffer = <String>[];
 
-    for (var line in lines) {
+    for (String line in lines) {
       line = line.trim();
       if (line.isEmpty) continue;
 
-      final parts = line.split(' ');
+      final List<String> parts = line.split(' ');
       if (parts.length < 2) continue;
 
-      final level = int.tryParse(parts[0]) ?? 0;
-      final tag = parts[1];
-      final value = parts.length > 2 ? parts.sublist(2).join(' ') : '';
+      final int level = int.tryParse(parts[0]) ?? 0;
+      final String tag = parts[1];
+      final String value = parts.length > 2 ? parts.sublist(2).join(' ') : '';
 
       if (level == 0) {
         // Сохраняем предыдущий объект
@@ -65,18 +66,18 @@ class GedcomParser {
     Map<String, GedcomIndividual> individuals,
     String id,
   ) {
-    final data = <String, String>{};
-    for (final line in buffer) {
-      final parts = line.split(' ');
+    final Map<String, String> data = <String, String>{};
+    for (final String line in buffer) {
+      final List<String> parts = line.split(' ');
       if (parts.length < 2) continue;
-      final tag = parts[1];
-      final value = parts.length > 2 ? parts.sublist(2).join(' ') : '';
+      final String tag = parts[1];
+      final String value = parts.length > 2 ? parts.sublist(2).join(' ') : '';
       if (!data.containsKey(tag)) {
         data[tag] = value;
       }
     }
 
-    final individual = GedcomIndividual(
+    final GedcomIndividual individual = GedcomIndividual(
       id: id,
       name: data['NAME'] ?? '',
       gender: data['SEX'] ?? '',
@@ -96,17 +97,17 @@ class GedcomParser {
     Map<String, GedcomFamily> families,
     String id,
   ) {
-    var husbandId = '';
-    var wifeId = '';
-    final childrenIds = <String>[];
+    String husbandId = '';
+    String wifeId = '';
+    final List<String> childrenIds = <String>[];
     String? marriageDate;
     String? divorceDate;
 
-    for (final line in buffer) {
-      final parts = line.split(' ');
+    for (final String line in buffer) {
+      final List<String> parts = line.split(' ');
       if (parts.length < 2) continue;
-      final tag = parts[1];
-      final value = parts.length > 2 ? parts.sublist(2).join(' ') : '';
+      final String tag = parts[1];
+      final String value = parts.length > 2 ? parts.sublist(2).join(' ') : '';
 
       if (tag == 'HUSB') {
         husbandId = value;
@@ -121,7 +122,7 @@ class GedcomParser {
       }
     }
 
-    final family = GedcomFamily(
+    final GedcomFamily family = GedcomFamily(
       id: id,
       husbandId: husbandId,
       wifeId: wifeId,
@@ -154,13 +155,13 @@ class GedcomParser {
 
   static String _extractFirstName(String name) {
     // Формат GEDCOM: "John /Smith/"
-    final parts = name.split('/');
+    final List<String> parts = name.split('/');
     if (parts.isEmpty) return name.trim();
     return parts[0].trim();
   }
 
   static String _extractLastName(String name) {
-    final parts = name.split('/');
+    final List<String> parts = name.split('/');
     if (parts.length < 2) return '';
     return parts[1].trim();
   }
@@ -180,7 +181,7 @@ class GedcomParser {
     if (date.isEmpty) return null;
     // Простой парсинг даты в формате DD MMM YYYY
     // Например: "15 JAN 1980"
-    final months = {
+    final Map<String, int> months = <String, int>{
       'JAN': 1,
       'FEB': 2,
       'MAR': 3,
@@ -195,11 +196,11 @@ class GedcomParser {
       'DEC': 12,
     };
 
-    final parts = date.split(' ');
+    final List<String> parts = date.split(' ');
     if (parts.length == 3) {
-      final day = int.tryParse(parts[0]);
-      final month = months[parts[1].toUpperCase()];
-      final year = int.tryParse(parts[2]);
+      final int? day = int.tryParse(parts[0]);
+      final int? month = months[parts[1].toUpperCase()];
+      final int? year = int.tryParse(parts[2]);
       if (day != null && month != null && year != null) {
         return DateTime(year, month, day);
       }
@@ -210,25 +211,13 @@ class GedcomParser {
 
 /// Данные из GEDCOM файла
 class GedcomData {
+  GedcomData({required this.individuals, required this.families});
   final List<GedcomIndividual> individuals;
   final List<GedcomFamily> families;
-
-  GedcomData({required this.individuals, required this.families});
 }
 
 /// GEDCOM человек
 class GedcomIndividual {
-  final String id;
-  final String name;
-  final String gender;
-  final String birthDate;
-  final String deathDate;
-  final String birthPlace;
-  final String deathPlace;
-  final String occupation;
-  final String familyId;
-  final String spouseFamilyId;
-
   GedcomIndividual({
     required this.id,
     required this.name,
@@ -241,17 +230,20 @@ class GedcomIndividual {
     required this.familyId,
     required this.spouseFamilyId,
   });
+  final String id;
+  final String name;
+  final String gender;
+  final String birthDate;
+  final String deathDate;
+  final String birthPlace;
+  final String deathPlace;
+  final String occupation;
+  final String familyId;
+  final String spouseFamilyId;
 }
 
 /// GEDCOM семья
 class GedcomFamily {
-  final String id;
-  final String husbandId;
-  final String wifeId;
-  final List<String> childrenIds;
-  final String? marriageDate;
-  final String? divorceDate;
-
   GedcomFamily({
     required this.id,
     required this.husbandId,
@@ -260,4 +252,10 @@ class GedcomFamily {
     this.marriageDate,
     this.divorceDate,
   });
+  final String id;
+  final String husbandId;
+  final String wifeId;
+  final List<String> childrenIds;
+  final String? marriageDate;
+  final String? divorceDate;
 }

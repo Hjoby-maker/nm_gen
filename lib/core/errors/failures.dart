@@ -1,9 +1,8 @@
 /// Базовый класс для всех ошибок в приложении
 abstract class Failure {
+  const Failure(this.message, {this.code});
   final String message;
   final String? code;
-
-  const Failure(this.message, {this.code});
 
   @override
   String toString() => message;
@@ -11,24 +10,20 @@ abstract class Failure {
 
 /// Ошибка сервера/базы данных
 class ServerFailure extends Failure {
-  const ServerFailure(String message, {String? code})
-    : super(message, code: code);
+  const ServerFailure(super.message, {super.code});
 }
 
 /// Ошибка валидации данных
 class ValidationFailure extends Failure {
-  const ValidationFailure(String message, {String? code})
-    : super(message, code: code);
+  const ValidationFailure(super.message, {super.code});
 }
 
 /// Ошибка - объект не найден
 class NotFoundFailure extends Failure {
-  const NotFoundFailure(String message, {String? code})
-    : super(message, code: code);
+  const NotFoundFailure(super.message, {super.code});
 }
 
 /// Непредвиденная ошибка
 class UnexpectedFailure extends Failure {
-  const UnexpectedFailure(String message, {String? code})
-    : super(message, code: code);
+  const UnexpectedFailure(super.message, {super.code});
 }

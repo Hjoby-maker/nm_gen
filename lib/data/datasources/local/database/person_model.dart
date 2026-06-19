@@ -3,21 +3,6 @@ import 'package:nm_gen/domain/entities/person.dart';
 
 /// Модель Person для SQLite
 class PersonModel {
-  final String id;
-  final String firstName;
-  final String lastName;
-  final String? middleName;
-  final String gender; // Сохраняем как строку
-  final int? birthDate; // Unix timestamp
-  final int? deathDate; // Unix timestamp
-  final String? birthPlace;
-  final String? deathPlace;
-  final String? occupation;
-  final String? biography;
-  final String photoUrls; // JSON строка
-  final int createdAt;
-  final int updatedAt;
-
   PersonModel({
     required this.id,
     required this.firstName,
@@ -55,33 +40,6 @@ class PersonModel {
     );
   }
 
-  /// Конвертация в Domain Entity
-  Person toDomain() {
-    return Person(
-      id: id,
-      firstName: firstName,
-      lastName: lastName,
-      middleName: middleName,
-      gender: Gender.values.firstWhere(
-        (g) => g.name == gender,
-        orElse: () => Gender.unknown,
-      ),
-      birthDate: birthDate != null
-          ? DateTime.fromMillisecondsSinceEpoch(birthDate!)
-          : null,
-      deathDate: deathDate != null
-          ? DateTime.fromMillisecondsSinceEpoch(deathDate!)
-          : null,
-      birthPlace: birthPlace,
-      deathPlace: deathPlace,
-      occupation: occupation,
-      biography: biography,
-      photoUrls: photoUrls.isEmpty ? [] : photoUrls.split(','),
-      createdAt: DateTime.fromMillisecondsSinceEpoch(createdAt),
-      updatedAt: DateTime.fromMillisecondsSinceEpoch(updatedAt),
-    );
-  }
-
   /// Создание из Map (для SQLite)
   factory PersonModel.fromMap(Map<String, dynamic> map) {
     return PersonModel(
@@ -101,10 +59,51 @@ class PersonModel {
       updatedAt: map['updated_at'] as int,
     );
   }
+  final String id;
+  final String firstName;
+  final String lastName;
+  final String? middleName;
+  final String gender; // Сохраняем как строку
+  final int? birthDate; // Unix timestamp
+  final int? deathDate; // Unix timestamp
+  final String? birthPlace;
+  final String? deathPlace;
+  final String? occupation;
+  final String? biography;
+  final String photoUrls; // JSON строка
+  final int createdAt;
+  final int updatedAt;
+
+  /// Конвертация в Domain Entity
+  Person toDomain() {
+    return Person(
+      id: id,
+      firstName: firstName,
+      lastName: lastName,
+      middleName: middleName,
+      gender: Gender.values.firstWhere(
+        (Gender g) => g.name == gender,
+        orElse: () => Gender.unknown,
+      ),
+      birthDate: birthDate != null
+          ? DateTime.fromMillisecondsSinceEpoch(birthDate!)
+          : null,
+      deathDate: deathDate != null
+          ? DateTime.fromMillisecondsSinceEpoch(deathDate!)
+          : null,
+      birthPlace: birthPlace,
+      deathPlace: deathPlace,
+      occupation: occupation,
+      biography: biography,
+      photoUrls: photoUrls.isEmpty ? <String>[] : photoUrls.split(','),
+      createdAt: DateTime.fromMillisecondsSinceEpoch(createdAt),
+      updatedAt: DateTime.fromMillisecondsSinceEpoch(updatedAt),
+    );
+  }
 
   /// Конвертация в Map (для SQLite)
   Map<String, dynamic> toMap() {
-    return {
+    return <String, dynamic>{
       'id': id,
       'first_name': firstName,
       'last_name': lastName,

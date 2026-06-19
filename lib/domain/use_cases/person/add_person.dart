@@ -5,9 +5,8 @@ import 'package:nm_gen/domain/repositories/person_repository.dart';
 
 /// Use Case: Добавление нового человека
 class AddPersonUseCase {
-  final PersonRepository repository;
-
   AddPersonUseCase(this.repository);
+  final PersonRepository repository;
 
   /// Выполнить добавление человека
   /// Возвращает Either<Failure, Person> - либо ошибку, либо добавленного человека
@@ -15,7 +14,7 @@ class AddPersonUseCase {
     try {
       // Валидация данных
       if (person.firstName.isEmpty || person.lastName.isEmpty) {
-        return Left(
+        return const Left(
           ValidationFailure('Имя и фамилия обязательны для заполнения'),
         );
       }
@@ -23,7 +22,7 @@ class AddPersonUseCase {
       // Проверка на дубликат (по желанию)
       // Здесь можно добавить проверку на существование человека с таким же именем
 
-      final result = await repository.addPerson(person);
+      final Person result = await repository.addPerson(person);
       return Right(result);
     } catch (e) {
       return Left(ServerFailure(e.toString()));

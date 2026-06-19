@@ -5,79 +5,79 @@ abstract class FamilyEvent extends Equatable {
   const FamilyEvent();
 
   @override
-  List<Object?> get props => [];
+  List<Object?> get props => <Object?>[];
 }
 
 /// Загрузить семьи человека
 class LoadFamiliesEvent extends FamilyEvent {
-  final String personId;
   const LoadFamiliesEvent(this.personId);
+  final String personId;
 
   @override
-  List<Object?> get props => [personId];
+  List<Object?> get props => <Object?>[personId];
 }
 
 /// Загрузить детали семьи
 class LoadFamilyDetailsEvent extends FamilyEvent {
-  final String familyId;
   const LoadFamilyDetailsEvent(this.familyId);
+  final String familyId;
 
   @override
-  List<Object?> get props => [familyId];
+  List<Object?> get props => <Object?>[familyId];
 }
 
 /// Добавить семью
 class AddFamilyEvent extends FamilyEvent {
-  final Family family;
   const AddFamilyEvent(this.family);
+  final Family family;
 
   @override
-  List<Object?> get props => [family];
+  List<Object?> get props => <Object?>[family];
 }
 
 /// Обновить семью
 class UpdateFamilyEvent extends FamilyEvent {
-  final Family family;
   const UpdateFamilyEvent(this.family);
+  final Family family;
 
   @override
-  List<Object?> get props => [family];
+  List<Object?> get props => <Object?>[family];
 }
 
 /// Удалить семью
 class DeleteFamilyEvent extends FamilyEvent {
-  final String familyId;
   const DeleteFamilyEvent(this.familyId);
+  final String familyId;
 
   @override
-  List<Object?> get props => [familyId];
+  List<Object?> get props => <Object?>[familyId];
 }
 
 /// Добавить ребенка в семью
 class AddChildToFamilyEvent extends FamilyEvent {
+  const AddChildToFamilyEvent(this.familyId, this.childId);
   final String familyId;
   final String childId;
-  const AddChildToFamilyEvent(this.familyId, this.childId);
 
   @override
-  List<Object?> get props => [familyId, childId];
+  List<Object?> get props => <Object?>[familyId, childId];
 }
 
 /// Удалить ребенка из семьи
 class RemoveChildFromFamilyEvent extends FamilyEvent {
+  const RemoveChildFromFamilyEvent(this.familyId, this.childId);
   final String familyId;
   final String childId;
-  const RemoveChildFromFamilyEvent(this.familyId, this.childId);
 
   @override
-  List<Object?> get props => [familyId, childId];
+  List<Object?> get props => <Object?>[familyId, childId];
 }
 
 /// Выбрать семью для просмотра
 class SelectFamilyEvent extends FamilyEvent {
-  final String familyId;
   const SelectFamilyEvent(this.familyId);
+  final String familyId;
 
   @override
-  List<Object?> get props => [familyId];
+  List<Object?> get props => <Object?>[familyId];
 }

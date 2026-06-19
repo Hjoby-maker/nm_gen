@@ -6,7 +6,7 @@ import 'package:nm_gen/core/enums/gender.dart';
 class GedcomGenerator {
   /// Генерирует GEDCOM строку из списка людей и семей
   static String generate(List<Person> persons, List<Family> families) {
-    final buffer = StringBuffer();
+    final StringBuffer buffer = StringBuffer();
 
     // Заголовок
     buffer.writeln('0 HEAD');
@@ -21,12 +21,12 @@ class GedcomGenerator {
     buffer.writeln('');
 
     // Индивидуумы
-    for (final person in persons) {
+    for (final Person person in persons) {
       buffer.writeln(_generateIndividual(person));
     }
 
     // Семьи
-    for (final family in families) {
+    for (final Family family in families) {
       buffer.writeln(_generateFamily(family, persons));
     }
 
@@ -37,8 +37,8 @@ class GedcomGenerator {
   }
 
   static String _generateIndividual(Person person) {
-    final buffer = StringBuffer();
-    final id = _generateId(person.id);
+    final StringBuffer buffer = StringBuffer();
+    final String id = _generateId(person.id);
 
     buffer.writeln('0 $id INDI');
     buffer.writeln('1 NAME ${person.firstName} /${person.lastName}/');
@@ -71,8 +71,8 @@ class GedcomGenerator {
   }
 
   static String _generateFamily(Family family, List<Person> allPersons) {
-    final buffer = StringBuffer();
-    final id = _generateId(family.id);
+    final StringBuffer buffer = StringBuffer();
+    final String id = _generateId(family.id);
 
     buffer.writeln('0 $id FAM');
 
@@ -84,7 +84,7 @@ class GedcomGenerator {
       buffer.writeln('1 WIFE ${_generateId(family.wifeId!)}');
     }
 
-    for (final childId in family.childrenIds) {
+    for (final String childId in family.childrenIds) {
       buffer.writeln('1 CHIL ${_generateId(childId)}');
     }
 
@@ -107,7 +107,7 @@ class GedcomGenerator {
   }
 
   static String _formatGedcomDate(DateTime date) {
-    const months = {
+    const Map<int, String> months = <int, String>{
       1: 'JAN',
       2: 'FEB',
       3: 'MAR',

@@ -1,7 +1,10 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:nm_gen/domain/entities/person.dart';
+import 'package:nm_gen/domain/repositories/person_repository.dart';
 import 'package:nm_gen/domain/use_cases/tree/get_family_tree.dart';
 import 'package:nm_gen/presentation/blocs/tree/tree_event.dart';
 import 'package:nm_gen/presentation/blocs/tree/tree_state.dart';
+import 'package:nm_gen/di/injector.dart';
 
 class TreeBloc extends Bloc<TreeEvent, TreeState> {
   final GetFamilyTreeUseCase getFamilyTreeUseCase;
@@ -15,13 +18,25 @@ class TreeBloc extends Bloc<TreeEvent, TreeState> {
   Future<void> _onLoadTree(LoadTreeEvent event, Emitter<TreeState> emit) async {
     emit(TreeLoading());
 
-    final result = await getFamilyTreeUseCase.execute(event.rootPersonId);
+    String rootId = event.rootPersonId;
+
+    // Если ID пустой, находим первого человека
+    if (rootId.isEmpty) {
+      final personRepo = getIt<PersonRepository>();
+      final allPersons = await personRepo.getAllPersons();
+      if (allPersons.isNotEmpty) {
+        rootId = allPersons.first.id;
+      } else {
+        emit(TreeError('Нет людей для отображения'));
+        return;
+      }
+    }
+
+    final result = await getFamilyTreeUseCase.execute(rootId);
 
     result.fold(
       (failure) => emit(TreeError(failure.message)),
-      (rootNode) => emit(
-        TreeLoaded(rootNode: rootNode, rootPersonId: event.rootPersonId),
-      ),
+      (rootNode) => emit(TreeLoaded(rootNode: rootNode, rootPersonId: rootId)),
     );
   }
 

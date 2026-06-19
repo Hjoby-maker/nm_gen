@@ -1,12 +1,13 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
 class DatabaseHelper {
-  static final DatabaseHelper _instance = DatabaseHelper._internal();
   factory DatabaseHelper() => _instance;
   DatabaseHelper._internal();
+  static final DatabaseHelper _instance = DatabaseHelper._internal();
 
   static Database? _database;
 
@@ -18,10 +19,10 @@ class DatabaseHelper {
 
   Future<Database> _initDatabase() async {
     // Получаем путь к директории приложения
-    final directory = await getApplicationDocumentsDirectory();
-    final path = join(directory.path, 'family_tree.db');
+    final Directory directory = await getApplicationDocumentsDirectory();
+    final String path = join(directory.path, 'family_tree.db');
 
-    return await openDatabase(
+    return openDatabase(
       path,
       version: 1,
       onCreate: _onCreate,
@@ -96,13 +97,13 @@ class DatabaseHelper {
 
   /// Вспомогательный метод для работы с транзакциями
   Future<T> transaction<T>(Future<T> Function(Transaction db) action) async {
-    final db = await database;
-    return await db.transaction(action);
+    final Database db = await database;
+    return db.transaction(action);
   }
 
   /// Закрыть базу данных
   Future<void> close() async {
-    final db = _database;
+    final Database? db = _database;
     if (db != null) {
       await db.close();
       _database = null;

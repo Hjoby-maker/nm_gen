@@ -2,54 +2,54 @@ import 'package:dartz/dartz.dart';
 import 'package:nm_gen/core/errors/failures.dart';
 import 'package:nm_gen/core/utils/gedcom_parser.dart';
 import 'package:nm_gen/domain/entities/family.dart';
+import 'package:nm_gen/domain/entities/person.dart';
 import 'package:nm_gen/domain/repositories/family_repository.dart';
 import 'package:nm_gen/domain/repositories/person_repository.dart';
 
 /// Use Case: Импорт данных из GEDCOM файла
 class ImportGedcomUseCase {
-  final PersonRepository personRepository;
-  final FamilyRepository familyRepository;
-
   ImportGedcomUseCase({
     required this.personRepository,
     required this.familyRepository,
   });
+  final PersonRepository personRepository;
+  final FamilyRepository familyRepository;
 
   Future<Either<Failure, int>> execute(String content) async {
     try {
       if (content.isEmpty) {
-        return Left(ValidationFailure('GEDCOM файл пуст'));
+        return const Left(ValidationFailure('GEDCOM файл пуст'));
       }
 
       // Парсим GEDCOM
-      final data = GedcomParser.parse(content);
+      final GedcomData data = GedcomParser.parse(content);
 
       if (data.individuals.isEmpty) {
-        return Left(ValidationFailure('В GEDCOM файле нет людей'));
+        return const Left(ValidationFailure('В GEDCOM файле нет людей'));
       }
 
       // Создаем маппинг старых ID на новые
-      final idMap = <String, String>{};
-      var importedCount = 0;
+      final Map<String, String> idMap = <String, String>{};
+      int importedCount = 0;
 
       // Импортируем людей
-      for (final individual in data.individuals) {
+      for (final GedcomIndividual individual in data.individuals) {
         if (individual.name.isEmpty) continue;
 
-        final person = GedcomParser.toPerson(individual);
-        final savedPerson = await personRepository.addPerson(person);
+        final Person person = GedcomParser.toPerson(individual);
+        final Person savedPerson = await personRepository.addPerson(person);
         idMap[individual.id] = savedPerson.id;
         importedCount++;
       }
 
       // Импортируем семьи
-      for (final gedcomFamily in data.families) {
-        final family = Family(
+      for (final GedcomFamily gedcomFamily in data.families) {
+        final Family family = Family(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
           husbandId: idMap[gedcomFamily.husbandId],
           wifeId: idMap[gedcomFamily.wifeId],
           childrenIds: gedcomFamily.childrenIds
-              .map((id) => idMap[id])
+              .map((String id) => idMap[id])
               .whereType<String>()
               .toList(),
           marriageDate: gedcomFamily.marriageDate != null
@@ -74,7 +74,7 @@ class ImportGedcomUseCase {
 
   DateTime? _parseDate(String date) {
     if (date.isEmpty) return null;
-    final months = {
+    final Map<String, int> months = <String, int>{
       'JAN': 1,
       'FEB': 2,
       'MAR': 3,
@@ -89,11 +89,11 @@ class ImportGedcomUseCase {
       'DEC': 12,
     };
 
-    final parts = date.split(' ');
+    final List<String> parts = date.split(' ');
     if (parts.length == 3) {
-      final day = int.tryParse(parts[0]);
-      final month = months[parts[1].toUpperCase()];
-      final year = int.tryParse(parts[2]);
+      final int? day = int.tryParse(parts[0]);
+      final int? month = months[parts[1].toUpperCase()];
+      final int? year = int.tryParse(parts[2]);
       if (day != null && month != null && year != null) {
         return DateTime(year, month, day);
       }

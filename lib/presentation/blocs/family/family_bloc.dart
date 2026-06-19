@@ -1,4 +1,6 @@
+import 'package:dartz/dartz.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:nm_gen/core/errors/failures.dart';
 import 'package:nm_gen/domain/entities/person.dart';
 import 'package:nm_gen/domain/entities/family.dart';
 import 'package:nm_gen/domain/repositories/family_repository.dart';
@@ -12,16 +14,6 @@ import 'package:nm_gen/presentation/blocs/family/family_event.dart';
 import 'package:nm_gen/presentation/blocs/family/family_state.dart';
 
 class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
-  final GetFamiliesByPersonUseCase getFamiliesByPersonUseCase;
-  final GetFamilyWithDetailsUseCase getFamilyWithDetailsUseCase;
-  final AddFamilyUseCase addFamilyUseCase;
-  final AddChildToFamilyUseCase addChildToFamilyUseCase;
-  final RemoveChildFromFamilyUseCase removeChildFromFamilyUseCase;
-  final PersonRepository personRepository;
-  final FamilyRepository familyRepository;
-
-  String? _currentPersonId;
-
   FamilyBloc({
     required this.getFamiliesByPersonUseCase,
     required this.getFamilyWithDetailsUseCase,
@@ -40,6 +32,15 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     on<RemoveChildFromFamilyEvent>(_onRemoveChildFromFamily);
     on<SelectFamilyEvent>(_onSelectFamily);
   }
+  final GetFamiliesByPersonUseCase getFamiliesByPersonUseCase;
+  final GetFamilyWithDetailsUseCase getFamilyWithDetailsUseCase;
+  final AddFamilyUseCase addFamilyUseCase;
+  final AddChildToFamilyUseCase addChildToFamilyUseCase;
+  final RemoveChildFromFamilyUseCase removeChildFromFamilyUseCase;
+  final PersonRepository personRepository;
+  final FamilyRepository familyRepository;
+
+  String? _currentPersonId;
 
   Future<void> _onLoadFamilies(
     LoadFamiliesEvent event,
@@ -48,14 +49,17 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     _currentPersonId = event.personId;
     emit(FamilyLoading());
 
-    final result = await getFamiliesByPersonUseCase.execute(event.personId);
+    final Either<Failure, List<Family>> result =
+        await getFamiliesByPersonUseCase.execute(event.personId);
 
     await result.fold(
-      (failure) async {
+      (Failure failure) async {
         emit(FamilyError(failure.message));
       },
-      (families) async {
-        final persons = await _loadPersonsFromFamilies(families);
+      (List<Family> families) async {
+        final Map<String, Person> persons = await _loadPersonsFromFamilies(
+          families,
+        );
         if (!emit.isDone) {
           emit(FamiliesLoaded(families: families, persons: persons));
         }
@@ -69,15 +73,16 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
   ) async {
     emit(FamilyLoading());
 
-    final result = await getFamilyWithDetailsUseCase.execute(event.familyId);
+    final Either<Failure, FamilyDetails> result =
+        await getFamilyWithDetailsUseCase.execute(event.familyId);
 
     await result.fold(
-      (failure) async {
+      (Failure failure) async {
         if (!emit.isDone) {
           emit(FamilyError(failure.message));
         }
       },
-      (details) async {
+      (FamilyDetails details) async {
         if (!emit.isDone) {
           emit(FamilyDetailsLoaded(details));
         }
@@ -91,10 +96,12 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
   ) async {
     emit(FamilyLoading());
 
-    final result = await addFamilyUseCase.execute(event.family);
+    final Either<Failure, Family> result = await addFamilyUseCase.execute(
+      event.family,
+    );
 
     await result.fold(
-      (failure) async {
+      (Failure failure) async {
         if (!emit.isDone) {
           emit(FamilyError(failure.message));
         }
@@ -158,13 +165,13 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
   ) async {
     emit(FamilyLoading());
 
-    final result = await addChildToFamilyUseCase.execute(
+    final Either<Failure, void> result = await addChildToFamilyUseCase.execute(
       event.familyId,
       event.childId,
     );
 
     await result.fold(
-      (failure) async {
+      (Failure failure) async {
         if (!emit.isDone) {
           emit(FamilyError(failure.message));
         }
@@ -186,13 +193,11 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
   ) async {
     emit(FamilyLoading());
 
-    final result = await removeChildFromFamilyUseCase.execute(
-      event.familyId,
-      event.childId,
-    );
+    final Either<Failure, void> result = await removeChildFromFamilyUseCase
+        .execute(event.familyId, event.childId);
 
     await result.fold(
-      (failure) async {
+      (Failure failure) async {
         if (!emit.isDone) {
           emit(FamilyError(failure.message));
         }
@@ -209,7 +214,7 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
   }
 
   void _onSelectFamily(SelectFamilyEvent event, Emitter<FamilyState> emit) {
-    final currentState = state;
+    final FamilyState currentState = state;
     if (currentState is FamiliesLoaded) {
       emit(
         FamiliesLoaded(
@@ -224,18 +229,20 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
   Future<Map<String, Person>> _loadPersonsFromFamilies(
     List<Family> families,
   ) async {
-    final persons = <String, Person>{};
-    for (final family in families) {
+    final Map<String, Person> persons = <String, Person>{};
+    for (final Family family in families) {
       if (family.husbandId != null) {
-        final person = await personRepository.getPerson(family.husbandId!);
+        final Person? person = await personRepository.getPerson(
+          family.husbandId!,
+        );
         if (person != null) persons[family.husbandId!] = person;
       }
       if (family.wifeId != null) {
-        final person = await personRepository.getPerson(family.wifeId!);
+        final Person? person = await personRepository.getPerson(family.wifeId!);
         if (person != null) persons[family.wifeId!] = person;
       }
-      for (final childId in family.childrenIds) {
-        final person = await personRepository.getPerson(childId);
+      for (final String childId in family.childrenIds) {
+        final Person? person = await personRepository.getPerson(childId);
         if (person != null) persons[childId] = person;
       }
     }
