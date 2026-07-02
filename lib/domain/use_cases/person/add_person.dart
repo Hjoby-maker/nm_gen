@@ -10,7 +10,10 @@ class AddPersonUseCase {
 
   /// Выполнить добавление человека
   /// Возвращает Either<Failure, Person> - либо ошибку, либо добавленного человека
-  Future<Either<Failure, Person>> execute(Person person) async {
+  Future<Either<Failure, Person>> execute(
+    Person person, {
+    String? treeId,
+  }) async {
     try {
       // Валидация данных
       if (person.firstName.isEmpty || person.lastName.isEmpty) {
@@ -19,10 +22,12 @@ class AddPersonUseCase {
         );
       }
 
-      // Проверка на дубликат (по желанию)
-      // Здесь можно добавить проверку на существование человека с таким же именем
+      // Добавляем treeId если его нет
+      final personWithTree = person.treeId.isEmpty
+          ? person.copyWith(treeId: treeId ?? 'default')
+          : person;
 
-      final Person result = await repository.addPerson(person);
+      final Person result = await repository.addPerson(personWithTree);
       return Right(result);
     } catch (e) {
       return Left(ServerFailure(e.toString()));

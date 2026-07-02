@@ -8,7 +8,10 @@ class GetFamiliesByPersonUseCase {
   GetFamiliesByPersonUseCase(this.repository);
   final FamilyRepository repository;
 
-  Future<Either<Failure, List<Family>>> execute(String personId) async {
+  Future<Either<Failure, List<Family>>> execute(
+    String personId, {
+    String? treeId,
+  }) async {
     try {
       if (personId.isEmpty) {
         return const Left(
@@ -18,6 +21,7 @@ class GetFamiliesByPersonUseCase {
 
       final List<Family> families = await repository.getFamiliesByPerson(
         personId,
+        treeId: treeId,
       );
       return Right(families);
     } catch (e) {

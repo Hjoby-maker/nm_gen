@@ -38,7 +38,10 @@ class GetFamilyWithDetailsUseCase {
   final FamilyRepository familyRepository;
   final PersonRepository personRepository;
 
-  Future<Either<Failure, FamilyDetails>> execute(String familyId) async {
+  Future<Either<Failure, FamilyDetails>> execute(
+    String familyId, {
+    String? treeId,
+  }) async {
     try {
       if (familyId.isEmpty) {
         return const Left(ValidationFailure('ID семьи не может быть пустым'));

@@ -32,6 +32,7 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     on<RemoveChildFromFamilyEvent>(_onRemoveChildFromFamily);
     on<SelectFamilyEvent>(_onSelectFamily);
   }
+
   final GetFamiliesByPersonUseCase getFamiliesByPersonUseCase;
   final GetFamilyWithDetailsUseCase getFamilyWithDetailsUseCase;
   final AddFamilyUseCase addFamilyUseCase;
@@ -41,16 +42,21 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
   final FamilyRepository familyRepository;
 
   String? _currentPersonId;
+  String? _currentTreeId; // <-- ДОБАВЛЯЕМ
 
   Future<void> _onLoadFamilies(
     LoadFamiliesEvent event,
     Emitter<FamilyState> emit,
   ) async {
     _currentPersonId = event.personId;
+    _currentTreeId = event.treeId; // <-- ДОБАВЛЯЕМ
     emit(FamilyLoading());
 
     final Either<Failure, List<Family>> result =
-        await getFamiliesByPersonUseCase.execute(event.personId);
+        await getFamiliesByPersonUseCase.execute(
+          event.personId,
+          treeId: event.treeId,
+        );
 
     await result.fold(
       (Failure failure) async {
@@ -59,9 +65,16 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
       (List<Family> families) async {
         final Map<String, Person> persons = await _loadPersonsFromFamilies(
           families,
+          treeId: event.treeId,
         );
         if (!emit.isDone) {
-          emit(FamiliesLoaded(families: families, persons: persons));
+          emit(
+            FamiliesLoaded(
+              families: families,
+              persons: persons,
+              treeId: event.treeId,
+            ),
+          );
         }
       },
     );
@@ -74,7 +87,10 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     emit(FamilyLoading());
 
     final Either<Failure, FamilyDetails> result =
-        await getFamilyWithDetailsUseCase.execute(event.familyId);
+        await getFamilyWithDetailsUseCase.execute(
+          event.familyId,
+          treeId: event.treeId,
+        );
 
     await result.fold(
       (Failure failure) async {
@@ -84,7 +100,7 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
       },
       (FamilyDetails details) async {
         if (!emit.isDone) {
-          emit(FamilyDetailsLoaded(details));
+          emit(FamilyDetailsLoaded(details, treeId: event.treeId));
         }
       },
     );
@@ -96,8 +112,13 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
   ) async {
     emit(FamilyLoading());
 
+    // Добавляем treeId к семье
+    final familyWithTree = event.family.treeId.isEmpty
+        ? event.family.copyWith(treeId: event.treeId ?? 'default')
+        : event.family;
+
     final Either<Failure, Family> result = await addFamilyUseCase.execute(
-      event.family,
+      familyWithTree,
     );
 
     await result.fold(
@@ -111,7 +132,7 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
           emit(const FamilyOperationSuccess('Семья создана'));
         }
         if (_currentPersonId != null) {
-          add(LoadFamiliesEvent(_currentPersonId!));
+          add(LoadFamiliesEvent(_currentPersonId!, treeId: event.treeId));
         }
       },
     );
@@ -129,7 +150,7 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
         emit(const FamilyOperationSuccess('Семья обновлена'));
       }
       if (_currentPersonId != null) {
-        add(LoadFamiliesEvent(_currentPersonId!));
+        add(LoadFamiliesEvent(_currentPersonId!, treeId: event.treeId));
       }
     } catch (e) {
       if (!emit.isDone) {
@@ -150,7 +171,7 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
         emit(const FamilyOperationSuccess('Семья удалена'));
       }
       if (_currentPersonId != null) {
-        add(LoadFamiliesEvent(_currentPersonId!));
+        add(LoadFamiliesEvent(_currentPersonId!, treeId: event.treeId));
       }
     } catch (e) {
       if (!emit.isDone) {
@@ -181,7 +202,7 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
           emit(const FamilyOperationSuccess('Ребенок добавлен в семью'));
         }
         if (_currentPersonId != null) {
-          add(LoadFamiliesEvent(_currentPersonId!));
+          add(LoadFamiliesEvent(_currentPersonId!, treeId: event.treeId));
         }
       },
     );
@@ -207,7 +228,7 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
           emit(const FamilyOperationSuccess('Ребенок удален из семьи'));
         }
         if (_currentPersonId != null) {
-          add(LoadFamiliesEvent(_currentPersonId!));
+          add(LoadFamiliesEvent(_currentPersonId!, treeId: event.treeId));
         }
       },
     );
@@ -221,14 +242,16 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
           families: currentState.families,
           persons: currentState.persons,
           selectedFamilyId: event.familyId,
+          treeId: event.treeId ?? currentState.treeId,
         ),
       );
     }
   }
 
   Future<Map<String, Person>> _loadPersonsFromFamilies(
-    List<Family> families,
-  ) async {
+    List<Family> families, {
+    String? treeId,
+  }) async {
     final Map<String, Person> persons = <String, Person>{};
     for (final Family family in families) {
       if (family.husbandId != null) {

@@ -21,13 +21,20 @@ class PersonsLoaded extends PersonState {
     required this.persons,
     this.isSearching = false,
     this.searchQuery,
+    this.treeId, // <-- ДОБАВЛЯЕМ
   });
   final List<Person> persons;
   final bool isSearching;
   final String? searchQuery;
+  final String? treeId; // <-- ДОБАВЛЯЕМ
 
   @override
-  List<Object?> get props => <Object?>[persons, isSearching, searchQuery];
+  List<Object?> get props => <Object?>[
+    persons,
+    isSearching,
+    searchQuery,
+    treeId, // <-- ДОБАВЛЯЕМ
+  ];
 }
 
 /// Состояние успешного добавления/обновления

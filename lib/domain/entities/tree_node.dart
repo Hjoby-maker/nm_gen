@@ -27,6 +27,8 @@ class TreeNode extends Equatable {
     return count;
   }
 
+  String get treeId => person.treeId;
+
   TreeNode copyWith({
     Person? person,
     List<TreeNode>? children,

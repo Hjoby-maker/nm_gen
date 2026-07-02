@@ -7,7 +7,7 @@ class DeletePersonUseCase {
   DeletePersonUseCase(this.repository);
   final PersonRepository repository;
 
-  Future<Either<Failure, void>> execute(String id) async {
+  Future<Either<Failure, void>> execute(String id, {String? treeId}) async {
     try {
       if (id.isEmpty) {
         return const Left(

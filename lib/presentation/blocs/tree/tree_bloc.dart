@@ -23,7 +23,7 @@ class TreeBloc extends Bloc<TreeEvent, TreeState> {
     // Если ID пустой, находим первого человека
     if (rootId.isEmpty) {
       final personRepo = getIt<PersonRepository>();
-      final allPersons = await personRepo.getAllPersons();
+      final allPersons = await personRepo.getAllPersons(treeId: event.treeId);
       if (allPersons.isNotEmpty) {
         rootId = allPersons.first.id;
       } else {
@@ -32,11 +32,20 @@ class TreeBloc extends Bloc<TreeEvent, TreeState> {
       }
     }
 
-    final result = await getFamilyTreeUseCase.execute(rootId);
+    final result = await getFamilyTreeUseCase.execute(
+      rootId,
+      treeId: event.treeId,
+    );
 
     result.fold(
       (failure) => emit(TreeError(failure.message)),
-      (rootNode) => emit(TreeLoaded(rootNode: rootNode, rootPersonId: rootId)),
+      (rootNode) => emit(
+        TreeLoaded(
+          rootNode: rootNode,
+          rootPersonId: rootId,
+          treeId: event.treeId,
+        ),
+      ),
     );
   }
 
@@ -46,12 +55,20 @@ class TreeBloc extends Bloc<TreeEvent, TreeState> {
   ) async {
     emit(TreeLoading());
 
-    final result = await getFamilyTreeUseCase.execute(event.personId);
+    final result = await getFamilyTreeUseCase.execute(
+      event.personId,
+      treeId: event.treeId,
+    );
 
     result.fold(
       (failure) => emit(TreeError(failure.message)),
-      (rootNode) =>
-          emit(TreeLoaded(rootNode: rootNode, rootPersonId: event.personId)),
+      (rootNode) => emit(
+        TreeLoaded(
+          rootNode: rootNode,
+          rootPersonId: event.personId,
+          treeId: event.treeId,
+        ),
+      ),
     );
   }
 
@@ -63,6 +80,7 @@ class TreeBloc extends Bloc<TreeEvent, TreeState> {
           rootNode: currentState.rootNode,
           rootPersonId: currentState.rootPersonId,
           selectedPersonId: event.personId,
+          treeId: event.treeId ?? currentState.treeId,
         ),
       );
     }

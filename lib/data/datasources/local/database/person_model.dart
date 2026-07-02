@@ -5,6 +5,7 @@ import 'package:nm_gen/domain/entities/person.dart';
 class PersonModel {
   PersonModel({
     required this.id,
+    required this.treeId,
     required this.firstName,
     required this.lastName,
     this.middleName,
@@ -16,6 +17,7 @@ class PersonModel {
     this.occupation,
     this.biography,
     required this.photoUrls,
+    this.photoPath,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -24,6 +26,7 @@ class PersonModel {
   factory PersonModel.fromDomain(Person person) {
     return PersonModel(
       id: person.id,
+      treeId: person.treeId,
       firstName: person.firstName,
       lastName: person.lastName,
       middleName: person.middleName,
@@ -35,6 +38,7 @@ class PersonModel {
       occupation: person.occupation,
       biography: person.biography,
       photoUrls: person.photoUrls.join(','), // Преобразуем список в строку
+      photoPath: person.photoPath,
       createdAt: person.createdAt.millisecondsSinceEpoch,
       updatedAt: person.updatedAt.millisecondsSinceEpoch,
     );
@@ -44,6 +48,7 @@ class PersonModel {
   factory PersonModel.fromMap(Map<String, dynamic> map) {
     return PersonModel(
       id: map['id'] as String,
+      treeId: map['tree_id'] as String? ?? 'default',
       firstName: map['first_name'] as String,
       lastName: map['last_name'] as String,
       middleName: map['middle_name'] as String?,
@@ -55,11 +60,13 @@ class PersonModel {
       occupation: map['occupation'] as String?,
       biography: map['biography'] as String?,
       photoUrls: map['photo_urls'] as String? ?? '',
+      photoPath: map['photo_path'] as String?,
       createdAt: map['created_at'] as int,
       updatedAt: map['updated_at'] as int,
     );
   }
   final String id;
+  final String treeId;
   final String firstName;
   final String lastName;
   final String? middleName;
@@ -71,6 +78,7 @@ class PersonModel {
   final String? occupation;
   final String? biography;
   final String photoUrls; // JSON строка
+  final String? photoPath;
   final int createdAt;
   final int updatedAt;
 
@@ -78,6 +86,7 @@ class PersonModel {
   Person toDomain() {
     return Person(
       id: id,
+      treeId: treeId,
       firstName: firstName,
       lastName: lastName,
       middleName: middleName,
@@ -96,6 +105,7 @@ class PersonModel {
       occupation: occupation,
       biography: biography,
       photoUrls: photoUrls.isEmpty ? <String>[] : photoUrls.split(','),
+      photoPath: photoPath,
       createdAt: DateTime.fromMillisecondsSinceEpoch(createdAt),
       updatedAt: DateTime.fromMillisecondsSinceEpoch(updatedAt),
     );
@@ -105,6 +115,7 @@ class PersonModel {
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'id': id,
+      'tree_id': treeId,
       'first_name': firstName,
       'last_name': lastName,
       'middle_name': middleName,
@@ -116,6 +127,7 @@ class PersonModel {
       'occupation': occupation,
       'biography': biography,
       'photo_urls': photoUrls,
+      'photo_path': photoPath,
       'created_at': createdAt,
       'updated_at': updatedAt,
     };

@@ -9,8 +9,13 @@ import 'package:nm_gen/presentation/blocs/tree/tree_state.dart';
 import 'package:nm_gen/presentation/widgets/tree_visualizer.dart';
 
 class TreeScreen extends StatefulWidget {
-  const TreeScreen({Key? key, required this.rootPersonId}) : super(key: key);
+  const TreeScreen({
+    Key? key,
+    required this.rootPersonId,
+    this.treeId, // <-- ДОБАВЛЯЕМ
+  }) : super(key: key);
   final String rootPersonId;
+  final String? treeId; // <-- ДОБАВЛЯЕМ
 
   @override
   State<TreeScreen> createState() => _TreeScreenState();
@@ -28,7 +33,12 @@ class _TreeScreenState extends State<TreeScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        context.read<TreeBloc>().add(LoadTreeEvent(widget.rootPersonId));
+        context.read<TreeBloc>().add(
+          LoadTreeEvent(
+            widget.rootPersonId,
+            treeId: widget.treeId, // <-- ПЕРЕДАЕМ treeId
+          ),
+        );
       }
     });
   }
@@ -46,29 +56,27 @@ class _TreeScreenState extends State<TreeScreen> {
         title: const Text('Генеалогическое древо'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: <Widget>[
-          // Кнопка "Увеличить"
           IconButton(
             icon: const Icon(Icons.zoom_in),
             onPressed: () => _zoomIn(),
             tooltip: 'Увеличить',
           ),
-          // Кнопка "Уменьшить"
           IconButton(
             icon: const Icon(Icons.zoom_out),
             onPressed: () => _zoomOut(),
             tooltip: 'Уменьшить',
           ),
-          // Кнопка "Сбросить масштаб"
           IconButton(
             icon: const Icon(Icons.fit_screen),
             onPressed: () => _resetZoom(),
             tooltip: 'Сбросить масштаб',
           ),
-          // Кнопка "Обновить"
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              context.read<TreeBloc>().add(LoadTreeEvent(widget.rootPersonId));
+              context.read<TreeBloc>().add(
+                LoadTreeEvent(widget.rootPersonId, treeId: widget.treeId),
+              );
             },
             tooltip: 'Обновить',
           ),
@@ -115,7 +123,10 @@ class _TreeScreenState extends State<TreeScreen> {
                   ElevatedButton(
                     onPressed: () {
                       context.read<TreeBloc>().add(
-                        LoadTreeEvent(widget.rootPersonId),
+                        LoadTreeEvent(
+                          widget.rootPersonId,
+                          treeId: widget.treeId,
+                        ),
                       );
                     },
                     child: const Text('Повторить'),
@@ -125,7 +136,6 @@ class _TreeScreenState extends State<TreeScreen> {
             );
           }
 
-          // В build методе, где создается TreeVisualizer:
           if (state is TreeLoaded) {
             final detailLevel = _getDetailLevel(_currentScale);
 
@@ -143,10 +153,11 @@ class _TreeScreenState extends State<TreeScreen> {
                   child: TreeVisualizer(
                     rootNode: state.rootNode,
                     selectedPersonId: state.selectedPersonId,
-                    centerPersonId: widget
-                        .rootPersonId, // <-- Передаем центрального человека
+                    centerPersonId: widget.rootPersonId,
                     onPersonTap: (personId) {
-                      context.read<TreeBloc>().add(SelectPersonEvent(personId));
+                      context.read<TreeBloc>().add(
+                        SelectPersonEvent(personId, treeId: widget.treeId),
+                      );
                       _showPersonInfo(context, personId, state);
                     },
                     detailLevel: detailLevel,
@@ -273,11 +284,11 @@ class _TreeScreenState extends State<TreeScreen> {
 
   DetailLevel _getDetailLevel(double scale) {
     if (scale >= 1.5) {
-      return DetailLevel.full; // Полная информация
+      return DetailLevel.full;
     } else if (scale >= 0.8) {
-      return DetailLevel.medium; // Средняя информация
+      return DetailLevel.medium;
     } else {
-      return DetailLevel.minimal; // Минимальная информация
+      return DetailLevel.minimal;
     }
   }
 
@@ -457,8 +468,4 @@ class _TreeScreenState extends State<TreeScreen> {
 }
 
 /// Уровень детализации отображения узлов
-enum DetailLevel {
-  minimal, // Только имя и иконка
-  medium, // Имя + возраст + иконка
-  full, // Полная информация
-}
+enum DetailLevel { minimal, medium, full }

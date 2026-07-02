@@ -17,16 +17,19 @@ class TreeLoaded extends TreeState {
     required this.rootNode,
     required this.rootPersonId,
     this.selectedPersonId,
+    this.treeId, // <-- ДОБАВЛЯЕМ
   });
   final TreeNode rootNode;
   final String rootPersonId;
   final String? selectedPersonId;
+  final String? treeId; // <-- ДОБАВЛЯЕМ
 
   @override
   List<Object?> get props => <Object?>[
     rootNode,
     rootPersonId,
     selectedPersonId,
+    treeId, // <-- ДОБАВЛЯЕМ
   ];
 }
 

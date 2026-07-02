@@ -5,6 +5,7 @@ import 'package:nm_gen/core/enums/gender.dart';
 class Person extends Equatable {
   const Person({
     required this.id,
+    required this.treeId,
     required this.firstName,
     required this.lastName,
     this.middleName,
@@ -16,6 +17,7 @@ class Person extends Equatable {
     this.occupation,
     this.biography,
     this.photoUrls = const [],
+    this.photoPath,
     required this.createdAt, // Теперь обязательный параметр
     required this.updatedAt, // Теперь обязательный параметр
   });
@@ -26,6 +28,7 @@ class Person extends Equatable {
     required String lastName,
     String? middleName,
     required Gender gender,
+    String? treeId,
     DateTime? birthDate,
     DateTime? deathDate,
     String? birthPlace,
@@ -33,10 +36,12 @@ class Person extends Equatable {
     String? occupation,
     String? biography,
     List<String>? photoUrls,
+    String? photoPath,
   }) {
     final now = DateTime.now();
     return Person(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
+      treeId: treeId ?? 'default',
       firstName: firstName,
       lastName: lastName,
       middleName: middleName,
@@ -48,11 +53,13 @@ class Person extends Equatable {
       occupation: occupation,
       biography: biography,
       photoUrls: photoUrls ?? const [],
+      photoPath: photoPath,
       createdAt: now,
       updatedAt: now,
     );
   }
   final String id;
+  final String treeId;
   final String firstName;
   final String lastName;
   final String? middleName;
@@ -64,6 +71,7 @@ class Person extends Equatable {
   final String? occupation;
   final String? biography;
   final List<String> photoUrls;
+  final String? photoPath;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -114,6 +122,7 @@ class Person extends Equatable {
 
   Person copyWith({
     String? id,
+    String? treeId,
     String? firstName,
     String? lastName,
     String? middleName,
@@ -125,10 +134,12 @@ class Person extends Equatable {
     String? occupation,
     String? biography,
     List<String>? photoUrls,
+    String? photoPath,
     DateTime? updatedAt,
   }) {
     return Person(
       id: id ?? this.id,
+      treeId: treeId ?? this.treeId,
       firstName: firstName ?? this.firstName,
       lastName: lastName ?? this.lastName,
       middleName: middleName ?? this.middleName,
@@ -140,6 +151,7 @@ class Person extends Equatable {
       occupation: occupation ?? this.occupation,
       biography: biography ?? this.biography,
       photoUrls: photoUrls ?? this.photoUrls,
+      photoPath: photoPath ?? this.photoPath,
       createdAt: createdAt,
       updatedAt: updatedAt ?? DateTime.now(),
     );
@@ -148,6 +160,7 @@ class Person extends Equatable {
   @override
   List<Object?> get props => <Object?>[
     id,
+    treeId,
     firstName,
     lastName,
     middleName,
@@ -159,6 +172,7 @@ class Person extends Equatable {
     occupation,
     biography,
     photoUrls,
+    photoPath,
     createdAt,
     updatedAt,
   ];
@@ -166,6 +180,7 @@ class Person extends Equatable {
   /// Пустой человек (для начального состояния)
   static Person empty() => Person(
     id: '',
+    treeId: '',
     firstName: '',
     lastName: '',
     gender: Gender.unknown,

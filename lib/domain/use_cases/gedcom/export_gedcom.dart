@@ -15,11 +15,15 @@ class ExportGedcomUseCase {
   final PersonRepository personRepository;
   final FamilyRepository familyRepository;
 
-  Future<Either<Failure, String>> execute() async {
+  Future<Either<Failure, String>> execute({String? treeId}) async {
     try {
-      // Получаем всех людей и семьи
-      final List<Person> persons = await personRepository.getAllPersons();
-      final List<Family> families = await familyRepository.getAllFamilies();
+      // Получаем всех людей и семьи с фильтром по treeId
+      final List<Person> persons = await personRepository.getAllPersons(
+        treeId: treeId,
+      );
+      final List<Family> families = await familyRepository.getAllFamilies(
+        treeId: treeId,
+      );
 
       if (persons.isEmpty) {
         return const Left(ValidationFailure('Нет данных для экспорта'));

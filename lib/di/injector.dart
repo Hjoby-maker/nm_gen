@@ -35,129 +35,154 @@ final getIt = GetIt.instance;
 )
 void configureDependencies() => getIt.$initGetIt();
 
+/// Вспомогательная функция для безопасной регистрации LazySingleton
+void registerLazySingletonIfNotRegistered<T extends Object>(
+  T Function() factory, {
+  String? instanceName,
+}) {
+  if (!getIt.isRegistered<T>(instanceName: instanceName)) {
+    getIt.registerLazySingleton<T>(factory, instanceName: instanceName);
+  } else {
+    print('⚠️ $T уже зарегистрирован как LazySingleton, пропускаем');
+  }
+}
+
+/// Вспомогательная функция для безопасной регистрации Factory
+void registerFactoryIfNotRegistered<T extends Object>(
+  T Function() factory, {
+  String? instanceName,
+}) {
+  if (!getIt.isRegistered<T>(instanceName: instanceName)) {
+    getIt.registerFactory<T>(factory, instanceName: instanceName);
+  } else {
+    print('⚠️ $T уже зарегистрирован как Factory, пропускаем');
+  }
+}
+
 /// Ручная регистрация Use Cases и BLoC
 void registerUseCasesAndBlocs() {
-  // Регистрируем Database Helper как синглтон
-  getIt.registerLazySingleton<DatabaseHelper>(() => DatabaseHelper());
+  // ============================================================
+  // 1. РЕГИСТРАЦИЯ DATA SOURCES (если не зарегистрированы injectable)
+  // ============================================================
+  registerLazySingletonIfNotRegistered<DatabaseHelper>(() => DatabaseHelper());
 
-  // Регистрируем Local Data Sources
-  getIt.registerLazySingleton<PersonLocalDataSource>(
+  registerLazySingletonIfNotRegistered<PersonLocalDataSource>(
     () => PersonLocalDataSource(getIt<DatabaseHelper>()),
   );
-  getIt.registerLazySingleton<FamilyLocalDataSource>(
+
+  registerLazySingletonIfNotRegistered<FamilyLocalDataSource>(
     () => FamilyLocalDataSource(getIt<DatabaseHelper>()),
   );
 
   // ============================================================
-  // РЕГИСТРАЦИЯ РЕПОЗИТОРИЕВ
+  // 2. ПОЛУЧАЕМ РЕПОЗИТОРИИ ИЗ КОНТЕЙНЕРА
   // ============================================================
-  // Регистрируем PersonRepository - передаем как позиционный аргумент
-  getIt.registerLazySingleton<PersonRepository>(
-    () => PersonRepositoryImpl(
-      getIt<PersonLocalDataSource>(), // <-- позиционный аргумент
-    ),
-  );
-
-  // Регистрируем FamilyRepository - передаем как позиционный аргумент
-  getIt.registerLazySingleton<FamilyRepository>(
-    () => FamilyRepositoryImpl(
-      getIt<FamilyLocalDataSource>(), // <-- позиционный аргумент
-    ),
-  );
-
-  // Получаем репозитории из контейнера
   final PersonRepository personRepo = getIt<PersonRepository>();
   final FamilyRepository familyRepo = getIt<FamilyRepository>();
 
   // ============================================================
-  // РЕГИСТРАЦИЯ USE CASES ДЛЯ PERSON
+  // 3. РЕГИСТРАЦИЯ USE CASES ДЛЯ PERSON
   // ============================================================
-  final AddPersonUseCase addPersonUseCase = AddPersonUseCase(personRepo);
-  final GetPersonUseCase getPersonUseCase = GetPersonUseCase(personRepo);
-  final GetAllPersonsUseCase getAllPersonsUseCase = GetAllPersonsUseCase(
-    personRepo,
+  registerFactoryIfNotRegistered<AddPersonUseCase>(
+    () => AddPersonUseCase(personRepo),
   );
-  final UpdatePersonUseCase updatePersonUseCase = UpdatePersonUseCase(
-    personRepo,
+  registerFactoryIfNotRegistered<GetPersonUseCase>(
+    () => GetPersonUseCase(personRepo),
   );
-  final DeletePersonUseCase deletePersonUseCase = DeletePersonUseCase(
-    personRepo,
+  registerFactoryIfNotRegistered<GetAllPersonsUseCase>(
+    () => GetAllPersonsUseCase(personRepo),
   );
-  final SearchPersonsUseCase searchPersonsUseCase = SearchPersonsUseCase(
-    personRepo,
+  registerFactoryIfNotRegistered<UpdatePersonUseCase>(
+    () => UpdatePersonUseCase(personRepo),
+  );
+  registerFactoryIfNotRegistered<DeletePersonUseCase>(
+    () => DeletePersonUseCase(personRepo),
+  );
+  registerFactoryIfNotRegistered<SearchPersonsUseCase>(
+    () => SearchPersonsUseCase(personRepo),
   );
 
-  getIt.registerLazySingleton(() => addPersonUseCase);
-  getIt.registerLazySingleton(() => getPersonUseCase);
-  getIt.registerLazySingleton(() => getAllPersonsUseCase);
-  getIt.registerLazySingleton(() => updatePersonUseCase);
-  getIt.registerLazySingleton(() => deletePersonUseCase);
-  getIt.registerLazySingleton(() => searchPersonsUseCase);
-
   // ============================================================
-  // РЕГИСТРАЦИЯ USE CASES ДЛЯ FAMILY
+  // 4. РЕГИСТРАЦИЯ USE CASES ДЛЯ FAMILY
   // ============================================================
-  final AddFamilyUseCase addFamilyUseCase = AddFamilyUseCase(familyRepo);
-  final AddChildToFamilyUseCase addChildToFamilyUseCase =
-      AddChildToFamilyUseCase(familyRepo);
-  final RemoveChildFromFamilyUseCase removeChildFromFamilyUseCase =
-      RemoveChildFromFamilyUseCase(familyRepo);
-  final GetFamiliesByPersonUseCase getFamiliesByPersonUseCase =
-      GetFamiliesByPersonUseCase(familyRepo);
-  final GetFamilyWithDetailsUseCase getFamilyWithDetailsUseCase =
-      GetFamilyWithDetailsUseCase(
-        familyRepository: familyRepo,
-        personRepository: personRepo,
-      );
-
-  getIt.registerLazySingleton(() => addFamilyUseCase);
-  getIt.registerLazySingleton(() => addChildToFamilyUseCase);
-  getIt.registerLazySingleton(() => removeChildFromFamilyUseCase);
-  getIt.registerLazySingleton(() => getFamiliesByPersonUseCase);
-  getIt.registerLazySingleton(() => getFamilyWithDetailsUseCase);
-
-  // ============================================================
-  // РЕГИСТРАЦИЯ USE CASES ДЛЯ GEDCOM
-  // ============================================================
-  final ImportGedcomUseCase importGedcomUseCase = ImportGedcomUseCase(
-    personRepository: personRepo,
-    familyRepository: familyRepo,
+  registerFactoryIfNotRegistered<AddFamilyUseCase>(
+    () => AddFamilyUseCase(familyRepo),
   );
-  getIt.registerLazySingleton(() => importGedcomUseCase);
-
-  final ExportGedcomUseCase exportGedcomUseCase = ExportGedcomUseCase(
-    personRepository: personRepo,
-    familyRepository: familyRepo,
+  registerFactoryIfNotRegistered<AddChildToFamilyUseCase>(
+    () => AddChildToFamilyUseCase(familyRepo),
   );
-  getIt.registerLazySingleton(() => exportGedcomUseCase);
-
-  // ============================================================
-  // РЕГИСТРАЦИЯ USE CASES ДЛЯ TREE
-  // ============================================================
-  final GetFamilyTreeUseCase getFamilyTreeUseCase = GetFamilyTreeUseCase(
-    personRepository: personRepo,
-    familyRepository: familyRepo,
+  registerFactoryIfNotRegistered<RemoveChildFromFamilyUseCase>(
+    () => RemoveChildFromFamilyUseCase(familyRepo),
   );
-  getIt.registerLazySingleton(() => getFamilyTreeUseCase);
+  registerFactoryIfNotRegistered<GetFamiliesByPersonUseCase>(
+    () => GetFamiliesByPersonUseCase(familyRepo),
+  );
+  registerFactoryIfNotRegistered<GetFamilyWithDetailsUseCase>(
+    () => GetFamilyWithDetailsUseCase(
+      familyRepository: familyRepo,
+      personRepository: personRepo,
+    ),
+  );
 
   // ============================================================
-  // РЕГИСТРАЦИЯ BLOC
+  // 5. РЕГИСТРАЦИЯ USE CASES ДЛЯ GEDCOM
   // ============================================================
-  getIt.registerFactory<PersonBloc>(
+  registerFactoryIfNotRegistered<ImportGedcomUseCase>(
+    () => ImportGedcomUseCase(
+      personRepository: personRepo,
+      familyRepository: familyRepo,
+    ),
+  );
+
+  registerFactoryIfNotRegistered<ExportGedcomUseCase>(
+    () => ExportGedcomUseCase(
+      personRepository: personRepo,
+      familyRepository: familyRepo,
+    ),
+  );
+
+  // ============================================================
+  // 6. РЕГИСТРАЦИЯ USE CASES ДЛЯ TREE
+  // ============================================================
+  registerFactoryIfNotRegistered<GetFamilyTreeUseCase>(
+    () => GetFamilyTreeUseCase(
+      personRepository: personRepo,
+      familyRepository: familyRepo,
+    ),
+  );
+
+  // ============================================================
+  // 7. РЕГИСТРАЦИЯ BLOC (всегда Factory!)
+  // ============================================================
+  final getAllPersonsUseCase = getIt<GetAllPersonsUseCase>();
+  final addPersonUseCase = getIt<AddPersonUseCase>();
+  final updatePersonUseCase = getIt<UpdatePersonUseCase>();
+  final deletePersonUseCase = getIt<DeletePersonUseCase>();
+  final searchPersonsUseCase = getIt<SearchPersonsUseCase>();
+  final getFamiliesByPersonUseCase = getIt<GetFamiliesByPersonUseCase>();
+  final getFamilyWithDetailsUseCase = getIt<GetFamilyWithDetailsUseCase>();
+  final addFamilyUseCase = getIt<AddFamilyUseCase>();
+  final addChildToFamilyUseCase = getIt<AddChildToFamilyUseCase>();
+  final removeChildFromFamilyUseCase = getIt<RemoveChildFromFamilyUseCase>();
+  final getFamilyTreeUseCase = getIt<GetFamilyTreeUseCase>();
+
+  registerFactoryIfNotRegistered<PersonBloc>(
     () => PersonBloc(
       getAllPersonsUseCase: getAllPersonsUseCase,
       addPersonUseCase: addPersonUseCase,
       updatePersonUseCase: updatePersonUseCase,
       deletePersonUseCase: deletePersonUseCase,
       searchPersonsUseCase: searchPersonsUseCase,
+      familyRepository: familyRepo,
+      personRepository: personRepo,
     ),
   );
 
-  getIt.registerFactory<TreeBloc>(
+  registerFactoryIfNotRegistered<TreeBloc>(
     () => TreeBloc(getFamilyTreeUseCase: getFamilyTreeUseCase),
   );
 
-  getIt.registerFactory<FamilyBloc>(
+  registerFactoryIfNotRegistered<FamilyBloc>(
     () => FamilyBloc(
       getFamiliesByPersonUseCase: getFamiliesByPersonUseCase,
       getFamilyWithDetailsUseCase: getFamilyWithDetailsUseCase,

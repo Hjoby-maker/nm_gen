@@ -20,10 +20,12 @@ class FamiliesLoaded extends FamilyState {
     required this.families,
     this.persons = const {},
     this.selectedFamilyId,
+    this.treeId, // <-- ДОБАВЛЯЕМ
   });
   final List<Family> families;
   final Map<String, Person> persons;
   final String? selectedFamilyId;
+  final String? treeId; // <-- ДОБАВЛЯЕМ
 
   Family? get selectedFamily {
     try {
@@ -34,16 +36,22 @@ class FamiliesLoaded extends FamilyState {
   }
 
   @override
-  List<Object?> get props => <Object?>[families, persons, selectedFamilyId];
+  List<Object?> get props => <Object?>[
+    families,
+    persons,
+    selectedFamilyId,
+    treeId, // <-- ДОБАВЛЯЕМ
+  ];
 }
 
 /// Состояние с деталями семьи
 class FamilyDetailsLoaded extends FamilyState {
-  const FamilyDetailsLoaded(this.details);
+  const FamilyDetailsLoaded(this.details, {this.treeId});
   final FamilyDetails details;
+  final String? treeId; // <-- ДОБАВЛЯЕМ
 
   @override
-  List<Object?> get props => <Object?>[details];
+  List<Object?> get props => <Object?>[details, treeId];
 }
 
 class FamilyOperationSuccess extends FamilyState {

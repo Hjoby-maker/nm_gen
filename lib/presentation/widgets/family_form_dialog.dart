@@ -8,10 +8,12 @@ class FamilyFormDialog extends StatefulWidget {
     this.existingFamily,
     required this.availablePersons,
     required this.onSave,
+    this.treeId, // <-- ДОБАВЛЯЕМ
   }) : super(key: key);
   final Family? existingFamily;
   final List<Person> availablePersons;
   final Function(Family) onSave;
+  final String? treeId; // <-- ДОБАВЛЯЕМ
 
   @override
   State<FamilyFormDialog> createState() => _FamilyFormDialogState();
@@ -199,10 +201,15 @@ class _FamilyFormDialogState extends State<FamilyFormDialog> {
       return;
     }
 
+    // Определяем treeId
+    final String treeId =
+        widget.treeId ?? widget.existingFamily?.treeId ?? 'default';
+
     final Family family = Family(
       id:
           widget.existingFamily?.id ??
           DateTime.now().millisecondsSinceEpoch.toString(),
+      treeId: treeId, // <-- ДОБАВЛЯЕМ обязательный параметр
       husbandId: _selectedHusbandId,
       wifeId: _selectedWifeId,
       childrenIds: widget.existingFamily?.childrenIds ?? <String>[],
@@ -214,10 +221,7 @@ class _FamilyFormDialogState extends State<FamilyFormDialog> {
       notes: _notesController.text.isNotEmpty ? _notesController.text : null,
     );
 
-    // Используем переданную функцию onSave
     widget.onSave(family);
-
-    // Закрываем диалог только после вызова onSave
     Navigator.pop(context);
   }
 

@@ -5,10 +5,14 @@ import 'family.dart';
 /// Полное генеалогическое древо
 class FamilyTree extends Equatable {
   const FamilyTree({
+    required this.treeId,
     required this.rootPerson,
     this.allPersons = const [],
     this.families = const [],
+    this.name = 'Мое древо',
   });
+  final String treeId;
+  final String name;
   final Person rootPerson;
   final List<Person> allPersons;
   final List<Family> families;
@@ -96,5 +100,11 @@ class FamilyTree extends Equatable {
   int get familyCount => families.length;
 
   @override
-  List<Object?> get props => <Object?>[rootPerson, allPersons, families];
+  List<Object?> get props => <Object?>[
+    treeId,
+    name,
+    rootPerson,
+    allPersons,
+    families,
+  ];
 }

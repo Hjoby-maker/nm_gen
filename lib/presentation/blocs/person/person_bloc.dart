@@ -1,8 +1,9 @@
-import 'package:dartz/dartz.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:nm_gen/core/errors/failures.dart';
-import 'package:nm_gen/domain/entities/person.dart';
 import 'package:nm_gen/domain/entities/family.dart';
+import 'package:nm_gen/domain/entities/person.dart';
+import 'package:nm_gen/domain/repositories/family_repository.dart';
+import 'package:nm_gen/domain/repositories/person_repository.dart';
 import 'package:nm_gen/domain/use_cases/person/add_person.dart';
 import 'package:nm_gen/domain/use_cases/person/delete_person.dart';
 import 'package:nm_gen/domain/use_cases/person/get_all_persons.dart';
@@ -10,20 +11,26 @@ import 'package:nm_gen/domain/use_cases/person/search_persons.dart';
 import 'package:nm_gen/domain/use_cases/person/update_person.dart';
 import 'package:nm_gen/presentation/blocs/person/person_event.dart';
 import 'package:nm_gen/presentation/blocs/person/person_state.dart';
-import 'package:nm_gen/domain/repositories/family_repository.dart';
-import 'package:nm_gen/domain/repositories/person_repository.dart';
 import 'package:nm_gen/di/injector.dart';
 
-/// BLoC для управления персонами
 class PersonBloc extends Bloc<PersonEvent, PersonState> {
+  final GetAllPersonsUseCase getAllPersonsUseCase;
+  final AddPersonUseCase addPersonUseCase;
+  final UpdatePersonUseCase updatePersonUseCase;
+  final DeletePersonUseCase deletePersonUseCase;
+  final SearchPersonsUseCase searchPersonsUseCase;
+  final FamilyRepository familyRepository;
+  final PersonRepository personRepository;
+
   PersonBloc({
     required this.getAllPersonsUseCase,
     required this.addPersonUseCase,
     required this.updatePersonUseCase,
     required this.deletePersonUseCase,
     required this.searchPersonsUseCase,
+    required this.familyRepository,
+    required this.personRepository,
   }) : super(PersonInitial()) {
-    // Регистрируем обработчики событий
     on<LoadPersonsEvent>(_onLoadPersons);
     on<AddPersonEvent>(_onAddPerson);
     on<UpdatePersonEvent>(_onUpdatePerson);
@@ -32,11 +39,6 @@ class PersonBloc extends Bloc<PersonEvent, PersonState> {
     on<ClearSearchEvent>(_onClearSearch);
     on<DeleteAllPersonsEvent>(_onDeleteAllPersons);
   }
-  final GetAllPersonsUseCase getAllPersonsUseCase;
-  final AddPersonUseCase addPersonUseCase;
-  final UpdatePersonUseCase updatePersonUseCase;
-  final DeletePersonUseCase deletePersonUseCase;
-  final SearchPersonsUseCase searchPersonsUseCase;
 
   /// Обработчик: Загрузка всех людей
   Future<void> _onLoadPersons(
@@ -45,12 +47,11 @@ class PersonBloc extends Bloc<PersonEvent, PersonState> {
   ) async {
     emit(PersonLoading());
 
-    final Either<Failure, List<Person>> result = await getAllPersonsUseCase
-        .execute();
+    final result = await getAllPersonsUseCase.execute(treeId: event.treeId);
 
     result.fold(
-      (Failure failure) => emit(PersonError(failure.message)),
-      (List<Person> persons) => emit(PersonsLoaded(persons: persons)),
+      (failure) => emit(PersonError(failure.message)),
+      (persons) => emit(PersonsLoaded(persons: persons, treeId: event.treeId)),
     );
   }
 
@@ -61,15 +62,15 @@ class PersonBloc extends Bloc<PersonEvent, PersonState> {
   ) async {
     emit(PersonLoading());
 
-    final Either<Failure, Person> result = await addPersonUseCase.execute(
-      event.person,
-    );
+    // Добавляем treeId к человеку
+    final personWithTree = event.person.treeId.isEmpty
+        ? event.person.copyWith(treeId: event.treeId ?? 'default')
+        : event.person;
 
-    result.fold((Failure failure) => emit(PersonError(failure.message)), (
-      Person person,
-    ) {
-      // После успешного добавления загружаем обновленный список
-      add(const LoadPersonsEvent());
+    final result = await addPersonUseCase.execute(personWithTree);
+
+    result.fold((failure) => emit(PersonError(failure.message)), (person) {
+      add(LoadPersonsEvent(treeId: event.treeId));
       emit(PersonOperationSuccess('Человек "${person.displayName}" добавлен'));
     });
   }
@@ -81,14 +82,10 @@ class PersonBloc extends Bloc<PersonEvent, PersonState> {
   ) async {
     emit(PersonLoading());
 
-    final Either<Failure, Person> result = await updatePersonUseCase.execute(
-      event.person,
-    );
+    final result = await updatePersonUseCase.execute(event.person);
 
-    result.fold((Failure failure) => emit(PersonError(failure.message)), (
-      Person person,
-    ) {
-      add(const LoadPersonsEvent());
+    result.fold((failure) => emit(PersonError(failure.message)), (person) {
+      add(LoadPersonsEvent(treeId: event.treeId));
       emit(PersonOperationSuccess('Данные "${person.displayName}" обновлены'));
     });
   }
@@ -100,12 +97,10 @@ class PersonBloc extends Bloc<PersonEvent, PersonState> {
   ) async {
     emit(PersonLoading());
 
-    final Either<Failure, void> result = await deletePersonUseCase.execute(
-      event.personId,
-    );
+    final result = await deletePersonUseCase.execute(event.personId);
 
-    result.fold((Failure failure) => emit(PersonError(failure.message)), (_) {
-      add(const LoadPersonsEvent());
+    result.fold((failure) => emit(PersonError(failure.message)), (_) {
+      add(LoadPersonsEvent(treeId: event.treeId));
       emit(const PersonOperationSuccess('Человек удален'));
     });
   }
@@ -116,22 +111,25 @@ class PersonBloc extends Bloc<PersonEvent, PersonState> {
     Emitter<PersonState> emit,
   ) async {
     if (event.query.isEmpty) {
-      add(const LoadPersonsEvent());
+      add(LoadPersonsEvent(treeId: event.treeId));
       return;
     }
 
     emit(PersonLoading());
 
-    final Either<Failure, List<Person>> result = await searchPersonsUseCase
-        .execute(event.query);
+    final result = await searchPersonsUseCase.execute(
+      event.query,
+      treeId: event.treeId,
+    );
 
     result.fold(
-      (Failure failure) => emit(PersonError(failure.message)),
-      (List<Person> persons) => emit(
+      (failure) => emit(PersonError(failure.message)),
+      (persons) => emit(
         PersonsLoaded(
           persons: persons,
           isSearching: true,
           searchQuery: event.query,
+          treeId: event.treeId,
         ),
       ),
     );
@@ -142,9 +140,15 @@ class PersonBloc extends Bloc<PersonEvent, PersonState> {
     ClearSearchEvent event,
     Emitter<PersonState> emit,
   ) async {
-    add(const LoadPersonsEvent());
+    final currentState = state;
+    if (currentState is PersonsLoaded) {
+      add(LoadPersonsEvent(treeId: currentState.treeId));
+    } else {
+      add(const LoadPersonsEvent());
+    }
   }
 
+  /// Обработчик: Удаление всех людей
   Future<void> _onDeleteAllPersons(
     DeleteAllPersonsEvent event,
     Emitter<PersonState> emit,
@@ -152,27 +156,33 @@ class PersonBloc extends Bloc<PersonEvent, PersonState> {
     emit(PersonLoading());
 
     try {
-      // Получаем репозитории из DI
-      final FamilyRepository familyRepo = getIt<FamilyRepository>();
-      final PersonRepository personRepo = getIt<PersonRepository>();
+      // Выполняем удаление в отдельном изоляте для предотвращения зависания UI
+      await compute(_deleteAllData, event.treeId);
 
-      // Сначала удаляем все семьи (чтобы не было нарушений внешних ключей)
-      final List<Family> allFamilies = await familyRepo.getAllFamilies();
-      for (final Family family in allFamilies) {
-        await familyRepo.deleteFamily(family.id);
-      }
-
-      // Затем удаляем всех людей
-      final List<Person> allPersons = await personRepo.getAllPersons();
-      for (final Person person in allPersons) {
-        await personRepo.deletePerson(person.id);
-      }
-
-      // Обновляем список
-      add(const LoadPersonsEvent());
+      add(LoadPersonsEvent(treeId: event.treeId));
       emit(const PersonOperationSuccess('Все данные успешно удалены'));
     } catch (e) {
       emit(PersonError('Ошибка при удалении: ${e.toString()}'));
     }
+  }
+}
+
+/// Функция для выполнения в отдельном изоляте
+Future<void> _deleteAllData(String? treeId) async {
+  final FamilyRepository familyRepo = getIt<FamilyRepository>();
+  final PersonRepository personRepo = getIt<PersonRepository>();
+
+  final List<Family> allFamilies = await familyRepo.getAllFamilies(
+    treeId: treeId,
+  );
+  for (final Family family in allFamilies) {
+    await familyRepo.deleteFamily(family.id);
+  }
+
+  final List<Person> allPersons = await personRepo.getAllPersons(
+    treeId: treeId,
+  );
+  for (final Person person in allPersons) {
+    await personRepo.deletePerson(person.id);
   }
 }

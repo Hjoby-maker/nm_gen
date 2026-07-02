@@ -11,6 +11,7 @@ import 'package:nm_gen/presentation/blocs/person/person_event.dart';
 import 'package:nm_gen/presentation/blocs/person/person_state.dart';
 import 'package:nm_gen/presentation/screens/family_screen.dart';
 import 'package:nm_gen/presentation/widgets/family_form_dialog.dart';
+import 'package:nm_gen/di/injector.dart';
 
 class PersonDetailScreen extends StatefulWidget {
   const PersonDetailScreen({Key? key, required this.personId})
@@ -23,35 +24,53 @@ class PersonDetailScreen extends StatefulWidget {
 
 class _PersonDetailScreenState extends State<PersonDetailScreen> {
   Person? _person;
-  final List<Family> _familiesAsChild = <Family>[];
-  final List<Family> _familiesAsParent = <Family>[];
-  final Map<String, Person> _familyMembers = <String, Person>{};
+  bool _isLoading = true;
+  String? _treeId;
+
+  // Получаем BLoC через getIt
+  late final PersonBloc _personBloc;
+  late final FamilyBloc _familyBloc;
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _personBloc = getIt<PersonBloc>();
+    _familyBloc = getIt<FamilyBloc>();
+
+    // Отложенная загрузка
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData();
+    });
   }
 
   Future<void> _loadData() async {
-    final PersonBloc personBloc = context.read<PersonBloc>();
-    final FamilyBloc familyBloc = context.read<FamilyBloc>();
+    setState(() => _isLoading = true);
 
-    // Загружаем человека
-    final PersonState personState = personBloc.state;
-    if (personState is PersonsLoaded) {
+    // Если данные еще не загружены, загружаем
+    final personState = _personBloc.state;
+    if (personState is! PersonsLoaded) {
+      _personBloc.add(const LoadPersonsEvent());
+      // Ждем обновления состояния
+      await Future.delayed(const Duration(milliseconds: 200));
+    }
+
+    // Получаем обновленное состояние
+    final updatedState = _personBloc.state;
+    if (updatedState is PersonsLoaded) {
       setState(() {
-        _person = personState.persons.firstWhere(
-          (Person p) => p.id == widget.personId,
+        _person = updatedState.persons.firstWhere(
+          (p) => p.id == widget.personId,
           orElse: () => Person.empty(),
         );
+        _treeId = updatedState.treeId;
+        _isLoading = false;
       });
     } else {
-      personBloc.add(const LoadPersonsEvent());
+      setState(() => _isLoading = false);
     }
 
     // Загружаем семьи
-    familyBloc.add(LoadFamiliesEvent(widget.personId));
+    _familyBloc.add(LoadFamiliesEvent(widget.personId, treeId: _treeId));
   }
 
   @override
@@ -61,70 +80,103 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
         title: Text(_person?.displayName ?? 'Загрузка...'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: <Widget>[
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () => _showEditPersonDialog(context),
-            tooltip: 'Редактировать',
-          ),
+          if (_person != null && _person!.id.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.edit),
+              onPressed: () => _showEditPersonDialog(context),
+              tooltip: 'Редактировать',
+            ),
         ],
       ),
-      body: BlocConsumer<FamilyBloc, FamilyState>(
-        listener: (BuildContext context, FamilyState state) {
-          if (state is FamilyOperationSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.green,
+      body: _isLoading
+          ? const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Загрузка данных...'),
+                ],
               ),
-            );
-            // Перезагружаем данные
-            context.read<FamilyBloc>().add(LoadFamiliesEvent(widget.personId));
-          } else if (state is FamilyError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
+            )
+          : _person == null || _person!.id.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.person_off, size: 64, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Человек не найден',
+                    style: TextStyle(fontSize: 18, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Назад'),
+                  ),
+                ],
               ),
-            );
-          }
-        },
-        builder: (BuildContext context, FamilyState state) {
-          if (_person == null) {
-            return const Center(child: CircularProgressIndicator());
-          }
+            )
+          : BlocProvider.value(
+              // <-- ОБОРАЧИВАЕМ В BlocProvider.value
+              value: _familyBloc,
+              child: BlocConsumer<FamilyBloc, FamilyState>(
+                listener: (BuildContext context, FamilyState state) {
+                  if (state is FamilyOperationSuccess) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(state.message),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                    // Перезагружаем данные
+                    _familyBloc.add(
+                      LoadFamiliesEvent(widget.personId, treeId: _treeId),
+                    );
+                  } else if (state is FamilyError) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(state.message),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                },
+                builder: (BuildContext context, FamilyState state) {
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        // Информация о человеке
+                        _buildPersonInfo(),
+                        const SizedBox(height: 24),
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                // Информация о человеке
-                _buildPersonInfo(),
-                const SizedBox(height: 24),
+                        // Семьи где человек - ребенок
+                        _buildFamiliesSection(
+                          'Семьи (как ребенок)',
+                          _getFamiliesAsChild(state),
+                          isChild: true,
+                        ),
+                        const SizedBox(height: 16),
 
-                // Семьи где человек - ребенок
-                _buildFamiliesSection(
-                  'Семьи (как ребенок)',
-                  _getFamiliesAsChild(state),
-                  isChild: true,
-                ),
-                const SizedBox(height: 16),
+                        // Семьи где человек - родитель
+                        _buildFamiliesSection(
+                          'Семьи (как родитель)',
+                          _getFamiliesAsParent(state),
+                          isChild: false,
+                        ),
+                        const SizedBox(height: 16),
 
-                // Семьи где человек - родитель
-                _buildFamiliesSection(
-                  'Семьи (как родитель)',
-                  _getFamiliesAsParent(state),
-                  isChild: false,
-                ),
-                const SizedBox(height: 16),
-
-                // Кнопки действий
-                _buildActionButtons(context),
-              ],
+                        // Кнопки действий
+                        _buildActionButtons(context),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
-          );
-        },
-      ),
     );
   }
 
@@ -381,10 +433,18 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
   // =========================================================================
 
   void _showAddSiblingDialog(BuildContext context) {
-    final PersonState personState = context.read<PersonBloc>().state;
-    final FamilyState familyState = context.read<FamilyBloc>().state;
+    final PersonState personState = _personBloc.state;
+    final FamilyState familyState = _familyBloc.state;
 
-    if (personState is! PersonsLoaded || familyState is! FamiliesLoaded) return;
+    if (personState is! PersonsLoaded || familyState is! FamiliesLoaded) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Данные еще загружаются...'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
 
     // Находим семьи, где человек является ребенком
     final List<Family> parentFamilies = familyState.families
@@ -437,7 +497,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
   }
 
   void _showAddSiblingToFamilyDialog(BuildContext context, Family family) {
-    final PersonState personState = context.read<PersonBloc>().state;
+    final PersonState personState = _personBloc.state;
     if (personState is! PersonsLoaded) return;
 
     final List<Person> availableSiblings = personState.persons
@@ -471,8 +531,8 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
               title: Text(person.displayName),
               subtitle: Text(person.formattedAge),
               onTap: () {
-                context.read<FamilyBloc>().add(
-                  AddChildToFamilyEvent(family.id, person.id),
+                _familyBloc.add(
+                  AddChildToFamilyEvent(family.id, person.id, treeId: _treeId),
                 );
                 Navigator.pop(context);
               },
@@ -484,11 +544,9 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
   }
 
   void _showAddSpouseDialog(BuildContext context) {
-    // Создаем новую семью с текущим человеком и выбранным супругом
-    final PersonState personState = context.read<PersonBloc>().state;
+    final PersonState personState = _personBloc.state;
     if (personState is! PersonsLoaded) return;
 
-    // Показываем диалог выбора супруга
     showDialog(
       context: context,
       builder: (BuildContext context) => AlertDialog(
@@ -510,9 +568,10 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
                     title: Text(person.displayName),
                     subtitle: Text(person.formattedAge),
                     onTap: () {
-                      // Создаем семью
+                      final String treeId = _treeId ?? 'default';
                       final Family family = Family(
                         id: DateTime.now().millisecondsSinceEpoch.toString(),
+                        treeId: treeId,
                         husbandId: _person?.gender == Gender.male
                             ? widget.personId
                             : person.id,
@@ -521,11 +580,12 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
                             : person.id,
                         childrenIds: const <String>[],
                       );
-                      context.read<FamilyBloc>().add(AddFamilyEvent(family));
+                      _familyBloc.add(AddFamilyEvent(family, treeId: treeId));
                       Navigator.pop(context);
                     },
                   );
-                }),
+                })
+                .toList(),
           ],
         ),
       ),
@@ -533,27 +593,22 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
   }
 
   void _showAddChildAsParentDialog(BuildContext context) {
-    // Создаем новую семью с текущим человеком как родителем
-    final PersonState personState = context.read<PersonBloc>().state;
-    if (personState is! PersonsLoaded) return;
-
-    // Показываем диалог выбора второго родителя и ребенка
-    // Для простоты сначала создаем семью, потом добавляем ребенка
     _showAddFamilyDialog(context);
   }
 
   void _showAddFamilyDialog(BuildContext context) {
-    final PersonState personState = context.read<PersonBloc>().state;
+    final PersonState personState = _personBloc.state;
     if (personState is! PersonsLoaded) return;
 
-    final FamilyBloc familyBloc = context.read<FamilyBloc>();
+    final String treeId = _treeId ?? 'default';
 
     showDialog(
       context: context,
       builder: (BuildContext context) => FamilyFormDialog(
         availablePersons: personState.persons,
+        treeId: treeId,
         onSave: (Family family) {
-          familyBloc.add(AddFamilyEvent(family));
+          _familyBloc.add(AddFamilyEvent(family, treeId: treeId));
         },
       ),
     );

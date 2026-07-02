@@ -3,7 +3,9 @@ import 'dart:io';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:injectable/injectable.dart';
 
+@injectable
 class DatabaseHelper {
   factory DatabaseHelper() => _instance;
   DatabaseHelper._internal();
@@ -24,7 +26,7 @@ class DatabaseHelper {
 
     return openDatabase(
       path,
-      version: 1,
+      version: 3,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -36,6 +38,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE persons (
         id TEXT PRIMARY KEY,
+        tree_id TEXT NOT NULL DEFAULT 'default',
         first_name TEXT NOT NULL,
         last_name TEXT NOT NULL,
         middle_name TEXT,
@@ -47,12 +50,16 @@ class DatabaseHelper {
         occupation TEXT,
         biography TEXT,
         photo_urls TEXT,
+        photo_path TEXT,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       )
     ''');
 
     // Создаем индексы для ускорения поиска
+    await db.execute('''
+      CREATE INDEX idx_persons_tree_id ON persons (tree_id)
+    ''');
     await db.execute('''
       CREATE INDEX idx_persons_name ON persons (first_name, last_name)
     ''');
@@ -65,6 +72,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE families (
         id TEXT PRIMARY KEY,
+        tree_id TEXT NOT NULL DEFAULT 'default',
         husband_id TEXT,
         wife_id TEXT,
         children_ids TEXT,
@@ -79,6 +87,9 @@ class DatabaseHelper {
 
     // Создаем индексы для семей
     await db.execute('''
+      CREATE INDEX idx_families_tree_id ON families (tree_id)
+    ''');
+    await db.execute('''
       CREATE INDEX idx_families_husband ON families (husband_id)
     ''');
 
@@ -89,9 +100,22 @@ class DatabaseHelper {
 
   /// Обновление базы данных (миграции)
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 2) {
-      // Пример миграции для версии 2
-      // await db.execute('ALTER TABLE persons ADD COLUMN new_field TEXT');
+    if (oldVersion < 3) {
+      await db.execute('''
+        ALTER TABLE persons ADD COLUMN tree_id TEXT NOT NULL DEFAULT 'default'
+      ''');
+      await db.execute('''
+        CREATE INDEX idx_persons_tree_id ON persons (tree_id)
+      ''');
+
+      // Добавляем колонку tree_id в таблицу families
+      await db.execute('''
+        ALTER TABLE families ADD COLUMN tree_id TEXT NOT NULL DEFAULT 'default'
+      ''');
+      await db.execute('''
+        CREATE INDEX idx_families_tree_id ON families (tree_id)
+      ''');
+      await db.execute('ALTER TABLE persons ADD COLUMN photo_path TEXT');
     }
   }
 

@@ -4,6 +4,7 @@ import 'package:nm_gen/domain/entities/family.dart';
 class FamilyModel {
   FamilyModel({
     required this.id,
+    required this.treeId,
     this.husbandId,
     this.wifeId,
     required this.childrenIds,
@@ -17,6 +18,7 @@ class FamilyModel {
   factory FamilyModel.fromDomain(Family family) {
     return FamilyModel(
       id: family.id,
+      treeId: family.treeId,
       husbandId: family.husbandId,
       wifeId: family.wifeId,
       childrenIds: family.childrenIds.join(','),
@@ -31,6 +33,7 @@ class FamilyModel {
   factory FamilyModel.fromMap(Map<String, dynamic> map) {
     return FamilyModel(
       id: map['id'] as String,
+      treeId: map['tree_id'] as String? ?? 'default',
       husbandId: map['husband_id'] as String?,
       wifeId: map['wife_id'] as String?,
       childrenIds: map['children_ids'] as String? ?? '',
@@ -41,6 +44,7 @@ class FamilyModel {
     );
   }
   final String id;
+  final String treeId;
   final String? husbandId;
   final String? wifeId;
   final String childrenIds; // JSON строка
@@ -53,6 +57,7 @@ class FamilyModel {
   Family toDomain() {
     return Family(
       id: id,
+      treeId: treeId,
       husbandId: husbandId,
       wifeId: wifeId,
       childrenIds: childrenIds.isEmpty ? <String>[] : childrenIds.split(','),
@@ -71,6 +76,7 @@ class FamilyModel {
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'id': id,
+      'tree_id': treeId,
       'husband_id': husbandId,
       'wife_id': wifeId,
       'children_ids': childrenIds,

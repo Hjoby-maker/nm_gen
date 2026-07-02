@@ -5,6 +5,7 @@ import 'package:nm_gen/core/enums/event_type.dart';
 class Event extends Equatable {
   const Event({
     required this.id,
+    required this.treeId,
     required this.personId,
     required this.type,
     this.date,
@@ -13,6 +14,7 @@ class Event extends Equatable {
     this.mediaUrls = const [],
   });
   final String id;
+  final String treeId;
   final String personId;
   final EventType type;
   final DateTime? date;
@@ -22,6 +24,7 @@ class Event extends Equatable {
 
   Event copyWith({
     String? id,
+    String? treeId,
     String? personId,
     EventType? type,
     DateTime? date,
@@ -31,6 +34,7 @@ class Event extends Equatable {
   }) {
     return Event(
       id: id ?? this.id,
+      treeId: treeId ?? this.treeId,
       personId: personId ?? this.personId,
       type: type ?? this.type,
       date: date ?? this.date,
@@ -43,6 +47,7 @@ class Event extends Equatable {
   @override
   List<Object?> get props => <Object?>[
     id,
+    treeId,
     personId,
     type,
     date,

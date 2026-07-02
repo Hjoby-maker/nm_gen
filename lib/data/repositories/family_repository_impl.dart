@@ -23,9 +23,9 @@ class FamilyRepositoryImpl implements FamilyRepository {
   }
 
   @override
-  Future<List<Family>> getAllFamilies() async {
-    final List<FamilyModel> models = await localDataSource.getAllFamilies();
-    return models.map((FamilyModel model) => model.toDomain()).toList();
+  Future<List<Family>> getAllFamilies({String? treeId}) async {
+    final models = await localDataSource.getAllFamilies(treeId: treeId);
+    return models.map((model) => model.toDomain()).toList();
   }
 
   @override
@@ -41,19 +41,44 @@ class FamilyRepositoryImpl implements FamilyRepository {
   }
 
   @override
-  Future<List<Family>> getFamiliesByPerson(String personId) async {
-    final List<FamilyModel> models = await localDataSource.getFamiliesByPerson(
-      personId,
-    );
-    return models.map((FamilyModel model) => model.toDomain()).toList();
+  Future<void> deleteAllFamilies({String? treeId}) async {
+    await localDataSource.deleteAllFamilies(treeId: treeId);
   }
 
   @override
-  Future<List<Family>> getFamiliesAsParent(String personId) async {
+  Future<List<Family>> getFamiliesByPerson(
+    String personId, {
+    String? treeId,
+  }) async {
+    final List<FamilyModel> models = await localDataSource.getFamiliesByPerson(
+      personId,
+      treeId: treeId,
+    );
+    return models.map((model) => model.toDomain()).toList();
+  }
+
+  @override
+  Future<List<Family>> getFamiliesAsParent(
+    String personId, {
+    String? treeId,
+  }) async {
     final List<FamilyModel> models = await localDataSource.getFamiliesAsParent(
       personId,
+      treeId: treeId,
     );
-    return models.map((FamilyModel model) => model.toDomain()).toList();
+    return models.map((model) => model.toDomain()).toList();
+  }
+
+  @override
+  Future<List<Family>> getFamiliesAsChild(
+    String personId, {
+    String? treeId,
+  }) async {
+    final List<FamilyModel> models = await localDataSource.getFamiliesAsChild(
+      personId,
+      treeId: treeId,
+    );
+    return models.map((model) => model.toDomain()).toList();
   }
 
   @override

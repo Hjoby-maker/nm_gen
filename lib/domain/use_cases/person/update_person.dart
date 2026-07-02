@@ -8,7 +8,10 @@ class UpdatePersonUseCase {
   UpdatePersonUseCase(this.repository);
   final PersonRepository repository;
 
-  Future<Either<Failure, Person>> execute(Person person) async {
+  Future<Either<Failure, Person>> execute(
+    Person person, {
+    String? treeId,
+  }) async {
     try {
       // Валидация
       if (person.id.isEmpty) {
@@ -23,7 +26,12 @@ class UpdatePersonUseCase {
         );
       }
 
-      final Person result = await repository.updatePerson(person);
+      // Обновляем treeId если передан
+      final personWithTree = treeId != null && person.treeId != treeId
+          ? person.copyWith(treeId: treeId)
+          : person;
+
+      final Person result = await repository.updatePerson(personWithTree);
       return Right(result);
     } catch (e) {
       return Left(ServerFailure(e.toString()));

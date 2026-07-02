@@ -23,9 +23,9 @@ class PersonRepositoryImpl implements PersonRepository {
   }
 
   @override
-  Future<List<Person>> getAllPersons() async {
-    final List<PersonModel> models = await localDataSource.getAllPersons();
-    return models.map((PersonModel model) => model.toDomain()).toList();
+  Future<List<Person>> getAllPersons({String? treeId}) async {
+    final models = await localDataSource.getAllPersons(treeId: treeId);
+    return models.map((model) => model.toDomain()).toList();
   }
 
   @override
@@ -41,18 +41,37 @@ class PersonRepositoryImpl implements PersonRepository {
   }
 
   @override
-  Future<List<Person>> searchPersons(String query) async {
-    if (query.isEmpty) {
-      return getAllPersons();
-    }
-    final List<PersonModel> models = await localDataSource.searchPersons(query);
-    return models.map((PersonModel model) => model.toDomain()).toList();
+  Future<void> deleteAllPersons({String? treeId}) async {
+    await localDataSource.deleteAllPersons(treeId: treeId);
   }
 
   @override
-  Future<List<Person>> getPersonsByIds(List<String> ids) async {
+  Future<List<Person>> searchPersons(String query, {String? treeId}) async {
+    if (query.isEmpty) {
+      return getAllPersons(treeId: treeId);
+    }
+    final List<PersonModel> models = await localDataSource.searchPersons(
+      query,
+      treeId: treeId,
+    );
+    return models.map((model) => model.toDomain()).toList();
+  }
+
+  @override
+  Future<List<Person>> getPersonsByIds(
+    List<String> ids, {
+    String? treeId,
+  }) async {
     if (ids.isEmpty) return <Person>[];
-    final List<PersonModel> models = await localDataSource.getPersonsByIds(ids);
-    return models.map((PersonModel model) => model.toDomain()).toList();
+    final List<PersonModel> models = await localDataSource.getPersonsByIds(
+      ids,
+      treeId: treeId,
+    );
+    return models.map((model) => model.toDomain()).toList();
+  }
+
+  @override
+  Future<int> getPersonsCount({String? treeId}) async {
+    return await localDataSource.getPersonsCount(treeId: treeId);
   }
 }

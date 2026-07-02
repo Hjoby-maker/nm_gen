@@ -8,7 +8,7 @@ class GetPersonUseCase {
   GetPersonUseCase(this.repository);
   final PersonRepository repository;
 
-  Future<Either<Failure, Person>> execute(String id) async {
+  Future<Either<Failure, Person>> execute(String id, {String? treeId}) async {
     try {
       if (id.isEmpty) {
         return const Left(
@@ -20,6 +20,11 @@ class GetPersonUseCase {
 
       if (person == null) {
         return Left(NotFoundFailure('Человек с ID $id не найден'));
+      }
+
+      // Проверяем, что человек принадлежит текущему древу
+      if (treeId != null && person.treeId != treeId) {
+        return Left(NotFoundFailure('Человек не найден в текущем древе'));
       }
 
       return Right(person);

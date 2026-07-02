@@ -7,7 +7,11 @@ class RemoveChildFromFamilyUseCase {
   RemoveChildFromFamilyUseCase(this.repository);
   final FamilyRepository repository;
 
-  Future<Either<Failure, void>> execute(String familyId, String childId) async {
+  Future<Either<Failure, void>> execute(
+    String familyId,
+    String childId, {
+    String? treeId,
+  }) async {
     try {
       if (familyId.isEmpty || childId.isEmpty) {
         return const Left(

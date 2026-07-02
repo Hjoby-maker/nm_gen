@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 class Family extends Equatable {
   const Family({
     required this.id,
+    required this.treeId,
     this.husbandId,
     this.wifeId,
     this.childrenIds = const [],
@@ -13,6 +14,7 @@ class Family extends Equatable {
     this.notes,
   });
   final String id;
+  final String treeId;
   final String? husbandId; // ID мужа/партнера 1
   final String? wifeId; // ID жены/партнера 2
   final List<String> childrenIds;
@@ -35,6 +37,7 @@ class Family extends Equatable {
 
   Family copyWith({
     String? id,
+    String? treeId,
     String? husbandId,
     String? wifeId,
     List<String>? childrenIds,
@@ -45,6 +48,7 @@ class Family extends Equatable {
   }) {
     return Family(
       id: id ?? this.id,
+      treeId: treeId ?? this.treeId,
       husbandId: husbandId ?? this.husbandId,
       wifeId: wifeId ?? this.wifeId,
       childrenIds: childrenIds ?? this.childrenIds,
@@ -58,6 +62,7 @@ class Family extends Equatable {
   @override
   List<Object?> get props => <Object?>[
     id,
+    treeId,
     husbandId,
     wifeId,
     childrenIds,
@@ -70,6 +75,7 @@ class Family extends Equatable {
   /// Пустая семья
   static Family empty() => const Family(
     id: '',
+    treeId: '',
     husbandId: null,
     wifeId: null,
     childrenIds: <String>[],

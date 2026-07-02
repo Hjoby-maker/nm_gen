@@ -15,7 +15,7 @@ class ImportGedcomUseCase {
   final PersonRepository personRepository;
   final FamilyRepository familyRepository;
 
-  Future<Either<Failure, int>> execute(String content) async {
+  Future<Either<Failure, int>> execute(String content, {String? treeId}) async {
     try {
       if (content.isEmpty) {
         return const Left(ValidationFailure('GEDCOM файл пуст'));
@@ -37,7 +37,15 @@ class ImportGedcomUseCase {
         if (individual.name.isEmpty) continue;
 
         final Person person = GedcomParser.toPerson(individual);
-        final Person savedPerson = await personRepository.addPerson(person);
+
+        // Добавляем treeId к человеку
+        final Person personWithTree = person.copyWith(
+          treeId: treeId ?? 'default',
+        );
+
+        final Person savedPerson = await personRepository.addPerson(
+          personWithTree,
+        );
         idMap[individual.id] = savedPerson.id;
         importedCount++;
       }
@@ -46,6 +54,7 @@ class ImportGedcomUseCase {
       for (final GedcomFamily gedcomFamily in data.families) {
         final Family family = Family(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
+          treeId: treeId ?? 'default', // <-- ДОБАВЛЯЕМ treeId
           husbandId: idMap[gedcomFamily.husbandId],
           wifeId: idMap[gedcomFamily.wifeId],
           childrenIds: gedcomFamily.childrenIds

@@ -8,9 +8,15 @@ class SearchPersonsUseCase {
   SearchPersonsUseCase(this.repository);
   final PersonRepository repository;
 
-  Future<Either<Failure, List<Person>>> execute(String query) async {
+  Future<Either<Failure, List<Person>>> execute(
+    String query, {
+    String? treeId,
+  }) async {
     try {
-      final List<Person> persons = await repository.searchPersons(query);
+      final List<Person> persons = await repository.searchPersons(
+        query,
+        treeId: treeId,
+      );
       return Right(persons);
     } catch (e) {
       return Left(ServerFailure(e.toString()));
