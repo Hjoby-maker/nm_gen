@@ -101,7 +101,7 @@ class DatabaseHelper {
   /// Обновление базы данных (миграции)
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 3) {
-      await db.execute('''
+      /* await db.execute('''
         ALTER TABLE persons ADD COLUMN tree_id TEXT NOT NULL DEFAULT 'default'
       ''');
       await db.execute('''
@@ -114,7 +114,7 @@ class DatabaseHelper {
       ''');
       await db.execute('''
         CREATE INDEX idx_families_tree_id ON families (tree_id)
-      ''');
+      ''');*/
       await db.execute('ALTER TABLE persons ADD COLUMN photo_path TEXT');
     }
   }

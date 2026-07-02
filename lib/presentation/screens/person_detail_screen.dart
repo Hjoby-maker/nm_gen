@@ -11,6 +11,8 @@ import 'package:nm_gen/presentation/blocs/person/person_event.dart';
 import 'package:nm_gen/presentation/blocs/person/person_state.dart';
 import 'package:nm_gen/presentation/screens/family_screen.dart';
 import 'package:nm_gen/presentation/widgets/family_form_dialog.dart';
+import 'package:nm_gen/presentation/widgets/person_avatar.dart'; // <-- ДОБАВЛЯЕМ
+import 'package:nm_gen/presentation/widgets/person_form_dialog.dart'; // <-- ДОБАВЛЯЕМ
 import 'package:nm_gen/di/injector.dart';
 
 class PersonDetailScreen extends StatefulWidget {
@@ -49,7 +51,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
     // Если данные еще не загружены, загружаем
     final personState = _personBloc.state;
     if (personState is! PersonsLoaded) {
-      _personBloc.add(const LoadPersonsEvent());
+      _personBloc.add(LoadPersonsEvent(treeId: _treeId));
       // Ждем обновления состояния
       await Future.delayed(const Duration(milliseconds: 200));
     }
@@ -119,7 +121,6 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
               ),
             )
           : BlocProvider.value(
-              // <-- ОБОРАЧИВАЕМ В BlocProvider.value
               value: _familyBloc,
               child: BlocConsumer<FamilyBloc, FamilyState>(
                 listener: (BuildContext context, FamilyState state) {
@@ -190,19 +191,8 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
           children: <Widget>[
             Row(
               children: <Widget>[
-                CircleAvatar(
-                  radius: 40,
-                  backgroundColor: person.gender == Gender.male
-                      ? Colors.blue.shade100
-                      : Colors.pink.shade100,
-                  child: Icon(
-                    person.gender == Gender.male ? Icons.male : Icons.female,
-                    size: 40,
-                    color: person.gender == Gender.male
-                        ? Colors.blue
-                        : Colors.pink,
-                  ),
-                ),
+                // ✅ Используем PersonAvatar вместо CircleAvatar
+                PersonAvatar(person: person, radius: 40),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
@@ -615,7 +605,18 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
   }
 
   void _showEditPersonDialog(BuildContext context) {
-    // TODO: Реализовать редактирование человека
+    if (_person == null) return;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => PersonFormDialog(
+        existingPerson: _person!,
+        treeId: _treeId ?? 'default',
+        onSave: (updatedPerson) {
+          _personBloc.add(UpdatePersonEvent(updatedPerson));
+        },
+      ),
+    );
   }
 
   String _formatDate(DateTime date) {

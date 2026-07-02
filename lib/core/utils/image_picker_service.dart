@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 class ImagePickerService {
@@ -38,7 +39,8 @@ class ImagePickerService {
 
   /// Выбор изображения с возможностью выбора источника
   Future<File?> pickImage(BuildContext context) async {
-    return showModalBottomSheet<File?>(
+    // Сначала показываем меню и получаем выбранное действие (строку)
+    final action = await showModalBottomSheet<String>(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -60,22 +62,18 @@ class ImagePickerService {
             ListTile(
               leading: const Icon(Icons.photo_library, color: Colors.blue),
               title: const Text('Выбрать из галереи'),
-              onTap: () {
-                Navigator.pop(context);
-                pickImageFromGallery().then(
-                  (file) => Navigator.pop(context, file),
-                );
-              },
+              onTap: () => Navigator.pop(
+                context,
+                'gallery',
+              ), // Закрываем меню и возвращаем 'gallery'
             ),
             ListTile(
               leading: const Icon(Icons.camera_alt, color: Colors.green),
               title: const Text('Сделать фото'),
-              onTap: () {
-                Navigator.pop(context);
-                pickImageFromCamera().then(
-                  (file) => Navigator.pop(context, file),
-                );
-              },
+              onTap: () => Navigator.pop(
+                context,
+                'camera',
+              ), // Закрываем меню и возвращаем 'camera'
             ),
             ListTile(
               leading: const Icon(Icons.delete, color: Colors.red),
@@ -83,12 +81,22 @@ class ImagePickerService {
                 'Удалить фото',
                 style: TextStyle(color: Colors.red),
               ),
-              onTap: () => Navigator.pop(context, null),
+              onTap: () => Navigator.pop(context, 'delete'),
             ),
             const SizedBox(height: 8),
           ],
         ),
       ),
     );
+
+    // После закрытия меню выполняем нужное действие
+    if (action == 'gallery') {
+      return await pickImageFromGallery();
+    } else if (action == 'camera') {
+      return await pickImageFromCamera();
+    }
+
+    // Если пользователь закрыл меню свайпом или нажал "Удалить", возвращаем null
+    return null;
   }
 }

@@ -24,6 +24,7 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     required this.familyRepository,
   }) : super(FamilyInitial()) {
     on<LoadFamiliesEvent>(_onLoadFamilies);
+    on<LoadAllFamiliesEvent>(_onLoadAllFamilies); // <-- ДОБАВЛЯЕМ
     on<LoadFamilyDetailsEvent>(_onLoadFamilyDetails);
     on<AddFamilyEvent>(_onAddFamily);
     on<UpdateFamilyEvent>(_onUpdateFamily);
@@ -42,14 +43,15 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
   final FamilyRepository familyRepository;
 
   String? _currentPersonId;
-  String? _currentTreeId; // <-- ДОБАВЛЯЕМ
+  String? _currentTreeId;
 
+  /// Обработчик: Загрузка семей для конкретного человека
   Future<void> _onLoadFamilies(
     LoadFamiliesEvent event,
     Emitter<FamilyState> emit,
   ) async {
     _currentPersonId = event.personId;
-    _currentTreeId = event.treeId; // <-- ДОБАВЛЯЕМ
+    _currentTreeId = event.treeId;
     emit(FamilyLoading());
 
     final Either<Failure, List<Family>> result =
@@ -80,6 +82,35 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     );
   }
 
+  /// Обработчик: Загрузка ВСЕХ семей в древе
+  Future<void> _onLoadAllFamilies(
+    LoadAllFamiliesEvent event,
+    Emitter<FamilyState> emit,
+  ) async {
+    emit(FamilyLoading());
+    try {
+      final families = await familyRepository.getAllFamilies(
+        treeId: event.treeId,
+      );
+
+      final allPersons = await personRepository.getAllPersons(
+        treeId: event.treeId,
+      );
+      final personMap = {for (final p in allPersons) p.id: p};
+
+      emit(
+        FamiliesLoaded(
+          families: families,
+          persons: personMap,
+          treeId: event.treeId,
+        ),
+      );
+    } catch (e) {
+      emit(FamilyError('Ошибка загрузки: ${e.toString()}'));
+    }
+  }
+
+  /// Обработчик: Загрузка деталей семьи
   Future<void> _onLoadFamilyDetails(
     LoadFamilyDetailsEvent event,
     Emitter<FamilyState> emit,
@@ -106,13 +137,13 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     );
   }
 
+  /// Обработчик: Добавление семьи
   Future<void> _onAddFamily(
     AddFamilyEvent event,
     Emitter<FamilyState> emit,
   ) async {
     emit(FamilyLoading());
 
-    // Добавляем treeId к семье
     final familyWithTree = event.family.treeId.isEmpty
         ? event.family.copyWith(treeId: event.treeId ?? 'default')
         : event.family;
@@ -133,11 +164,14 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
         }
         if (_currentPersonId != null) {
           add(LoadFamiliesEvent(_currentPersonId!, treeId: event.treeId));
+        } else {
+          add(LoadAllFamiliesEvent(treeId: event.treeId));
         }
       },
     );
   }
 
+  /// Обработчик: Обновление семьи
   Future<void> _onUpdateFamily(
     UpdateFamilyEvent event,
     Emitter<FamilyState> emit,
@@ -151,6 +185,8 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
       }
       if (_currentPersonId != null) {
         add(LoadFamiliesEvent(_currentPersonId!, treeId: event.treeId));
+      } else {
+        add(LoadAllFamiliesEvent(treeId: event.treeId));
       }
     } catch (e) {
       if (!emit.isDone) {
@@ -159,6 +195,7 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     }
   }
 
+  /// Обработчик: Удаление семьи
   Future<void> _onDeleteFamily(
     DeleteFamilyEvent event,
     Emitter<FamilyState> emit,
@@ -172,6 +209,8 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
       }
       if (_currentPersonId != null) {
         add(LoadFamiliesEvent(_currentPersonId!, treeId: event.treeId));
+      } else {
+        add(LoadAllFamiliesEvent(treeId: event.treeId));
       }
     } catch (e) {
       if (!emit.isDone) {
@@ -180,6 +219,7 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     }
   }
 
+  /// Обработчик: Добавление ребенка в семью
   Future<void> _onAddChildToFamily(
     AddChildToFamilyEvent event,
     Emitter<FamilyState> emit,
@@ -203,11 +243,14 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
         }
         if (_currentPersonId != null) {
           add(LoadFamiliesEvent(_currentPersonId!, treeId: event.treeId));
+        } else {
+          add(LoadAllFamiliesEvent(treeId: event.treeId));
         }
       },
     );
   }
 
+  /// Обработчик: Удаление ребенка из семьи
   Future<void> _onRemoveChildFromFamily(
     RemoveChildFromFamilyEvent event,
     Emitter<FamilyState> emit,
@@ -229,11 +272,14 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
         }
         if (_currentPersonId != null) {
           add(LoadFamiliesEvent(_currentPersonId!, treeId: event.treeId));
+        } else {
+          add(LoadAllFamiliesEvent(treeId: event.treeId));
         }
       },
     );
   }
 
+  /// Обработчик: Выбор семьи
   void _onSelectFamily(SelectFamilyEvent event, Emitter<FamilyState> emit) {
     final FamilyState currentState = state;
     if (currentState is FamiliesLoaded) {
@@ -248,6 +294,7 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     }
   }
 
+  /// Загрузка данных о людях из семей
   Future<Map<String, Person>> _loadPersonsFromFamilies(
     List<Family> families, {
     String? treeId,

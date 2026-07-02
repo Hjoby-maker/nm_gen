@@ -4,8 +4,8 @@ import 'package:nm_gen/di/injector.dart';
 import 'package:nm_gen/domain/entities/tree_project.dart';
 import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
 import 'package:nm_gen/presentation/blocs/person/person_event.dart';
+import 'package:nm_gen/presentation/screens/all_families_screen.dart';
 import 'package:nm_gen/presentation/screens/export_gedcom_screen.dart';
-import 'package:nm_gen/presentation/screens/family_screen.dart';
 import 'package:nm_gen/presentation/screens/import_gedcom_screen.dart';
 import 'package:nm_gen/presentation/screens/persons_screen.dart';
 import 'package:nm_gen/presentation/screens/settings_screen.dart';
@@ -38,7 +38,7 @@ class _MainScreenState extends State<MainScreen> {
     super.initState();
     _screens = [
       PersonsScreen(treeId: _selectedTreeId),
-      FamilyScreenWrapper(treeId: _selectedTreeId),
+      AllFamiliesScreen(treeId: _selectedTreeId),
       TreeScreenWrapper(treeId: _selectedTreeId),
       const ImportExportScreen(),
     ];
@@ -57,7 +57,7 @@ class _MainScreenState extends State<MainScreen> {
       // Обновляем экраны с новым treeId
       _screens = [
         PersonsScreen(treeId: _selectedTreeId),
-        FamilyScreenWrapper(treeId: _selectedTreeId),
+        AllFamiliesScreen(treeId: _selectedTreeId),
         TreeScreenWrapper(treeId: _selectedTreeId),
         const ImportExportScreen(),
       ];
@@ -117,7 +117,7 @@ class _MainScreenState extends State<MainScreen> {
         currentTreeId: _selectedTreeId,
         projects: _treeProjects,
         onTreeSelected: _onTreeSelected,
-        onAddTree: () => _showAddTreeDialog(context), // <-- ИСПРАВЛЕНО
+        onAddTree: () => _showAddTreeDialog(context),
       ),
       body: IndexedStack(index: _selectedIndex, children: _screens),
       bottomNavigationBar: BottomNavigationBar(
@@ -222,18 +222,6 @@ class _MainScreenState extends State<MainScreen> {
 // =========================================================================
 // ВСПОМОГАТЕЛЬНЫЕ КЛАССЫ И ОБЕРТКИ
 // =========================================================================
-
-/// Обертка для FamilyScreen с передачей treeId
-class FamilyScreenWrapper extends StatelessWidget {
-  final String treeId;
-
-  const FamilyScreenWrapper({super.key, this.treeId = 'default'});
-
-  @override
-  Widget build(BuildContext context) {
-    return const FamilyScreen(personId: '', personName: 'Выберите персону');
-  }
-}
 
 /// Обертка для TreeScreen с передачей treeId
 class TreeScreenWrapper extends StatelessWidget {

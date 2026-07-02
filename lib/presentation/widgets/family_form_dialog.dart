@@ -8,12 +8,12 @@ class FamilyFormDialog extends StatefulWidget {
     this.existingFamily,
     required this.availablePersons,
     required this.onSave,
-    this.treeId, // <-- ДОБАВЛЯЕМ
+    this.treeId,
   }) : super(key: key);
   final Family? existingFamily;
   final List<Person> availablePersons;
   final Function(Family) onSave;
-  final String? treeId; // <-- ДОБАВЛЯЕМ
+  final String? treeId;
 
   @override
   State<FamilyFormDialog> createState() => _FamilyFormDialogState();
@@ -32,8 +32,20 @@ class _FamilyFormDialogState extends State<FamilyFormDialog> {
   void initState() {
     super.initState();
     if (widget.existingFamily != null) {
-      _selectedHusbandId = widget.existingFamily!.husbandId;
-      _selectedWifeId = widget.existingFamily!.wifeId;
+      // Проверяем, существует ли муж в списке доступных людей
+      final husbandExists = widget.availablePersons.any(
+        (p) => p.id == widget.existingFamily!.husbandId,
+      );
+      _selectedHusbandId = husbandExists
+          ? widget.existingFamily!.husbandId
+          : null;
+
+      // Проверяем, существует ли жена в списке доступных людей
+      final wifeExists = widget.availablePersons.any(
+        (p) => p.id == widget.existingFamily!.wifeId,
+      );
+      _selectedWifeId = wifeExists ? widget.existingFamily!.wifeId : null;
+
       _marriageDate = widget.existingFamily!.marriageDate;
       _divorceDate = widget.existingFamily!.divorceDate;
       _marriagePlaceController.text =
@@ -56,7 +68,7 @@ class _FamilyFormDialogState extends State<FamilyFormDialog> {
           children: <Widget>[
             // Муж
             DropdownButtonFormField<String>(
-              initialValue: _selectedHusbandId,
+              value: _selectedHusbandId,
               decoration: const InputDecoration(
                 labelText: 'Муж',
                 border: OutlineInputBorder(),
@@ -82,7 +94,7 @@ class _FamilyFormDialogState extends State<FamilyFormDialog> {
             const SizedBox(height: 8),
             // Жена
             DropdownButtonFormField<String>(
-              initialValue: _selectedWifeId,
+              value: _selectedWifeId,
               decoration: const InputDecoration(
                 labelText: 'Жена',
                 border: OutlineInputBorder(),
@@ -108,6 +120,7 @@ class _FamilyFormDialogState extends State<FamilyFormDialog> {
             const SizedBox(height: 8),
             // Дата брака
             ListTile(
+              contentPadding: EdgeInsets.zero,
               title: Text(
                 _marriageDate != null
                     ? 'Дата брака: ${_formatDate(_marriageDate!)}'
@@ -134,6 +147,7 @@ class _FamilyFormDialogState extends State<FamilyFormDialog> {
             ),
             // Дата развода
             ListTile(
+              contentPadding: EdgeInsets.zero,
               title: Text(
                 _divorceDate != null
                     ? 'Дата развода: ${_formatDate(_divorceDate!)}'
@@ -201,7 +215,6 @@ class _FamilyFormDialogState extends State<FamilyFormDialog> {
       return;
     }
 
-    // Определяем treeId
     final String treeId =
         widget.treeId ?? widget.existingFamily?.treeId ?? 'default';
 
@@ -209,7 +222,7 @@ class _FamilyFormDialogState extends State<FamilyFormDialog> {
       id:
           widget.existingFamily?.id ??
           DateTime.now().millisecondsSinceEpoch.toString(),
-      treeId: treeId, // <-- ДОБАВЛЯЕМ обязательный параметр
+      treeId: treeId,
       husbandId: _selectedHusbandId,
       wifeId: _selectedWifeId,
       childrenIds: widget.existingFamily?.childrenIds ?? <String>[],

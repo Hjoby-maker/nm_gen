@@ -11,6 +11,7 @@ import 'package:nm_gen/presentation/blocs/person/person_event.dart';
 import 'package:nm_gen/presentation/blocs/person/person_state.dart';
 import 'package:nm_gen/presentation/widgets/add_child_dialog.dart';
 import 'package:nm_gen/presentation/widgets/family_card.dart';
+import 'package:nm_gen/presentation/widgets/family_details_view.dart';
 import 'package:nm_gen/presentation/widgets/family_form_dialog.dart';
 import 'package:nm_gen/core/enums/gender.dart';
 
@@ -28,13 +29,23 @@ class FamilyScreen extends StatefulWidget {
 }
 
 class _FamilyScreenState extends State<FamilyScreen> {
+  String? _treeId;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<FamilyBloc>().add(LoadFamiliesEvent(widget.personId));
-      final PersonState personState = context.read<PersonBloc>().state;
-      if (personState is! PersonsLoaded) {
+      // Получаем treeId из состояния PersonBloc
+      final personState = context.read<PersonBloc>().state;
+      if (personState is PersonsLoaded) {
+        _treeId = personState.treeId;
+      }
+
+      context.read<FamilyBloc>().add(
+        LoadFamiliesEvent(widget.personId, treeId: _treeId),
+      );
+      final PersonState personState2 = context.read<PersonBloc>().state;
+      if (personState2 is! PersonsLoaded) {
         context.read<PersonBloc>().add(const LoadPersonsEvent());
       }
     });
@@ -56,7 +67,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
             icon: const Icon(Icons.refresh),
             onPressed: () {
               context.read<FamilyBloc>().add(
-                LoadFamiliesEvent(widget.personId),
+                LoadFamiliesEvent(widget.personId, treeId: _treeId),
               );
             },
             tooltip: 'Обновить',
@@ -72,7 +83,9 @@ class _FamilyScreenState extends State<FamilyScreen> {
                 backgroundColor: Colors.green,
               ),
             );
-            context.read<FamilyBloc>().add(LoadFamiliesEvent(widget.personId));
+            context.read<FamilyBloc>().add(
+              LoadFamiliesEvent(widget.personId, treeId: _treeId),
+            );
           } else if (state is FamilyError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -108,7 +121,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
                   ElevatedButton(
                     onPressed: () {
                       context.read<FamilyBloc>().add(
-                        LoadFamiliesEvent(widget.personId),
+                        LoadFamiliesEvent(widget.personId, treeId: _treeId),
                       );
                     },
                     child: const Text('Повторить'),
@@ -186,7 +199,6 @@ class _FamilyScreenState extends State<FamilyScreen> {
                       );
                     }
                   },
-                  // Добавляем кнопку "Добавить ребенка" в карточку
                   onAddChild: () => _showAddChildDialog(context, family.id),
                 );
               },
@@ -194,7 +206,35 @@ class _FamilyScreenState extends State<FamilyScreen> {
           }
 
           if (state is FamilyDetailsLoaded) {
-            return _buildFamilyDetailsView(context, state.details);
+            return FamilyDetailsView(
+              details: state.details,
+              onEdit: () =>
+                  _showEditFamilyDialog(context, state.details.family),
+              onDelete: () =>
+                  _confirmDeleteFamily(context, state.details.family.id),
+              onAddChild: () =>
+                  _showAddChildDialog(context, state.details.family.id),
+              onDeleteChild: (childId) {
+                final child = state.details.children.firstWhere(
+                  (c) => c.id == childId,
+                  orElse: () => Person.empty(),
+                );
+                if (child.id.isNotEmpty) {
+                  _confirmRemoveChild(
+                    context,
+                    state.details.family.id,
+                    childId,
+                    child.displayName,
+                  );
+                }
+              },
+              onBack: () {
+                context.read<FamilyBloc>().add(
+                  LoadFamiliesEvent(widget.personId, treeId: _treeId),
+                );
+              },
+              treeId: _treeId,
+            );
           }
 
           return const SizedBox.shrink();
@@ -210,196 +250,6 @@ class _FamilyScreenState extends State<FamilyScreen> {
   // =========================================================================
   // ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ
   // =========================================================================
-
-  Widget _buildFamilyDetailsView(BuildContext context, FamilyDetails details) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          // Карточка с информацией о семье
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  const Text(
-                    'Информация о семье',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  _buildInfoRow(
-                    'Муж',
-                    details.husband?.displayName ?? 'Не указан',
-                  ),
-                  _buildInfoRow(
-                    'Жена',
-                    details.wife?.displayName ?? 'Не указана',
-                  ),
-                  if (details.family.marriageDate != null)
-                    _buildInfoRow(
-                      'Дата брака',
-                      _formatDate(details.family.marriageDate!),
-                    ),
-                  if (details.family.divorceDate != null)
-                    _buildInfoRow(
-                      'Дата развода',
-                      _formatDate(details.family.divorceDate!),
-                    ),
-                  if (details.family.marriagePlace != null)
-                    _buildInfoRow('Место брака', details.family.marriagePlace!),
-                  if (details.family.notes != null)
-                    _buildInfoRow('Заметки', details.family.notes!),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Карточка с детьми
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Row(
-                    children: <Widget>[
-                      const Text(
-                        'Дети',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const Spacer(),
-                      IconButton(
-                        icon: const Icon(Icons.person_add),
-                        onPressed: () =>
-                            _showAddChildDialog(context, details.family.id),
-                        tooltip: 'Добавить ребенка',
-                      ),
-                    ],
-                  ),
-                  if (details.children.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16),
-                      child: Center(
-                        child: Text(
-                          'Нет детей',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ),
-                    )
-                  else
-                    ...details.children.map((Person child) {
-                      return ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: child.gender == Gender.male
-                              ? Colors.blue.shade100
-                              : Colors.pink.shade100,
-                          child: Text(
-                            child.displayName.substring(0, 1).toUpperCase(),
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: child.gender == Gender.male
-                                  ? Colors.blue.shade700
-                                  : Colors.pink.shade700,
-                            ),
-                          ),
-                        ),
-                        title: Text(child.displayName),
-                        subtitle: Text(child.formattedAge),
-                        trailing: IconButton(
-                          icon: const Icon(
-                            Icons.remove_circle_outline,
-                            color: Colors.red,
-                          ),
-                          onPressed: () => _confirmRemoveChild(
-                            context,
-                            details.family.id,
-                            child.id,
-                            child.displayName,
-                          ),
-                          tooltip: 'Удалить из семьи',
-                        ),
-                        onTap: () {
-                          // TODO: Перейти к просмотру ребенка
-                        },
-                      );
-                    }),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Кнопки действий
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () =>
-                      _showEditFamilyDialog(context, details.family),
-                  icon: const Icon(Icons.edit),
-                  label: const Text('Редактировать'),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () =>
-                      _confirmDeleteFamily(context, details.family.id),
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  label: const Text(
-                    'Удалить',
-                    style: TextStyle(color: Colors.red),
-                  ),
-                  style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Кнопка возврата к списку
-          Center(
-            child: TextButton(
-              onPressed: () {
-                context.read<FamilyBloc>().add(
-                  LoadFamiliesEvent(widget.personId),
-                );
-              },
-              child: const Text('← Вернуться к списку'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          SizedBox(
-            width: 100,
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Colors.grey,
-              ),
-            ),
-          ),
-          Expanded(child: Text(value)),
-        ],
-      ),
-    );
-  }
 
   // =========================================================================
   // ДИАЛОГИ
@@ -426,8 +276,9 @@ class _FamilyScreenState extends State<FamilyScreen> {
       context: context,
       builder: (BuildContext dialogContext) => FamilyFormDialog(
         availablePersons: personState.persons,
+        treeId: _treeId,
         onSave: (Family family) {
-          familyBloc.add(AddFamilyEvent(family));
+          familyBloc.add(AddFamilyEvent(family, treeId: _treeId));
         },
       ),
     );
@@ -455,8 +306,9 @@ class _FamilyScreenState extends State<FamilyScreen> {
       builder: (BuildContext dialogContext) => FamilyFormDialog(
         existingFamily: family,
         availablePersons: personState.persons,
+        treeId: _treeId,
         onSave: (Family updatedFamily) {
-          familyBloc.add(UpdateFamilyEvent(updatedFamily));
+          familyBloc.add(UpdateFamilyEvent(updatedFamily, treeId: _treeId));
         },
       ),
     );
@@ -464,7 +316,9 @@ class _FamilyScreenState extends State<FamilyScreen> {
 
   /// Показать детали семьи
   void _showFamilyDetails(BuildContext context, String familyId) {
-    context.read<FamilyBloc>().add(LoadFamilyDetailsEvent(familyId));
+    context.read<FamilyBloc>().add(
+      LoadFamilyDetailsEvent(familyId, treeId: _treeId),
+    );
   }
 
   /// Диалог добавления ребенка в семью
@@ -521,7 +375,9 @@ class _FamilyScreenState extends State<FamilyScreen> {
       builder: (BuildContext dialogContext) => AddChildDialog(
         availableChildren: availableChildren,
         onAddChild: (String childId) {
-          familyBloc.add(AddChildToFamilyEvent(familyId, childId));
+          familyBloc.add(
+            AddChildToFamilyEvent(familyId, childId, treeId: _treeId),
+          );
         },
       ),
     );
@@ -543,9 +399,11 @@ class _FamilyScreenState extends State<FamilyScreen> {
           ),
           TextButton(
             onPressed: () {
-              familyBloc.add(DeleteFamilyEvent(familyId));
+              familyBloc.add(DeleteFamilyEvent(familyId, treeId: _treeId));
               Navigator.pop(dialogContext);
-              familyBloc.add(LoadFamiliesEvent(widget.personId));
+              familyBloc.add(
+                LoadFamiliesEvent(widget.personId, treeId: _treeId),
+              );
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Удалить'),
@@ -576,10 +434,14 @@ class _FamilyScreenState extends State<FamilyScreen> {
           ),
           TextButton(
             onPressed: () {
-              familyBloc.add(RemoveChildFromFamilyEvent(familyId, childId));
+              familyBloc.add(
+                RemoveChildFromFamilyEvent(familyId, childId, treeId: _treeId),
+              );
               Navigator.pop(dialogContext);
               // Обновляем список
-              familyBloc.add(LoadFamiliesEvent(widget.personId));
+              familyBloc.add(
+                LoadFamiliesEvent(widget.personId, treeId: _treeId),
+              );
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Удалить'),

@@ -11,7 +11,8 @@ import 'package:nm_gen/presentation/blocs/tree/tree_bloc.dart';
 import 'package:nm_gen/presentation/screens/family_screen.dart';
 import 'package:nm_gen/presentation/screens/person_detail_screen.dart';
 import 'package:nm_gen/presentation/screens/tree_screen.dart';
-import 'package:nm_gen/presentation/widgets/person_form_dialog.dart'; // <-- ДОБАВЛЯЕМ
+import 'package:nm_gen/presentation/widgets/person_avatar.dart';
+import 'package:nm_gen/presentation/widgets/person_form_dialog.dart';
 
 class PersonsScreen extends StatefulWidget {
   final String treeId;
@@ -187,97 +188,68 @@ class _PersonsScreenState extends State<PersonsScreen> {
                       itemCount: state.persons.length,
                       itemBuilder: (context, index) {
                         final person = state.persons[index];
-                        return Card(
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
+                        return Dismissible(
+                          key: Key(person.id),
+                          direction: DismissDirection.horizontal,
+                          // ✅ background — показывается при свайпе ВПРАВО (startToEnd)
+                          background: _buildSwipeRightBackground(context),
+                          // ✅ secondaryBackground — показывается при свайпе ВЛЕВО (endToStart)
+                          secondaryBackground: _buildSwipeLeftBackground(
+                            context,
                           ),
-                          child: ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: person.gender == Gender.male
-                                  ? Colors.blue.shade100
-                                  : person.gender == Gender.female
-                                  ? Colors.pink.shade100
-                                  : Colors.grey.shade200,
-                              child: Icon(
-                                person.gender == Gender.male
-                                    ? Icons.male
-                                    : person.gender == Gender.female
-                                    ? Icons.female
-                                    : Icons.person,
-                                color: person.gender == Gender.male
-                                    ? Colors.blue
-                                    : person.gender == Gender.female
-                                    ? Colors.pink
-                                    : Colors.grey,
-                              ),
-                            ),
-                            title: Text(person.displayName),
-                            subtitle: Text(
-                              '${person.formattedAge} · ${person.occupation ?? 'Без профессии'}',
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.family_restroom,
-                                    color: Colors.orange,
-                                  ),
-                                  onPressed: () {
-                                    _navigateToFamily(
-                                      context,
-                                      person.id,
-                                      person.displayName,
-                                    );
-                                  },
-                                  tooltip: 'Управление семьей',
-                                ),
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.account_tree,
-                                    color: Colors.green,
-                                  ),
-                                  onPressed: () {
-                                    _navigateToTreeWithPerson(
-                                      context,
-                                      person.id,
-                                    );
-                                  },
-                                  tooltip: 'Показать в древе',
-                                ),
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.edit,
-                                    color: Colors.blue,
-                                  ),
-                                  onPressed: () =>
-                                      _showEditPersonDialog(context, person),
-                                  tooltip: 'Редактировать',
-                                ),
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.delete,
-                                    color: Colors.red,
-                                  ),
-                                  onPressed: () => _confirmDelete(
-                                    context,
-                                    person.id,
-                                    person.displayName,
-                                  ),
-                                  tooltip: 'Удалить',
-                                ),
-                              ],
-                            ),
-                            onTap: () {
-                              Navigator.push(
+                          confirmDismiss: (direction) async {
+                            if (direction == DismissDirection.startToEnd) {
+                              // Свайп ВПРАВО → Удаление
+                              return await _confirmDeleteDialog(
                                 context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      PersonDetailScreen(personId: person.id),
+                                person.id,
+                                person.displayName,
+                              );
+                            } else if (direction ==
+                                DismissDirection.endToStart) {
+                              // Свайп ВЛЕВО → Показать действия (не удаляем)
+                              _showSwipeLeftActions(context, person);
+                              return false;
+                            }
+                            return false;
+                          },
+                          onDismissed: (direction) {
+                            if (direction == DismissDirection.startToEnd) {
+                              // Удаление уже обработано в confirmDismiss
+                              // Показываем SnackBar
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Человек удален'),
+                                  backgroundColor: Colors.green,
                                 ),
                               );
-                            },
+                            }
+                          },
+                          child: Card(
+                            margin: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            child: ListTile(
+                              leading: PersonAvatar(person: person, radius: 25),
+                              title: Text(person.displayName),
+                              subtitle: Text(
+                                '${person.formattedAge} · ${person.occupation ?? 'Без профессии'}',
+                              ),
+                              trailing: const Icon(
+                                Icons.chevron_right,
+                                color: Colors.grey,
+                              ),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        PersonDetailScreen(personId: person.id),
+                                  ),
+                                );
+                              },
+                            ),
                           ),
                         );
                       },
@@ -296,6 +268,161 @@ class _PersonsScreenState extends State<PersonsScreen> {
         ),
       ),
     );
+  }
+
+  // =========================================================================
+  // ДЕЙСТВИЯ ПРИ СВАЙПЕ
+  // =========================================================================
+
+  /// Фон при свайпе ВЛЕВО (endToStart) — показывается справа
+  /// ✅ Исправлено: теперь это secondaryBackground
+  Widget _buildSwipeLeftBackground(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.blue.shade700,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      alignment: Alignment.centerRight,
+      child: const Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Icon(Icons.edit, color: Colors.white, size: 28),
+          SizedBox(width: 12),
+          Icon(Icons.family_restroom, color: Colors.white, size: 28),
+          SizedBox(width: 16),
+          Text(
+            'Редактировать / Семья',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Фон при свайпе ВПРАВО (startToEnd) — показывается слева
+  /// ✅ Исправлено: теперь это background
+  Widget _buildSwipeRightBackground(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.red.shade700,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      alignment: Alignment.centerLeft,
+      child: const Row(
+        children: [
+          Icon(Icons.delete_forever, color: Colors.white, size: 28),
+          SizedBox(width: 12),
+          Text(
+            'Удалить',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Показать диалог с выбором действия при свайпе влево
+  void _showSwipeLeftActions(BuildContext context, Person person) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const CircleAvatar(
+                backgroundColor: Colors.blue,
+                child: Icon(Icons.edit, color: Colors.white),
+              ),
+              title: const Text('Редактировать'),
+              subtitle: Text('Изменить данные "${person.displayName}"'),
+              onTap: () {
+                Navigator.pop(context);
+                _showEditPersonDialog(context, person);
+              },
+            ),
+            ListTile(
+              leading: const CircleAvatar(
+                backgroundColor: Colors.orange,
+                child: Icon(Icons.family_restroom, color: Colors.white),
+              ),
+              title: const Text('Управление семьей'),
+              subtitle: Text('Семьи ${person.displayName}'),
+              onTap: () {
+                Navigator.pop(context);
+                _navigateToFamily(context, person.id, person.displayName);
+              },
+            ),
+            ListTile(
+              leading: const CircleAvatar(
+                backgroundColor: Colors.green,
+                child: Icon(Icons.account_tree, color: Colors.white),
+              ),
+              title: const Text('Показать в древе'),
+              subtitle: Text('Древо ${person.displayName}'),
+              onTap: () {
+                Navigator.pop(context);
+                _navigateToTreeWithPerson(context, person.id);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Диалог подтверждения удаления
+  Future<bool> _confirmDeleteDialog(
+    BuildContext context,
+    String personId,
+    String name,
+  ) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Удаление человека'),
+        content: Text('Вы уверены, что хотите удалить "$name"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Отмена'),
+          ),
+          TextButton(
+            onPressed: () {
+              _personBloc.add(DeletePersonEvent(personId));
+              Navigator.pop(dialogContext, true);
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Удалить'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
   }
 
   // =========================================================================

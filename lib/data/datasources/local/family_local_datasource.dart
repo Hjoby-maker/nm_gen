@@ -39,9 +39,10 @@ class FamilyLocalDataSource {
         'families',
         where: 'tree_id = ?',
         whereArgs: <Object?>[treeId],
+        orderBy: 'marriage_date DESC',
       );
     } else {
-      maps = await db.query('families');
+      maps = await db.query('families', orderBy: 'marriage_date DESC');
     }
 
     return maps
