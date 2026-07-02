@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nm_gen/di/injector.dart';
-import 'package:nm_gen/domain/entities/tree_project.dart';
+import 'package:nm_gen/domain/entities/project.dart';
+import 'package:nm_gen/presentation/blocs/project/project_bloc.dart';
+import 'package:nm_gen/presentation/blocs/project/project_event.dart';
+import 'package:nm_gen/presentation/blocs/project/project_state.dart';
 import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
 import 'package:nm_gen/presentation/blocs/person/person_event.dart';
 import 'package:nm_gen/presentation/screens/all_families_screen.dart';
@@ -24,23 +27,38 @@ class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
   String _selectedTreeId = 'default';
   String _selectedTreeName = 'Мое древо';
-  final List<TreeProject> _treeProjects = [
-    TreeProject(id: 'default', name: 'Мое древо'),
-    TreeProject(id: 'kuznetsov', name: 'Кузнецовы'),
-    TreeProject(id: 'petrov', name: 'Петровы'),
-    // Здесь будут загружаться проекты из БД
-  ];
 
-  late final List<Widget> _screens;
+  late final ProjectBloc _projectBloc;
+  late final PersonBloc _personBloc;
+  late List<Widget> _screens;
 
   @override
   void initState() {
     super.initState();
+    _projectBloc = getIt<ProjectBloc>();
+    _personBloc = getIt<PersonBloc>();
+
+    _projectBloc.add(LoadProjectsEvent());
+
+    _buildScreens();
+  }
+
+  /// Создает экраны с текущим treeId
+  void _buildScreens() {
     _screens = [
-      PersonsScreen(treeId: _selectedTreeId),
-      AllFamiliesScreen(treeId: _selectedTreeId),
-      TreeScreenWrapper(treeId: _selectedTreeId),
-      const ImportExportScreen(),
+      PersonsScreen(
+        key: ValueKey('persons_$_selectedTreeId'), // <-- Ключ для пересоздания
+        treeId: _selectedTreeId,
+      ),
+      AllFamiliesScreen(
+        key: ValueKey('families_$_selectedTreeId'),
+        treeId: _selectedTreeId,
+      ),
+      TreeScreenWrapper(
+        key: ValueKey('tree_$_selectedTreeId'),
+        treeId: _selectedTreeId,
+      ),
+      const ImportExportScreen(key: ValueKey('import_export')),
     ];
   }
 
@@ -51,97 +69,114 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _onTreeSelected(String treeId, String treeName) {
-    setState(() {
-      _selectedTreeId = treeId;
-      _selectedTreeName = treeName;
-      // Обновляем экраны с новым treeId
-      _screens = [
-        PersonsScreen(treeId: _selectedTreeId),
-        AllFamiliesScreen(treeId: _selectedTreeId),
-        TreeScreenWrapper(treeId: _selectedTreeId),
-        const ImportExportScreen(),
-      ];
-    });
+    // Обновляем состояние
+    _selectedTreeId = treeId;
+    _selectedTreeName = treeName;
+
+    // Пересоздаем экраны с новым treeId
+    _buildScreens();
+
+    // Обновляем PersonBloc с новым treeId
+    _personBloc.add(LoadPersonsEvent(treeId: treeId));
+
+    // Обновляем состояние UI
+    setState(() {});
+
     // Закрываем drawer
     Navigator.pop(context);
+
+    // Обновляем выбранный проект в ProjectBloc
+    _projectBloc.add(SelectProjectEvent(treeId));
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: [
-            const Icon(Icons.family_restroom, size: 28),
-            const SizedBox(width: 8),
-            Text(_selectedTreeName),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade200,
-                borderRadius: BorderRadius.circular(12),
+    return BlocProvider.value(
+      value: _projectBloc,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Row(
+            children: [
+              const Icon(Icons.family_restroom, size: 28),
+              const SizedBox(width: 8),
+              Text(_selectedTreeName),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade200,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  'v1.0',
+                  style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                ),
               ),
-              child: Text(
-                'v1.0',
-                style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
-              ),
+            ],
+          ),
+          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+          actions: [
+            // Кнопка системных настроек
+            IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SettingsScreen(),
+                  ),
+                );
+              },
+              tooltip: 'Настройки',
+            ),
+            // Кнопка авторизации (заглушка)
+            IconButton(
+              icon: const Icon(Icons.account_circle),
+              onPressed: () {
+                _showAuthDialog(context);
+              },
+              tooltip: 'Войти',
             ),
           ],
         ),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        actions: [
-          // Кнопка системных настроек
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+        // Drawer для выбора древа
+        drawer: BlocBuilder<ProjectBloc, ProjectState>(
+          builder: (context, state) {
+            if (state is ProjectsLoaded) {
+              return TreeSelectorDrawer(
+                currentTreeId: _selectedTreeId,
+                projects: state.projects,
+                onTreeSelected: _onTreeSelected,
+                onAddTree: () => _showAddTreeDialog(context),
               );
-            },
-            tooltip: 'Настройки',
-          ),
-          // Кнопка авторизации (заглушка)
-          IconButton(
-            icon: const Icon(Icons.account_circle),
-            onPressed: () {
-              _showAuthDialog(context);
-            },
-            tooltip: 'Войти',
-          ),
-        ],
-      ),
-      // Drawer для выбора древа
-      drawer: TreeSelectorDrawer(
-        currentTreeId: _selectedTreeId,
-        projects: _treeProjects,
-        onTreeSelected: _onTreeSelected,
-        onAddTree: () => _showAddTreeDialog(context),
-      ),
-      body: IndexedStack(index: _selectedIndex, children: _screens),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        selectedItemColor: Colors.green,
-        unselectedItemColor: Colors.grey,
-        showUnselectedLabels: true,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Персоны'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.family_restroom),
-            label: 'Семьи',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.account_tree),
-            label: 'Древо',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.file_copy),
-            label: 'Импорт/Экспорт',
-          ),
-        ],
+            }
+            return const SizedBox.shrink();
+          },
+        ),
+        body: IndexedStack(index: _selectedIndex, children: _screens),
+        bottomNavigationBar: BottomNavigationBar(
+          type: BottomNavigationBarType.fixed,
+          currentIndex: _selectedIndex,
+          onTap: _onItemTapped,
+          selectedItemColor: Colors.green,
+          unselectedItemColor: Colors.grey,
+          showUnselectedLabels: true,
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Персоны'),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.family_restroom),
+              label: 'Семьи',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.account_tree),
+              label: 'Древо',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.file_copy),
+              label: 'Импорт/Экспорт',
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -179,18 +214,34 @@ class _MainScreenState extends State<MainScreen> {
 
   void _showAddTreeDialog(BuildContext context) {
     final TextEditingController nameController = TextEditingController();
+    final TextEditingController descriptionController = TextEditingController();
 
     showDialog(
       context: context,
       builder: (BuildContext context) => AlertDialog(
         title: const Text('Создать новое древо'),
-        content: TextField(
-          controller: nameController,
-          decoration: const InputDecoration(
-            labelText: 'Название древа',
-            hintText: 'Например: Ивановы',
-            border: OutlineInputBorder(),
-          ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'Название древа *',
+                hintText: 'Например: Ивановы',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: descriptionController,
+              decoration: const InputDecoration(
+                labelText: 'Описание',
+                hintText: 'Краткое описание проекта',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 2,
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -200,15 +251,25 @@ class _MainScreenState extends State<MainScreen> {
           ElevatedButton(
             onPressed: () {
               if (nameController.text.isNotEmpty) {
-                final newProject = TreeProject(
-                  id: DateTime.now().millisecondsSinceEpoch.toString(),
+                final project = Project.create(
                   name: nameController.text,
+                  description: descriptionController.text.isNotEmpty
+                      ? descriptionController.text
+                      : null,
                 );
-                setState(() {
-                  _treeProjects.add(newProject);
-                });
+                _projectBloc.add(AddProjectEvent(project));
                 Navigator.pop(context);
-                _onTreeSelected(newProject.id, newProject.name);
+
+                // Выбираем новый проект автоматически
+                _projectBloc.stream.listen((state) {
+                  if (state is ProjectsLoaded) {
+                    final newProject = state.projects.firstWhere(
+                      (p) => p.name == project.name,
+                      orElse: () => state.projects.first,
+                    );
+                    _onTreeSelected(newProject.id, newProject.name);
+                  }
+                }).cancel();
               }
             },
             child: const Text('Создать'),

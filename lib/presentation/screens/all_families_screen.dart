@@ -46,6 +46,16 @@ class _AllFamiliesScreenState extends State<AllFamiliesScreen> {
   }
 
   @override
+  void didUpdateWidget(covariant AllFamiliesScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // ✅ Если treeId изменился, перезагружаем данные
+    if (oldWidget.treeId != widget.treeId) {
+      _familyBloc.add(LoadAllFamiliesEvent(treeId: widget.treeId));
+      _personBloc.add(LoadPersonsEvent(treeId: widget.treeId));
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [

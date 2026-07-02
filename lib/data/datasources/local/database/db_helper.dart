@@ -20,13 +20,12 @@ class DatabaseHelper {
   }
 
   Future<Database> _initDatabase() async {
-    // Получаем путь к директории приложения
     final Directory directory = await getApplicationDocumentsDirectory();
     final String path = join(directory.path, 'family_tree.db');
 
     return openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -34,6 +33,26 @@ class DatabaseHelper {
 
   /// Создание таблиц
   Future<void> _onCreate(Database db, int version) async {
+    // Таблица проектов
+    await db.execute('''
+      CREATE TABLE projects (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        created_at INTEGER,
+        updated_at INTEGER
+      )
+    ''');
+
+    // Создаем проект по умолчанию
+    await db.insert('projects', {
+      'id': 'default',
+      'name': 'Мое древо',
+      'description': 'Основное генеалогическое древо',
+      'created_at': DateTime.now().millisecondsSinceEpoch,
+      'updated_at': DateTime.now().millisecondsSinceEpoch,
+    });
+
     // Таблица Person
     await db.execute('''
       CREATE TABLE persons (
@@ -56,14 +75,13 @@ class DatabaseHelper {
       )
     ''');
 
-    // Создаем индексы для ускорения поиска
+    // Индексы для persons
     await db.execute('''
       CREATE INDEX idx_persons_tree_id ON persons (tree_id)
     ''');
     await db.execute('''
       CREATE INDEX idx_persons_name ON persons (first_name, last_name)
     ''');
-
     await db.execute('''
       CREATE INDEX idx_persons_created_at ON persons (created_at)
     ''');
@@ -85,14 +103,13 @@ class DatabaseHelper {
       )
     ''');
 
-    // Создаем индексы для семей
+    // Индексы для families
     await db.execute('''
       CREATE INDEX idx_families_tree_id ON families (tree_id)
     ''');
     await db.execute('''
       CREATE INDEX idx_families_husband ON families (husband_id)
     ''');
-
     await db.execute('''
       CREATE INDEX idx_families_wife ON families (wife_id)
     ''');
@@ -100,22 +117,33 @@ class DatabaseHelper {
 
   /// Обновление базы данных (миграции)
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 3) {
-      /* await db.execute('''
-        ALTER TABLE persons ADD COLUMN tree_id TEXT NOT NULL DEFAULT 'default'
-      ''');
+    if (oldVersion < 4) {
+      // Создаем таблицу проектов
       await db.execute('''
-        CREATE INDEX idx_persons_tree_id ON persons (tree_id)
+        CREATE TABLE projects (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          description TEXT,
+          created_at INTEGER,
+          updated_at INTEGER
+        )
       ''');
 
-      // Добавляем колонку tree_id в таблицу families
-      await db.execute('''
-        ALTER TABLE families ADD COLUMN tree_id TEXT NOT NULL DEFAULT 'default'
-      ''');
-      await db.execute('''
-        CREATE INDEX idx_families_tree_id ON families (tree_id)
-      ''');*/
-      await db.execute('ALTER TABLE persons ADD COLUMN photo_path TEXT');
+      // Проверяем, существует ли проект по умолчанию
+      final existing = await db.query(
+        'projects',
+        where: 'id = ?',
+        whereArgs: ['default'],
+      );
+      if (existing.isEmpty) {
+        await db.insert('projects', {
+          'id': 'default',
+          'name': 'Мое древо',
+          'description': 'Основное генеалогическое древо',
+          'created_at': DateTime.now().millisecondsSinceEpoch,
+          'updated_at': DateTime.now().millisecondsSinceEpoch,
+        });
+      }
     }
   }
 

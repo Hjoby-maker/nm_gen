@@ -44,6 +44,18 @@ class _TreeScreenState extends State<TreeScreen> {
   }
 
   @override
+  void didUpdateWidget(covariant TreeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // ✅ Если treeId изменился, перезагружаем дерево
+    if (oldWidget.treeId != widget.treeId ||
+        oldWidget.rootPersonId != widget.rootPersonId) {
+      context.read<TreeBloc>().add(
+        LoadTreeEvent(widget.rootPersonId, treeId: widget.treeId),
+      );
+    }
+  }
+
+  @override
   void dispose() {
     _transformationController.dispose();
     super.dispose();

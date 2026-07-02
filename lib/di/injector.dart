@@ -3,10 +3,13 @@ import 'package:injectable/injectable.dart';
 import 'package:nm_gen/data/datasources/local/database/db_helper.dart';
 import 'package:nm_gen/data/datasources/local/family_local_datasource.dart';
 import 'package:nm_gen/data/datasources/local/person_local_datasource.dart';
+import 'package:nm_gen/data/datasources/local/project_local_datasource.dart';
 import 'package:nm_gen/data/repositories/family_repository_impl.dart';
 import 'package:nm_gen/data/repositories/person_repository_impl.dart';
+import 'package:nm_gen/data/repositories/project_repository_impl.dart'; // <-- БЕЗ ПРЕФИКСА
 import 'package:nm_gen/domain/repositories/family_repository.dart';
 import 'package:nm_gen/domain/repositories/person_repository.dart';
+import 'package:nm_gen/domain/repositories/project_repository.dart';
 import 'package:nm_gen/domain/use_cases/family/add_child_to_family.dart';
 import 'package:nm_gen/domain/use_cases/family/add_family.dart';
 import 'package:nm_gen/domain/use_cases/family/get_families_by_person.dart';
@@ -23,6 +26,7 @@ import 'package:nm_gen/domain/use_cases/person/update_person.dart';
 import 'package:nm_gen/domain/use_cases/tree/get_family_tree.dart';
 import 'package:nm_gen/presentation/blocs/family/family_bloc.dart';
 import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
+import 'package:nm_gen/presentation/blocs/project/project_bloc.dart';
 import 'package:nm_gen/presentation/blocs/tree/tree_bloc.dart';
 import 'injector.config.dart';
 
@@ -74,14 +78,34 @@ void registerUseCasesAndBlocs() {
     () => FamilyLocalDataSource(getIt<DatabaseHelper>()),
   );
 
+  registerLazySingletonIfNotRegistered<ProjectLocalDataSource>(
+    () => ProjectLocalDataSource(getIt<DatabaseHelper>()),
+  );
+
   // ============================================================
-  // 2. ПОЛУЧАЕМ РЕПОЗИТОРИИ ИЗ КОНТЕЙНЕРА
+  // 2. РЕГИСТРАЦИЯ РЕПОЗИТОРИЕВ
+  // ============================================================
+  registerLazySingletonIfNotRegistered<PersonRepository>(
+    () => PersonRepositoryImpl(getIt<PersonLocalDataSource>()),
+  );
+
+  registerLazySingletonIfNotRegistered<FamilyRepository>(
+    () => FamilyRepositoryImpl(getIt<FamilyLocalDataSource>()),
+  );
+
+  // Строка 98 - теперь без префикса
+  registerLazySingletonIfNotRegistered<ProjectRepository>(
+    () => ProjectRepositoryImpl(getIt<ProjectLocalDataSource>()),
+  );
+
+  // ============================================================
+  // 3. ПОЛУЧАЕМ РЕПОЗИТОРИИ ИЗ КОНТЕЙНЕРА
   // ============================================================
   final PersonRepository personRepo = getIt<PersonRepository>();
   final FamilyRepository familyRepo = getIt<FamilyRepository>();
 
   // ============================================================
-  // 3. РЕГИСТРАЦИЯ USE CASES ДЛЯ PERSON
+  // 4. РЕГИСТРАЦИЯ USE CASES ДЛЯ PERSON
   // ============================================================
   registerFactoryIfNotRegistered<AddPersonUseCase>(
     () => AddPersonUseCase(personRepo),
@@ -103,7 +127,7 @@ void registerUseCasesAndBlocs() {
   );
 
   // ============================================================
-  // 4. РЕГИСТРАЦИЯ USE CASES ДЛЯ FAMILY
+  // 5. РЕГИСТРАЦИЯ USE CASES ДЛЯ FAMILY
   // ============================================================
   registerFactoryIfNotRegistered<AddFamilyUseCase>(
     () => AddFamilyUseCase(familyRepo),
@@ -125,7 +149,7 @@ void registerUseCasesAndBlocs() {
   );
 
   // ============================================================
-  // 5. РЕГИСТРАЦИЯ USE CASES ДЛЯ GEDCOM
+  // 6. РЕГИСТРАЦИЯ USE CASES ДЛЯ GEDCOM
   // ============================================================
   registerFactoryIfNotRegistered<ImportGedcomUseCase>(
     () => ImportGedcomUseCase(
@@ -142,7 +166,7 @@ void registerUseCasesAndBlocs() {
   );
 
   // ============================================================
-  // 6. РЕГИСТРАЦИЯ USE CASES ДЛЯ TREE
+  // 7. РЕГИСТРАЦИЯ USE CASES ДЛЯ TREE
   // ============================================================
   registerFactoryIfNotRegistered<GetFamilyTreeUseCase>(
     () => GetFamilyTreeUseCase(
@@ -152,7 +176,7 @@ void registerUseCasesAndBlocs() {
   );
 
   // ============================================================
-  // 7. РЕГИСТРАЦИЯ BLOC (всегда Factory!)
+  // 8. РЕГИСТРАЦИЯ BLOC (всегда Factory!)
   // ============================================================
   final getAllPersonsUseCase = getIt<GetAllPersonsUseCase>();
   final addPersonUseCase = getIt<AddPersonUseCase>();
@@ -193,4 +217,9 @@ void registerUseCasesAndBlocs() {
       familyRepository: familyRepo,
     ),
   );
+
+  // ============================================================
+  // 9. РЕГИСТРАЦИЯ PROJECT BLOC
+  // ============================================================
+  registerFactoryIfNotRegistered<ProjectBloc>(() => ProjectBloc());
 }

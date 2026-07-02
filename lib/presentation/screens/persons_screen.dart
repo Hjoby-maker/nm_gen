@@ -40,6 +40,15 @@ class _PersonsScreenState extends State<PersonsScreen> {
   }
 
   @override
+  void didUpdateWidget(covariant PersonsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // ✅ Если treeId изменился, перезагружаем данные
+    if (oldWidget.treeId != widget.treeId) {
+      _personBloc.add(LoadPersonsEvent(treeId: widget.treeId));
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return BlocProvider.value(
       value: _personBloc,

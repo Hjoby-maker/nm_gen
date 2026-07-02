@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:nm_gen/domain/entities/tree_project.dart';
+import 'package:nm_gen/domain/entities/project.dart';
 
 class TreeSelectorDrawer extends StatelessWidget {
   final String currentTreeId;
-  final List<TreeProject> projects;
+  final List<Project> projects;
   final Function(String, String) onTreeSelected;
   final VoidCallback onAddTree;
 
@@ -43,7 +43,7 @@ class TreeSelectorDrawer extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'Выберите проект',
+                  '${projects.length} проектов',
                   style: TextStyle(fontSize: 14, color: Colors.white70),
                 ),
               ],
@@ -71,6 +71,40 @@ class TreeSelectorDrawer extends StatelessWidget {
                           : FontWeight.normal,
                       color: isSelected ? Colors.green : null,
                     ),
+                  ),
+                  subtitle: Row(
+                    children: [
+                      if (project.personCount > 0)
+                        Text(
+                          '👤 ${project.personCount}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      const SizedBox(width: 8),
+                      if (project.familyCount > 0)
+                        Text(
+                          '👨‍👩‍👧‍👦 ${project.familyCount}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      if (project.description != null) ...[
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            project.description!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade500,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                   trailing: isSelected
                       ? const Icon(Icons.check_circle, color: Colors.green)
