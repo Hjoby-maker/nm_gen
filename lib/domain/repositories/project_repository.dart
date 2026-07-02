@@ -6,4 +6,7 @@ abstract class ProjectRepository {
   Future<Project> addProject(Project project);
   Future<Project> updateProject(Project project);
   Future<void> deleteProject(String id);
+  Future<bool> canDeleteProject(String id); // <-- ДОБАВЛЯЕМ
+  Future<Project?> getDefaultProject(); // <-- ДОБАВЛЯЕМ
+  Future<void> setDefaultProject(String id);
 }

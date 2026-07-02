@@ -8,6 +8,7 @@ class ProjectModel {
     this.description,
     this.createdAt,
     this.updatedAt,
+    this.isDefault = false,
   });
 
   /// Конвертация из Domain Entity
@@ -18,6 +19,7 @@ class ProjectModel {
       description: project.description,
       createdAt: project.createdAt?.millisecondsSinceEpoch,
       updatedAt: project.updatedAt?.millisecondsSinceEpoch,
+      isDefault: project.isDefault,
     );
   }
 
@@ -29,6 +31,7 @@ class ProjectModel {
       description: map['description'] as String?,
       createdAt: map['created_at'] as int?,
       updatedAt: map['updated_at'] as int?,
+      isDefault: map['is_default'] == 1,
     );
   }
 
@@ -37,6 +40,7 @@ class ProjectModel {
   final String? description;
   final int? createdAt;
   final int? updatedAt;
+  final bool isDefault;
 
   /// Конвертация в Domain Entity
   Project toDomain({int personCount = 0, int familyCount = 0}) {
@@ -52,6 +56,7 @@ class ProjectModel {
           : null,
       personCount: personCount,
       familyCount: familyCount,
+      isDefault: isDefault,
     );
   }
 
@@ -63,6 +68,7 @@ class ProjectModel {
       'description': description,
       'created_at': createdAt,
       'updated_at': updatedAt,
+      'is_default': isDefault ? 1 : 0,
     };
   }
 }

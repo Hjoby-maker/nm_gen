@@ -62,7 +62,43 @@ class ProjectRepositoryImpl implements ProjectRepository {
 
   @override
   Future<void> deleteProject(String id) async {
+    // Проверяем, не является ли проект проектом по умолчанию
+    final defaultProject = await getDefaultProject();
+    if (defaultProject?.id == id) {
+      throw Exception('Нельзя удалить проект по умолчанию');
+    }
+
     await localDataSource.deleteAllProjectData(treeId: id);
     await localDataSource.deleteProject(id);
+  }
+
+  @override
+  Future<bool> canDeleteProject(String id) async {
+    // Нельзя удалить проект по умолчанию
+    final defaultProject = await getDefaultProject();
+    if (defaultProject?.id == id) {
+      return false;
+    }
+    return await localDataSource.canDeleteProject(treeId: id);
+  }
+
+  @override
+  Future<Project?> getDefaultProject() async {
+    final model = await localDataSource.getDefaultProject();
+    if (model == null) return null;
+
+    final personCount = await localDataSource.getPersonsCountForProject(
+      treeId: model.id,
+    );
+    final familyCount = await localDataSource.getFamiliesCountForProject(
+      treeId: model.id,
+    );
+
+    return model.toDomain(personCount: personCount, familyCount: familyCount);
+  }
+
+  @override
+  Future<void> setDefaultProject(String id) async {
+    await localDataSource.setDefaultProject(id);
   }
 }

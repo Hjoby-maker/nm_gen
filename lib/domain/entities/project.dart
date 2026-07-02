@@ -10,6 +10,7 @@ class Project extends Equatable {
     this.updatedAt,
     this.personCount = 0,
     this.familyCount = 0,
+    this.isDefault = false,
   });
 
   final String id;
@@ -19,9 +20,14 @@ class Project extends Equatable {
   final DateTime? updatedAt;
   final int personCount;
   final int familyCount;
+  final bool isDefault;
 
   /// Создать новый проект
-  factory Project.create({required String name, String? description}) {
+  factory Project.create({
+    required String name,
+    String? description,
+    bool isDefault = false,
+  }) {
     final now = DateTime.now();
     return Project(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -29,6 +35,7 @@ class Project extends Equatable {
       description: description,
       createdAt: now,
       updatedAt: now,
+      isDefault: isDefault,
     );
   }
 
@@ -40,6 +47,7 @@ class Project extends Equatable {
     DateTime? updatedAt,
     int? personCount,
     int? familyCount,
+    bool? isDefault,
   }) {
     return Project(
       id: id ?? this.id,
@@ -49,6 +57,7 @@ class Project extends Equatable {
       updatedAt: updatedAt ?? this.updatedAt,
       personCount: personCount ?? this.personCount,
       familyCount: familyCount ?? this.familyCount,
+      isDefault: isDefault ?? this.isDefault,
     );
   }
 
@@ -61,10 +70,11 @@ class Project extends Equatable {
     updatedAt,
     personCount,
     familyCount,
+    isDefault,
   ];
 
   /// Пустой проект
-  static Project empty() => const Project(id: '', name: '');
+  static Project empty() => const Project(id: '', name: '', isDefault: false);
 
   @override
   String toString() => name;

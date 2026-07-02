@@ -47,7 +47,7 @@ class _MainScreenState extends State<MainScreen> {
   void _buildScreens() {
     _screens = [
       PersonsScreen(
-        key: ValueKey('persons_$_selectedTreeId'), // <-- Ключ для пересоздания
+        key: ValueKey('persons_$_selectedTreeId'),
         treeId: _selectedTreeId,
       ),
       AllFamiliesScreen(
@@ -62,6 +62,38 @@ class _MainScreenState extends State<MainScreen> {
     ];
   }
 
+  void _onSetDefaultProject(String projectId) {
+    _projectBloc.add(SetDefaultProjectEvent(projectId));
+    // Обновляем выбранный проект, если он был изменен
+    if (_selectedTreeId != projectId) {
+      final project = (_projectBloc.state as ProjectsLoaded).projects
+          .firstWhere((p) => p.id == projectId);
+      _onTreeSelected(projectId, project.name);
+    }
+  }
+
+  void _onRenameProject(String projectId, String newName) {
+    // Находим проект по ID и обновляем его
+    final currentState = _projectBloc.state;
+    if (currentState is ProjectsLoaded) {
+      final project = currentState.projects.firstWhere(
+        (p) => p.id == projectId,
+        orElse: () => Project.empty(),
+      );
+      if (project.id.isNotEmpty) {
+        final updatedProject = project.copyWith(name: newName);
+        _projectBloc.add(UpdateProjectEvent(updatedProject));
+
+        // Если переименовываем текущий проект, обновляем название в AppBar
+        if (_selectedTreeId == projectId) {
+          setState(() {
+            _selectedTreeName = newName;
+          });
+        }
+      }
+    }
+  }
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -69,24 +101,22 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _onTreeSelected(String treeId, String treeName) {
-    // Обновляем состояние
     _selectedTreeId = treeId;
     _selectedTreeName = treeName;
 
-    // Пересоздаем экраны с новым treeId
     _buildScreens();
-
-    // Обновляем PersonBloc с новым treeId
     _personBloc.add(LoadPersonsEvent(treeId: treeId));
 
-    // Обновляем состояние UI
     setState(() {});
-
-    // Закрываем drawer
     Navigator.pop(context);
-
-    // Обновляем выбранный проект в ProjectBloc
     _projectBloc.add(SelectProjectEvent(treeId));
+  }
+
+  void _onDeleteProject(String projectId) {
+    if (_selectedTreeId == projectId) {
+      _onTreeSelected('default', 'Мое древо');
+    }
+    _projectBloc.add(DeleteProjectEvent(projectId));
   }
 
   @override
@@ -116,7 +146,6 @@ class _MainScreenState extends State<MainScreen> {
           ),
           backgroundColor: Theme.of(context).colorScheme.inversePrimary,
           actions: [
-            // Кнопка системных настроек
             IconButton(
               icon: const Icon(Icons.settings),
               onPressed: () {
@@ -129,7 +158,6 @@ class _MainScreenState extends State<MainScreen> {
               },
               tooltip: 'Настройки',
             ),
-            // Кнопка авторизации (заглушка)
             IconButton(
               icon: const Icon(Icons.account_circle),
               onPressed: () {
@@ -139,8 +167,25 @@ class _MainScreenState extends State<MainScreen> {
             ),
           ],
         ),
-        // Drawer для выбора древа
-        drawer: BlocBuilder<ProjectBloc, ProjectState>(
+        drawer: BlocConsumer<ProjectBloc, ProjectState>(
+          listener: (context, state) {
+            if (state is ProjectError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+            if (state is ProjectOperationSuccess) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+          },
           builder: (context, state) {
             if (state is ProjectsLoaded) {
               return TreeSelectorDrawer(
@@ -148,6 +193,9 @@ class _MainScreenState extends State<MainScreen> {
                 projects: state.projects,
                 onTreeSelected: _onTreeSelected,
                 onAddTree: () => _showAddTreeDialog(context),
+                onDeleteProject: _onDeleteProject,
+                onSetDefaultProject: _onSetDefaultProject,
+                onRenameProject: _onRenameProject,
               );
             }
             return const SizedBox.shrink();
@@ -260,16 +308,20 @@ class _MainScreenState extends State<MainScreen> {
                 _projectBloc.add(AddProjectEvent(project));
                 Navigator.pop(context);
 
-                // Выбираем новый проект автоматически
-                _projectBloc.stream.listen((state) {
-                  if (state is ProjectsLoaded) {
-                    final newProject = state.projects.firstWhere(
-                      (p) => p.name == project.name,
-                      orElse: () => state.projects.first,
-                    );
-                    _onTreeSelected(newProject.id, newProject.name);
-                  }
-                }).cancel();
+                // После создания выбираем новый проект
+                Future.delayed(const Duration(milliseconds: 300), () {
+                  _projectBloc.stream
+                      .firstWhere((state) => state is ProjectsLoaded)
+                      .then((state) {
+                        if (state is ProjectsLoaded) {
+                          final newProject = state.projects.firstWhere(
+                            (p) => p.id == project.id,
+                            orElse: () => state.projects.first,
+                          );
+                          _onTreeSelected(newProject.id, newProject.name);
+                        }
+                      });
+                });
               }
             },
             child: const Text('Создать'),

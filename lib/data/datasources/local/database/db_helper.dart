@@ -25,7 +25,7 @@ class DatabaseHelper {
 
     return openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -40,7 +40,8 @@ class DatabaseHelper {
         name TEXT NOT NULL,
         description TEXT,
         created_at INTEGER,
-        updated_at INTEGER
+        updated_at INTEGER,
+        is_default INTEGER NOT NULL DEFAULT 0
       )
     ''');
 
@@ -51,6 +52,7 @@ class DatabaseHelper {
       'description': 'Основное генеалогическое древо',
       'created_at': DateTime.now().millisecondsSinceEpoch,
       'updated_at': DateTime.now().millisecondsSinceEpoch,
+      'is_default': 1,
     });
 
     // Таблица Person
@@ -125,7 +127,8 @@ class DatabaseHelper {
           name TEXT NOT NULL,
           description TEXT,
           created_at INTEGER,
-          updated_at INTEGER
+          updated_at INTEGER,
+          is_default INTEGER NOT NULL DEFAULT 0
         )
       ''');
 
@@ -142,6 +145,7 @@ class DatabaseHelper {
           'description': 'Основное генеалогическое древо',
           'created_at': DateTime.now().millisecondsSinceEpoch,
           'updated_at': DateTime.now().millisecondsSinceEpoch,
+          'is_default': 1,
         });
       }
     }

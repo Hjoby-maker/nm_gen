@@ -15,6 +15,8 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     on<UpdateProjectEvent>(_onUpdateProject);
     on<DeleteProjectEvent>(_onDeleteProject);
     on<SelectProjectEvent>(_onSelectProject);
+    on<CheckCanDeleteProjectEvent>(_onCheckCanDeleteProject);
+    on<SetDefaultProjectEvent>(_onSetDefaultProject);
   }
 
   Future<void> _onLoadProjects(
@@ -61,6 +63,17 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     Emitter<ProjectState> emit,
   ) async {
     try {
+      // Проверяем, можно ли удалить проект
+      final canDelete = await _repository.canDeleteProject(event.projectId);
+      if (!canDelete) {
+        emit(
+          ProjectError(
+            'Невозможно удалить проект: в нем есть персоны или семьи',
+          ),
+        );
+        return;
+      }
+
       await _repository.deleteProject(event.projectId);
       emit(const ProjectOperationSuccess('Проект удален'));
       add(LoadProjectsEvent());
@@ -69,10 +82,26 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     }
   }
 
+  Future<void> _onCheckCanDeleteProject(
+    CheckCanDeleteProjectEvent event,
+    Emitter<ProjectState> emit,
+  ) async {
+    try {
+      final canDelete = await _repository.canDeleteProject(event.projectId);
+      emit(
+        ProjectCanDeleteResult(
+          canDelete: canDelete,
+          projectId: event.projectId,
+        ),
+      );
+    } catch (e) {
+      emit(ProjectError('Ошибка проверки: ${e.toString()}'));
+    }
+  }
+
   void _onSelectProject(SelectProjectEvent event, Emitter<ProjectState> emit) {
     final currentState = state;
     if (currentState is ProjectsLoaded) {
-      // Проверяем, существует ли проект с таким ID
       final exists = currentState.projects.any((p) => p.id == event.projectId);
       if (exists) {
         emit(
@@ -82,6 +111,25 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
           ),
         );
       }
+    }
+  }
+
+  Future<void> _onSetDefaultProject(
+    SetDefaultProjectEvent event,
+    Emitter<ProjectState> emit,
+  ) async {
+    try {
+      await _repository.setDefaultProject(event.projectId);
+      emit(
+        const ProjectOperationSuccess(
+          'Проект установлен как проект по умолчанию',
+        ),
+      );
+      add(LoadProjectsEvent());
+    } catch (e) {
+      emit(
+        ProjectError('Ошибка установки проекта по умолчанию: ${e.toString()}'),
+      );
     }
   }
 }

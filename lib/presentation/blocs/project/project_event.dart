@@ -37,3 +37,18 @@ class SelectProjectEvent extends ProjectEvent {
   @override
   List<Object?> get props => [projectId];
 }
+
+class CheckCanDeleteProjectEvent extends ProjectEvent {
+  final String projectId;
+  const CheckCanDeleteProjectEvent(this.projectId);
+  @override
+  List<Object?> get props => [projectId];
+}
+
+class SetDefaultProjectEvent extends ProjectEvent {
+  // <-- ДОБАВЛЯЕМ
+  final String projectId;
+  const SetDefaultProjectEvent(this.projectId);
+  @override
+  List<Object?> get props => [projectId];
+}

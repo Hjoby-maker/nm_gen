@@ -37,6 +37,17 @@ class ProjectOperationSuccess extends ProjectState {
   List<Object> get props => [message];
 }
 
+class ProjectCanDeleteResult extends ProjectState {
+  final bool canDelete;
+  final String projectId;
+  const ProjectCanDeleteResult({
+    required this.canDelete,
+    required this.projectId,
+  });
+  @override
+  List<Object> get props => [canDelete, projectId];
+}
+
 class ProjectError extends ProjectState {
   final String message;
   const ProjectError(this.message);
