@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nm_gen/core/enums/gender.dart';
-import 'package:nm_gen/domain/entities/family.dart';
+import 'package:nm_gen/domain/entities/event.dart';
 import 'package:nm_gen/domain/entities/person.dart';
-import 'package:nm_gen/presentation/blocs/family/family_bloc.dart';
-import 'package:nm_gen/presentation/blocs/family/family_event.dart';
-import 'package:nm_gen/presentation/blocs/family/family_state.dart';
+import 'package:nm_gen/presentation/blocs/event/event_bloc.dart';
+import 'package:nm_gen/presentation/blocs/event/event_event.dart';
+import 'package:nm_gen/presentation/blocs/event/event_state.dart';
 import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
 import 'package:nm_gen/presentation/blocs/person/person_event.dart';
 import 'package:nm_gen/presentation/blocs/person/person_state.dart';
-import 'package:nm_gen/presentation/screens/family_screen.dart';
-import 'package:nm_gen/presentation/widgets/family_form_dialog.dart';
+import 'package:nm_gen/presentation/widgets/event_form_dialog.dart';
+import 'package:nm_gen/presentation/widgets/event_tile.dart';
 import 'package:nm_gen/presentation/widgets/person_avatar.dart';
 import 'package:nm_gen/presentation/widgets/person_form_dialog.dart';
 import 'package:nm_gen/di/injector.dart';
@@ -29,17 +29,15 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
   bool _isLoading = true;
   String? _treeId;
 
-  // Получаем BLoC через getIt
   late final PersonBloc _personBloc;
-  late final FamilyBloc _familyBloc;
+  late final EventBloc _eventBloc;
 
   @override
   void initState() {
     super.initState();
     _personBloc = getIt<PersonBloc>();
-    _familyBloc = getIt<FamilyBloc>();
+    _eventBloc = getIt<EventBloc>();
 
-    // Отложенная загрузка
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
     });
@@ -48,16 +46,12 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
 
-    // Получаем текущее состояние
     final personState = _personBloc.state;
-
-    // Если данные еще не загружены или treeId не совпадает, загружаем
     if (personState is! PersonsLoaded || personState.treeId != _treeId) {
       _personBloc.add(LoadPersonsEvent(treeId: _treeId));
       await Future.delayed(const Duration(milliseconds: 300));
     }
 
-    // Получаем обновленное состояние
     final updatedState = _personBloc.state;
     if (updatedState is PersonsLoaded) {
       setState(() {
@@ -69,8 +63,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
         _isLoading = false;
       });
 
-      // Загружаем семьи
-      _familyBloc.add(LoadFamiliesEvent(widget.personId, treeId: _treeId));
+      _eventBloc.add(LoadPersonEventsEvent(widget.personId, treeId: _treeId));
     } else {
       setState(() => _isLoading = false);
     }
@@ -78,580 +71,594 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_person?.displayName ?? 'Загрузка...'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        actions: <Widget>[
-          if (_person != null && _person!.id.isNotEmpty)
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider.value(value: _personBloc),
+        BlocProvider.value(value: _eventBloc),
+      ],
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(_person?.displayName ?? 'Загрузка...'),
+          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+          actions: [
             IconButton(
               icon: const Icon(Icons.edit),
-              onPressed: () => _showEditPersonDialog(context),
+              onPressed: _person != null && _person!.id.isNotEmpty
+                  ? () => _showEditPersonDialog(context)
+                  : null,
               tooltip: 'Редактировать',
             ),
-        ],
-      ),
-      body: _isLoading
-          ? const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Загрузка данных...'),
-                ],
-              ),
-            )
-          : _person == null || _person!.id.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.person_off, size: 64, color: Colors.grey),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Человек не найден',
-                    style: TextStyle(fontSize: 18, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Назад'),
-                  ),
-                ],
-              ),
-            )
-          : BlocProvider.value(
-              value: _familyBloc,
-              child: BlocConsumer<FamilyBloc, FamilyState>(
-                listener: (BuildContext context, FamilyState state) {
-                  if (state is FamilyOperationSuccess) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(state.message),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                    _familyBloc.add(
-                      LoadFamiliesEvent(widget.personId, treeId: _treeId),
-                    );
-                  } else if (state is FamilyError) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(state.message),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                },
-                builder: (BuildContext context, FamilyState state) {
-                  return SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        _buildPersonInfo(),
-                        const SizedBox(height: 24),
-                        _buildFamiliesSection(
-                          'Семьи (как ребенок)',
-                          _getFamiliesAsChild(state),
-                          isChild: true,
-                        ),
-                        const SizedBox(height: 16),
-                        _buildFamiliesSection(
-                          'Семьи (как родитель)',
-                          _getFamiliesAsParent(state),
-                          isChild: false,
-                        ),
-                        const SizedBox(height: 16),
-                        _buildActionButtons(context),
-                      ],
-                    ),
-                  );
-                },
-              ),
+            // Кнопка добавления события в AppBar (всегда доступна)
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline),
+              onPressed: _person != null && _person!.id.isNotEmpty
+                  ? () => _showAddEventDialog(context)
+                  : null,
+              tooltip: 'Добавить событие',
             ),
+          ],
+        ),
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _person == null || _person!.id.isEmpty
+            ? _buildNotFoundView()
+            : _buildContent(),
+      ),
     );
   }
 
-  Widget _buildPersonInfo() {
-    final Person person = _person!;
+  Widget _buildNotFoundView() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.person_off, size: 64, color: Colors.grey),
+          const SizedBox(height: 16),
+          const Text(
+            'Человек не найден',
+            style: TextStyle(fontSize: 18, color: Colors.grey),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Назад'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildHeader(),
+          const SizedBox(height: 24),
+          _buildEventsSection(),
+        ],
+      ),
+    );
+  }
+
+  // =========================================================================
+  // ЗАГОЛОВОК С ИНФОРМАЦИЕЙ О ЧЕЛОВЕКЕ
+  // =========================================================================
+
+  Widget _buildHeader() {
+    final person = _person!;
+    final age = person.age != null ? '${person.age} лет' : 'Возраст неизвестен';
+
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+        padding: const EdgeInsets.all(20),
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Row(
-              children: <Widget>[
-                PersonAvatar(person: person, radius: 40),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
+          children: [
+            PersonAvatar(person: person, radius: 50),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    person.fullName,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        person.gender == Gender.male
+                            ? Icons.male
+                            : person.gender == Gender.female
+                            ? Icons.female
+                            : Icons.person,
+                        size: 16,
+                        color: person.gender == Gender.male
+                            ? Colors.blue
+                            : Colors.pink,
+                      ),
+                      const SizedBox(width: 4),
                       Text(
-                        person.fullName,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
+                        person.gender.displayName,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
                         ),
                       ),
+                      const SizedBox(width: 12),
                       Text(
-                        person.formattedAge,
-                        style: TextStyle(color: Colors.grey.shade600),
-                      ),
-                      if (person.occupation != null)
-                        Text(
-                          person.occupation!,
-                          style: TextStyle(color: Colors.grey.shade600),
+                        age,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
                         ),
+                      ),
                     ],
                   ),
-                ),
-              ],
+                  if (person.occupation != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      person.occupation!,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                  if (person.birthDate != null) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.cake, size: 16, color: Colors.grey),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Дата рождения: ${_formatDate(person.birthDate!)}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  if (person.deathDate != null) ...[
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.warning, size: 16, color: Colors.grey),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Дата смерти: ${_formatDate(person.deathDate!)}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  if (person.birthPlace != null) ...[
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on,
+                          size: 16,
+                          color: Colors.grey,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            person.birthPlace!,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  if (person.biography != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Text(
+                        person.biography!,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade700,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
-            const Divider(height: 24),
-            if (person.birthDate != null)
-              _buildInfoRow('Дата рождения', _formatDate(person.birthDate!)),
-            if (person.deathDate != null)
-              _buildInfoRow('Дата смерти', _formatDate(person.deathDate!)),
-            if (person.birthPlace != null)
-              _buildInfoRow('Место рождения', person.birthPlace!),
-            if (person.biography != null)
-              _buildInfoRow('Биография', person.biography!),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          SizedBox(
-            width: 120,
-            child: Text(
-              label,
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade700,
-              ),
+  // =========================================================================
+  // СЕКЦИЯ СОБЫТИЙ
+  // =========================================================================
+
+  Widget _buildEventsSection() {
+    return BlocConsumer<EventBloc, EventState>(
+      listener: (context, state) {
+        if (state is EventOperationSuccess) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: Colors.green,
             ),
-          ),
-          Expanded(child: Text(value)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFamiliesSection(
-    String title,
-    List<Family> families, {
-    required bool isChild,
-  }) {
-    if (families.isEmpty) {
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                isChild ? 'Не состоит в семьях как ребенок' : 'Нет семей',
-                style: TextStyle(color: Colors.grey.shade600),
-              ),
-              if (!isChild)
-                TextButton.icon(
-                  onPressed: () => _showAddFamilyDialog(context),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Создать семью'),
-                ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+          );
+          _eventBloc.add(
+            LoadPersonEventsEvent(widget.personId, treeId: _treeId),
+          );
+        } else if (state is EventError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+          );
+        }
+      },
+      builder: (context, state) {
+        return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
+          children: [
+            // Заголовок с кнопкой добавления
             Row(
-              children: <Widget>[
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+              children: [
+                const Text(
+                  'События',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
-                Text(
-                  '${families.length}',
-                  style: TextStyle(color: Colors.grey.shade600),
+                TextButton.icon(
+                  onPressed: () => _showAddEventDialog(context),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Добавить'),
+                  style: TextButton.styleFrom(foregroundColor: Colors.green),
                 ),
               ],
             ),
             const SizedBox(height: 8),
-            ...families.map((Family family) {
-              return ListTile(
-                title: Text(_getFamilyLabel(family, isChild)),
-                subtitle: Text(
-                  family.marriageDate != null
-                      ? 'Брак: ${_formatDate(family.marriageDate!)}'
-                      : 'Дата брака не указана',
+            if (state is EventLoading)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: CircularProgressIndicator(),
                 ),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (BuildContext context) => FamilyScreen(
-                        personId: widget.personId,
-                        personName: _person?.displayName ?? '',
-                      ),
-                    ),
-                  );
-                },
-              );
-            }),
+              )
+            else if (state is EventsLoaded)
+              state.events.isEmpty
+                  ? _buildEmptyEvents()
+                  : _buildEventsList(state.events)
+            else if (state is EventError)
+              _buildErrorState(state.message)
+            else
+              const SizedBox.shrink(),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyEvents() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Center(
+          child: Column(
+            children: [
+              const Icon(Icons.event_note, size: 48, color: Colors.grey),
+              const SizedBox(height: 8),
+              Text(
+                'Нет событий',
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEventsList(List<Event> events) {
+    return Column(
+      children: events.map((event) {
+        return Dismissible(
+          key: Key(event.id),
+          direction: DismissDirection.horizontal,
+          background: _buildSwipeRightBackground(),
+          secondaryBackground: _buildSwipeLeftBackground(),
+          confirmDismiss: (direction) async {
+            if (direction == DismissDirection.startToEnd) {
+              return await _confirmDeleteEvent(context, event.id);
+            } else if (direction == DismissDirection.endToStart) {
+              _showEditEventDialog(context, event);
+              return false;
+            }
+            return false;
+          },
+          child: EventTile(
+            event: event,
+            onTap: () => _showEventDetails(context, event),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildErrorState(String message) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.red),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                message,
+                style: TextStyle(color: Colors.red.shade700),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                _eventBloc.add(
+                  LoadPersonEventsEvent(widget.personId, treeId: _treeId),
+                );
+              },
+              child: const Text('Повторить'),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildActionButtons(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: <Widget>[
-        ElevatedButton.icon(
-          onPressed: () => _showAddSiblingDialog(context),
-          icon: const Icon(Icons.group_add),
-          label: const Text('Добавить брата/сестру'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.purple,
-            foregroundColor: Colors.white,
+  // =========================================================================
+  // СВАЙП-ДЕЙСТВИЯ ДЛЯ СОБЫТИЙ
+  // =========================================================================
+
+  Widget _buildSwipeRightBackground() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.red.shade700,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      alignment: Alignment.centerLeft,
+      child: const Row(
+        children: [
+          Icon(Icons.delete_forever, color: Colors.white, size: 28),
+          SizedBox(width: 12),
+          Text(
+            'Удалить',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
           ),
-        ),
-        ElevatedButton.icon(
-          onPressed: () => _showAddSpouseDialog(context),
-          icon: const Icon(Icons.favorite),
-          label: const Text('Добавить супруга'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.red,
-            foregroundColor: Colors.white,
-          ),
-        ),
-        ElevatedButton.icon(
-          onPressed: () => _showAddChildAsParentDialog(context),
-          icon: const Icon(Icons.child_care),
-          label: const Text('Добавить ребенка'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green,
-            foregroundColor: Colors.white,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  // =========================================================================
-  // ЛОГИКА ПОЛУЧЕНИЯ СЕМЕЙ
-  // =========================================================================
-
-  List<Family> _getFamiliesAsChild(FamilyState state) {
-    if (state is! FamiliesLoaded) return <Family>[];
-    return state.families
-        .where((Family family) => family.childrenIds.contains(widget.personId))
-        .toList();
-  }
-
-  List<Family> _getFamiliesAsParent(FamilyState state) {
-    if (state is! FamiliesLoaded) return <Family>[];
-    return state.families
-        .where(
-          (Family family) =>
-              family.husbandId == widget.personId ||
-              family.wifeId == widget.personId,
-        )
-        .toList();
-  }
-
-  String _getFamilyLabel(Family family, bool isChild) {
-    if (isChild) {
-      final List<String> parents = <String>[];
-      if (family.husbandId != null) parents.add('отец: ${family.husbandId}');
-      if (family.wifeId != null) parents.add('мать: ${family.wifeId}');
-      return parents.isNotEmpty ? parents.join(', ') : 'Семья';
-    } else {
-      final String? spouseId = family.husbandId == widget.personId
-          ? family.wifeId
-          : family.husbandId;
-      return spouseId != null ? 'Супруг: $spouseId' : 'Семья';
-    }
+  Widget _buildSwipeLeftBackground() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.blue.shade700,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      alignment: Alignment.centerRight,
+      child: const Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Text(
+            'Редактировать',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+          ),
+          SizedBox(width: 12),
+          Icon(Icons.edit, color: Colors.white, size: 28),
+        ],
+      ),
+    );
   }
 
   // =========================================================================
   // ДИАЛОГИ
   // =========================================================================
 
-  /// Получить список персон текущего проекта
-  List<Person> _getProjectPersons(PersonsLoaded state) {
-    // Если treeId не задан, используем 'default'
-    final treeId = _treeId ?? 'default';
-
-    // Фильтруем персоны по treeId
-    return state.persons.where((p) => p.treeId == treeId).toList();
-  }
-
-  void _showAddSiblingDialog(BuildContext context) {
-    final PersonState personState = _personBloc.state;
-    final FamilyState familyState = _familyBloc.state;
-
-    if (personState is! PersonsLoaded || familyState is! FamiliesLoaded) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Данные еще загружаются...'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    // Получаем персоны текущего проекта
-    final projectPersons = _getProjectPersons(personState);
-
-    if (projectPersons.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('В этом проекте нет других людей'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    // Находим семьи, где человек является ребенком
-    final List<Family> parentFamilies = familyState.families
-        .where((Family family) => family.childrenIds.contains(widget.personId))
-        .toList();
-
-    if (parentFamilies.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Сначала добавьте родителей в семью'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    if (parentFamilies.length > 1) {
-      _showSelectFamilyForSiblingDialog(
-        context,
-        parentFamilies,
-        projectPersons,
-      );
-    } else {
-      _showAddSiblingToFamilyDialog(
-        context,
-        parentFamilies.first,
-        projectPersons,
-      );
-    }
-  }
-
-  void _showSelectFamilyForSiblingDialog(
-    BuildContext context,
-    List<Family> families,
-    List<Person> availablePersons,
-  ) {
+  void _showAddEventDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (BuildContext context) => AlertDialog(
-        title: const Text('Выберите семью'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: families.map((Family family) {
-            return ListTile(
-              title: Text('Семья #${family.id.substring(0, 8)}'),
-              subtitle: Text(
-                'Родители: ${family.husbandId ?? '?'} и ${family.wifeId ?? '?'}',
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                _showAddSiblingToFamilyDialog(
-                  context,
-                  family,
-                  availablePersons,
-                );
-              },
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-
-  void _showAddSiblingToFamilyDialog(
-    BuildContext context,
-    Family family,
-    List<Person> availablePersons,
-  ) {
-    final availableSiblings = availablePersons
-        .where((Person p) => p.id != widget.personId)
-        .where((Person p) => p.id != family.husbandId)
-        .where((Person p) => p.id != family.wifeId)
-        .where((Person p) => !family.childrenIds.contains(p.id))
-        .toList();
-
-    if (availableSiblings.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Нет доступных людей для добавления как брата/сестры'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) => AlertDialog(
-        title: const Text('Добавить брата/сестру'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: availableSiblings.map((Person person) {
-            return ListTile(
-              leading: CircleAvatar(
-                child: Text(person.displayName.substring(0, 1).toUpperCase()),
-              ),
-              title: Text(person.displayName),
-              subtitle: Text(person.formattedAge),
-              onTap: () {
-                _familyBloc.add(
-                  AddChildToFamilyEvent(family.id, person.id, treeId: _treeId),
-                );
-                Navigator.pop(context);
-              },
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-
-  void _showAddSpouseDialog(BuildContext context) {
-    final PersonState personState = _personBloc.state;
-    if (personState is! PersonsLoaded) return;
-
-    // Получаем персоны текущего проекта
-    final projectPersons = _getProjectPersons(personState);
-
-    // Исключаем текущего человека
-    final availablePersons = projectPersons
-        .where((p) => p.id != widget.personId)
-        .toList();
-
-    if (availablePersons.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Нет доступных людей для создания семьи'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) => AlertDialog(
-        title: const Text('Добавить супруга'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            const Text('Выберите супруга для создания семьи:'),
-            const SizedBox(height: 8),
-            ...availablePersons.map((Person person) {
-              return ListTile(
-                leading: CircleAvatar(
-                  child: Text(person.displayName.substring(0, 1).toUpperCase()),
-                ),
-                title: Text(person.displayName),
-                subtitle: Text(person.formattedAge),
-                onTap: () {
-                  final String treeId = _treeId ?? 'default';
-                  final Family family = Family(
-                    id: DateTime.now().millisecondsSinceEpoch.toString(),
-                    treeId: treeId,
-                    husbandId: _person?.gender == Gender.male
-                        ? widget.personId
-                        : person.id,
-                    wifeId: _person?.gender == Gender.female
-                        ? widget.personId
-                        : person.id,
-                    childrenIds: const <String>[],
-                  );
-                  _familyBloc.add(AddFamilyEvent(family, treeId: treeId));
-                  Navigator.pop(context);
-                },
-              );
-            }).toList(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showAddChildAsParentDialog(BuildContext context) {
-    _showAddFamilyDialog(context);
-  }
-
-  void _showAddFamilyDialog(BuildContext context) {
-    final PersonState personState = _personBloc.state;
-    if (personState is! PersonsLoaded) return;
-
-    // Получаем персоны текущего проекта
-    final projectPersons = _getProjectPersons(personState);
-
-    if (projectPersons.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('В этом проекте нет других людей'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    final String treeId = _treeId ?? 'default';
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) => FamilyFormDialog(
-        availablePersons: projectPersons,
-        treeId: treeId,
-        onSave: (Family family) {
-          _familyBloc.add(AddFamilyEvent(family, treeId: treeId));
+      builder: (dialogContext) => EventFormDialog(
+        personId: widget.personId,
+        treeId: _treeId ?? 'default',
+        onSave: (event) {
+          _eventBloc.add(AddEventEvent(event));
         },
       ),
     );
+  }
+
+  void _showEditEventDialog(BuildContext context, Event event) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => EventFormDialog(
+        existingEvent: event,
+        personId: widget.personId,
+        treeId: _treeId ?? 'default',
+        onSave: (updatedEvent) {
+          _eventBloc.add(UpdateEventEvent(updatedEvent));
+        },
+      ),
+    );
+  }
+
+  void _showEventDetails(BuildContext context, Event event) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.5,
+        minChildSize: 0.3,
+        maxChildSize: 0.8,
+        expand: false,
+        builder: (context, scrollController) => Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _getEventTypeColor(event.type).withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      event.type.displayName,
+                      style: TextStyle(
+                        color: _getEventTypeColor(event.type),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.edit, size: 20),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _showEditEventDialog(context, event);
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete, size: 20, color: Colors.red),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _confirmDeleteEvent(context, event.id);
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                event.title,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (event.startDate != null || event.endDate != null) ...[
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.calendar_today,
+                      size: 16,
+                      color: Colors.grey,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _formatDateRange(event),
+                      style: TextStyle(color: Colors.grey.shade700),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+              ],
+              if (event.place != null && event.place!.isNotEmpty) ...[
+                Row(
+                  children: [
+                    const Icon(Icons.location_on, size: 16, color: Colors.grey),
+                    const SizedBox(width: 8),
+                    Text(
+                      event.place!,
+                      style: TextStyle(color: Colors.grey.shade700),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+              ],
+              if (event.description != null &&
+                  event.description!.isNotEmpty) ...[
+                const Divider(),
+                Text(
+                  event.description!,
+                  style: TextStyle(color: Colors.grey.shade800, height: 1.5),
+                ),
+              ],
+              if (event.notes != null && event.notes!.isNotEmpty) ...[
+                const Divider(),
+                Text(
+                  '📝 ${event.notes!}',
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<bool> _confirmDeleteEvent(BuildContext context, String eventId) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Удаление события'),
+        content: const Text('Вы уверены, что хотите удалить это событие?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Отмена'),
+          ),
+          TextButton(
+            onPressed: () {
+              _eventBloc.add(DeleteEventEvent(eventId));
+              Navigator.pop(dialogContext, true);
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Удалить'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
   }
 
   void _showEditPersonDialog(BuildContext context) {
@@ -664,12 +671,49 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
         treeId: _treeId ?? 'default',
         onSave: (updatedPerson) {
           _personBloc.add(UpdatePersonEvent(updatedPerson));
+          setState(() {
+            _person = updatedPerson;
+          });
         },
       ),
     );
   }
 
+  // =========================================================================
+  // УТИЛИТЫ
+  // =========================================================================
+
   String _formatDate(DateTime date) {
     return '${date.day}.${date.month}.${date.year}';
+  }
+
+  String _formatDateRange(Event event) {
+    final start = event.startDate;
+    final end = event.endDate;
+    if (start == null && end == null) return 'Даты не указаны';
+    if (start != null && end == null) return _formatDate(start);
+    if (start == null && end != null) return '... - ${_formatDate(end)}';
+    return '${_formatDate(start!)} - ${_formatDate(end!)}';
+  }
+
+  Color _getEventTypeColor(EventType type) {
+    switch (type) {
+      case EventType.birth:
+        return Colors.green;
+      case EventType.death:
+        return Colors.grey;
+      case EventType.baptism:
+        return Colors.blue;
+      case EventType.burial:
+        return Colors.grey;
+      case EventType.education:
+        return Colors.purple;
+      case EventType.occupation:
+        return Colors.teal;
+      case EventType.relocation:
+        return Colors.amber;
+      default:
+        return Colors.blueGrey;
+    }
   }
 }

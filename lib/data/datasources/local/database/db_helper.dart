@@ -25,7 +25,7 @@ class DatabaseHelper {
 
     return openDatabase(
       path,
-      version: 5,
+      version: 6,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -115,38 +115,112 @@ class DatabaseHelper {
     await db.execute('''
       CREATE INDEX idx_families_wife ON families (wife_id)
     ''');
+
+    // Таблица событий
+    await db.execute('''
+      CREATE TABLE events (
+        id TEXT PRIMARY KEY,
+        person_id TEXT NOT NULL,
+        tree_id TEXT NOT NULL DEFAULT 'default',
+        type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT,
+        start_date INTEGER,
+        end_date INTEGER,
+        place TEXT,
+        notes TEXT,
+        created_at INTEGER,
+        updated_at INTEGER,
+        FOREIGN KEY (person_id) REFERENCES persons (id) ON DELETE CASCADE
+      )
+    ''');
+
+    // Индексы для событий
+    await db.execute('''
+      CREATE INDEX idx_events_person_id ON events (person_id)
+    ''');
+    await db.execute('''
+      CREATE INDEX idx_events_tree_id ON events (tree_id)
+    ''');
+    await db.execute('''
+      CREATE INDEX idx_events_type ON events (type)
+    ''');
   }
 
   /// Обновление базы данных (миграции)
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    // Миграция для версии 4 — добавляем колонку is_default
     if (oldVersion < 4) {
-      // Создаем таблицу проектов
-      await db.execute('''
-        CREATE TABLE projects (
-          id TEXT PRIMARY KEY,
-          name TEXT NOT NULL,
-          description TEXT,
-          created_at INTEGER,
-          updated_at INTEGER,
-          is_default INTEGER NOT NULL DEFAULT 0
-        )
-      ''');
+      try {
+        // Проверяем существование таблицы projects
+        final tables = await db.rawQuery(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='projects'",
+        );
 
-      // Проверяем, существует ли проект по умолчанию
-      final existing = await db.query(
-        'projects',
-        where: 'id = ?',
-        whereArgs: ['default'],
-      );
-      if (existing.isEmpty) {
-        await db.insert('projects', {
-          'id': 'default',
-          'name': 'Мое древо',
-          'description': 'Основное генеалогическое древо',
-          'created_at': DateTime.now().millisecondsSinceEpoch,
-          'updated_at': DateTime.now().millisecondsSinceEpoch,
-          'is_default': 1,
-        });
+        if (tables.isNotEmpty) {
+          final columns = await db.rawQuery('PRAGMA table_info(projects)');
+          final hasIsDefault = columns.any(
+            (col) => col['name'] == 'is_default',
+          );
+
+          if (!hasIsDefault) {
+            await db.execute(
+              'ALTER TABLE projects ADD COLUMN is_default INTEGER NOT NULL DEFAULT 0',
+            );
+            await db.update(
+              'projects',
+              {'is_default': 1},
+              where: 'id = ?',
+              whereArgs: ['default'],
+            );
+          }
+        }
+      } catch (e) {
+        print('⚠️ Ошибка миграции is_default: $e');
+      }
+    }
+
+    // Миграция для версии 6 — создаем таблицу events
+    if (oldVersion < 6) {
+      try {
+        // Проверяем, существует ли таблица events
+        final tables = await db.rawQuery(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='events'",
+        );
+
+        if (tables.isEmpty) {
+          // Создаем таблицу событий
+          await db.execute('''
+            CREATE TABLE events (
+              id TEXT PRIMARY KEY,
+              person_id TEXT NOT NULL,
+              tree_id TEXT NOT NULL DEFAULT 'default',
+              type TEXT NOT NULL,
+              title TEXT NOT NULL,
+              description TEXT,
+              start_date INTEGER,
+              end_date INTEGER,
+              place TEXT,
+              notes TEXT,
+              created_at INTEGER,
+              updated_at INTEGER,
+              FOREIGN KEY (person_id) REFERENCES persons (id) ON DELETE CASCADE
+            )
+          ''');
+
+          // Создаем индексы для событий
+          await db.execute('''
+            CREATE INDEX idx_events_person_id ON events (person_id)
+          ''');
+          await db.execute('''
+            CREATE INDEX idx_events_tree_id ON events (tree_id)
+          ''');
+          await db.execute('''
+            CREATE INDEX idx_events_type ON events (type)
+          ''');
+        }
+      } catch (e) {
+        print('⚠️ Ошибка миграции events: $e');
       }
     }
   }
