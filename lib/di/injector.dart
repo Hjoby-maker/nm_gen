@@ -28,6 +28,7 @@ import 'package:nm_gen/domain/use_cases/person/search_persons.dart';
 import 'package:nm_gen/domain/use_cases/person/sync_person_events.dart';
 import 'package:nm_gen/domain/use_cases/person/update_person.dart';
 import 'package:nm_gen/domain/use_cases/tree/get_family_tree.dart';
+import 'package:nm_gen/domain/use_cases/tree/get_full_tree.dart'; // <-- ДОБАВЛЯЕМ
 import 'package:nm_gen/presentation/blocs/event/event_bloc.dart';
 import 'package:nm_gen/presentation/blocs/family/family_bloc.dart';
 import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
@@ -203,6 +204,14 @@ void registerUseCasesAndBlocs() {
     ),
   );
 
+  // ✅ НОВЫЙ USE CASE — строит дерево из всех людей проекта
+  registerFactoryIfNotRegistered<GetFullTreeUseCase>(
+    () => GetFullTreeUseCase(
+      personRepository: personRepo,
+      familyRepository: familyRepo,
+    ),
+  );
+
   // ============================================================
   // 9. РЕГИСТРАЦИЯ BLOC
   // ============================================================
@@ -230,9 +239,8 @@ void registerUseCasesAndBlocs() {
     ),
   );
 
-  registerFactoryIfNotRegistered<TreeBloc>(
-    () => TreeBloc(getFamilyTreeUseCase: getFamilyTreeUseCase),
-  );
+  // ✅ TreeBloc теперь использует GetFullTreeUseCase
+  registerFactoryIfNotRegistered<TreeBloc>(() => TreeBloc());
 
   registerFactoryIfNotRegistered<FamilyBloc>(
     () => FamilyBloc(

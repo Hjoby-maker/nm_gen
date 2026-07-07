@@ -54,7 +54,7 @@ class ImportGedcomUseCase {
       for (final GedcomFamily gedcomFamily in data.families) {
         final Family family = Family(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
-          treeId: treeId ?? 'default', // <-- ДОБАВЛЯЕМ treeId
+          treeId: treeId ?? 'default',
           husbandId: idMap[gedcomFamily.husbandId],
           wifeId: idMap[gedcomFamily.wifeId],
           childrenIds: gedcomFamily.childrenIds
@@ -75,10 +75,92 @@ class ImportGedcomUseCase {
         }
       }
 
+      // ============================================================
+      // ДОБАВЛЯЕМ НЕДОСТАЮЩИЕ РОДИТЕЛЬСКИЕ СВЯЗИ
+      // ============================================================
+      await _createMissingParentLinks(data, idMap, treeId);
+
       return Right(importedCount);
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }
+  }
+
+  /// Создает недостающие родительские связи для братьев и сестер
+  Future<void> _createMissingParentLinks(
+    GedcomData data,
+    Map<String, String> idMap,
+    String? treeId,
+  ) async {
+    // Находим семьи, где есть дети
+    final familiesWithChildren = data.families
+        .where((f) => f.childrenIds.isNotEmpty)
+        .toList();
+
+    // Собираем всех детей из семей
+    final allChildrenIds = <String>{};
+    for (final family in familiesWithChildren) {
+      allChildrenIds.addAll(family.childrenIds);
+    }
+
+    // Находим людей, у которых есть братья/сестры, но нет семьи родителей
+    final peopleWithoutParents = <String>[];
+    for (final individual in data.individuals) {
+      // Проверяем, есть ли у этого человека семья, где он ребенок
+      final hasParentFamily = data.families.any(
+        (f) => f.childrenIds.contains(individual.id),
+      );
+
+      // Если человек не является ребенком ни в одной семье
+      // и у него есть братья/сестры (определяем по фамилии)
+      if (!hasParentFamily) {
+        // Ищем людей с такой же фамилией (предполагаем, что это братья/сестры)
+        final surname = _extractSurname(individual.name);
+        if (surname.isNotEmpty) {
+          final siblings = data.individuals
+              .where(
+                (i) =>
+                    i.id != individual.id &&
+                    _extractSurname(i.name) == surname &&
+                    !data.families.any((f) => f.childrenIds.contains(i.id)),
+              )
+              .map((i) => i.id)
+              .toList();
+
+          if (siblings.isNotEmpty) {
+            // Создаем виртуальную родительскую семью
+            final parentFamily = Family(
+              id: DateTime.now().millisecondsSinceEpoch.toString(),
+              treeId: treeId ?? 'default',
+              husbandId: null,
+              wifeId: null,
+              childrenIds: [
+                individual.id,
+                ...siblings,
+              ].map((id) => idMap[id]).whereType<String>().toList(),
+              marriageDate: null,
+              divorceDate: null,
+              marriagePlace: null,
+              notes:
+                  'Виртуальная семья для братьев/сестер (создана автоматически)',
+            );
+
+            if (parentFamily.childrenIds.isNotEmpty) {
+              await familyRepository.addFamily(parentFamily);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  String _extractSurname(String fullName) {
+    // Извлекаем фамилию из формата "Имя /Фамилия/"
+    final match = RegExp(r'/([^/]+)/').firstMatch(fullName);
+    if (match != null && match.groupCount >= 1) {
+      return match.group(1)?.trim() ?? '';
+    }
+    return '';
   }
 
   DateTime? _parseDate(String date) {

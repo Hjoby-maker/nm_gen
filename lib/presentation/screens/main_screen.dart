@@ -7,6 +7,7 @@ import 'package:nm_gen/presentation/blocs/project/project_event.dart';
 import 'package:nm_gen/presentation/blocs/project/project_state.dart';
 import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
 import 'package:nm_gen/presentation/blocs/person/person_event.dart';
+import 'package:nm_gen/presentation/blocs/tree/tree_bloc.dart';
 import 'package:nm_gen/presentation/screens/all_families_screen.dart';
 import 'package:nm_gen/presentation/screens/export_gedcom_screen.dart';
 import 'package:nm_gen/presentation/screens/import_gedcom_screen.dart';
@@ -30,6 +31,7 @@ class _MainScreenState extends State<MainScreen> {
 
   late final ProjectBloc _projectBloc;
   late final PersonBloc _personBloc;
+  late final TreeBloc _treeBloc;
   late List<Widget> _screens;
 
   @override
@@ -37,8 +39,10 @@ class _MainScreenState extends State<MainScreen> {
     super.initState();
     _projectBloc = getIt<ProjectBloc>();
     _personBloc = getIt<PersonBloc>();
+    _treeBloc = getIt<TreeBloc>();
 
     _projectBloc.add(LoadProjectsEvent());
+    _personBloc.add(LoadPersonsEvent(treeId: _selectedTreeId));
 
     _buildScreens();
   }
@@ -57,6 +61,7 @@ class _MainScreenState extends State<MainScreen> {
       TreeScreenWrapper(
         key: ValueKey('tree_$_selectedTreeId'),
         treeId: _selectedTreeId,
+        treeBloc: _treeBloc,
       ),
       const ImportExportScreen(key: ValueKey('import_export')),
     ];
@@ -64,7 +69,6 @@ class _MainScreenState extends State<MainScreen> {
 
   void _onSetDefaultProject(String projectId) {
     _projectBloc.add(SetDefaultProjectEvent(projectId));
-    // Обновляем выбранный проект, если он был изменен
     if (_selectedTreeId != projectId) {
       final project = (_projectBloc.state as ProjectsLoaded).projects
           .firstWhere((p) => p.id == projectId);
@@ -73,7 +77,6 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _onRenameProject(String projectId, String newName) {
-    // Находим проект по ID и обновляем его
     final currentState = _projectBloc.state;
     if (currentState is ProjectsLoaded) {
       final project = currentState.projects.firstWhere(
@@ -84,7 +87,6 @@ class _MainScreenState extends State<MainScreen> {
         final updatedProject = project.copyWith(name: newName);
         _projectBloc.add(UpdateProjectEvent(updatedProject));
 
-        // Если переименовываем текущий проект, обновляем название в AppBar
         if (_selectedTreeId == projectId) {
           setState(() {
             _selectedTreeName = newName;
@@ -104,8 +106,8 @@ class _MainScreenState extends State<MainScreen> {
     _selectedTreeId = treeId;
     _selectedTreeName = treeName;
 
-    _buildScreens();
     _personBloc.add(LoadPersonsEvent(treeId: treeId));
+    _buildScreens();
 
     setState(() {});
     Navigator.pop(context);
@@ -121,8 +123,12 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider.value(
-      value: _projectBloc,
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider.value(value: _projectBloc),
+        BlocProvider.value(value: _personBloc),
+        BlocProvider.value(value: _treeBloc),
+      ],
       child: Scaffold(
         appBar: AppBar(
           title: Row(
@@ -308,7 +314,6 @@ class _MainScreenState extends State<MainScreen> {
                 _projectBloc.add(AddProjectEvent(project));
                 Navigator.pop(context);
 
-                // После создания выбираем новый проект
                 Future.delayed(const Duration(milliseconds: 300), () {
                   _projectBloc.stream
                       .firstWhere((state) => state is ProjectsLoaded)
@@ -336,15 +341,26 @@ class _MainScreenState extends State<MainScreen> {
 // ВСПОМОГАТЕЛЬНЫЕ КЛАССЫ И ОБЕРТКИ
 // =========================================================================
 
-/// Обертка для TreeScreen с передачей treeId
+/// Обертка для TreeScreen с передачей treeId и TreeBloc
 class TreeScreenWrapper extends StatelessWidget {
   final String treeId;
+  final TreeBloc treeBloc;
 
-  const TreeScreenWrapper({super.key, required this.treeId});
+  const TreeScreenWrapper({
+    super.key,
+    required this.treeId,
+    required this.treeBloc,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return TreeScreen(rootPersonId: 'default_root', treeId: treeId);
+    return BlocProvider.value(
+      value: treeBloc,
+      child: TreeScreen(
+        rootPersonId: '', // Пустая строка — дерево покажет всех людей проекта
+        treeId: treeId,
+      ),
+    );
   }
 }
 

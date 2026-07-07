@@ -9,13 +9,10 @@ import 'package:nm_gen/presentation/blocs/tree/tree_state.dart';
 import 'package:nm_gen/presentation/widgets/tree_visualizer.dart';
 
 class TreeScreen extends StatefulWidget {
-  const TreeScreen({
-    Key? key,
-    required this.rootPersonId,
-    this.treeId, // <-- ДОБАВЛЯЕМ
-  }) : super(key: key);
+  const TreeScreen({Key? key, required this.rootPersonId, this.treeId})
+    : super(key: key);
   final String rootPersonId;
-  final String? treeId; // <-- ДОБАВЛЯЕМ
+  final String? treeId;
 
   @override
   State<TreeScreen> createState() => _TreeScreenState();
@@ -34,10 +31,7 @@ class _TreeScreenState extends State<TreeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         context.read<TreeBloc>().add(
-          LoadTreeEvent(
-            widget.rootPersonId,
-            treeId: widget.treeId, // <-- ПЕРЕДАЕМ treeId
-          ),
+          LoadTreeEvent(widget.rootPersonId, treeId: widget.treeId),
         );
       }
     });
@@ -46,7 +40,6 @@ class _TreeScreenState extends State<TreeScreen> {
   @override
   void didUpdateWidget(covariant TreeScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // ✅ Если treeId изменился, перезагружаем дерево
     if (oldWidget.treeId != widget.treeId ||
         oldWidget.rootPersonId != widget.rootPersonId) {
       context.read<TreeBloc>().add(
@@ -59,6 +52,47 @@ class _TreeScreenState extends State<TreeScreen> {
   void dispose() {
     _transformationController.dispose();
     super.dispose();
+  }
+
+  /// Отладочный вывод структуры дерева
+  void _debugPrintTree(
+    TreeNode node, {
+    String prefix = '',
+    bool isLast = true,
+  }) {
+    final connector = isLast ? '└── ' : '├── ';
+    final childPrefix = isLast ? '    ' : '│   ';
+
+    print(
+      '$prefix$connector${node.person.displayName} (id: ${node.person.id})',
+    );
+    print(
+      '$childPrefix   children: ${node.children.length}, spouses: ${node.spouses.length}',
+    );
+
+    // Выводим детей
+    for (int i = 0; i < node.children.length; i++) {
+      final child = node.children[i];
+      final isChildLast = i == node.children.length - 1;
+      _debugPrintTree(child, prefix: prefix + childPrefix, isLast: isChildLast);
+    }
+
+    // Выводим супругов
+    for (int i = 0; i < node.spouses.length; i++) {
+      final spouse = node.spouses[i];
+      final isSpouseLast = i == node.spouses.length - 1;
+      print('$prefix$childPrefix   ─── Супруг: ${spouse.person.displayName}');
+      // Рекурсивно показываем детей супруга
+      for (int j = 0; j < spouse.children.length; j++) {
+        final child = spouse.children[j];
+        final isChildLast = j == spouse.children.length - 1;
+        _debugPrintTree(
+          child,
+          prefix: prefix + childPrefix + '    ',
+          isLast: isChildLast,
+        );
+      }
+    }
   }
 
   @override
@@ -103,6 +137,37 @@ class _TreeScreenState extends State<TreeScreen> {
                 backgroundColor: Colors.red,
               ),
             );
+          }
+          if (state is TreeLoaded) {
+            // 🔍 Отладочный вывод структуры дерева
+            print('═══════════════════════════════════════════════════');
+            print('🌳 СТРУКТУРА ДЕРЕВА');
+            print('═══════════════════════════════════════════════════');
+            _debugPrintTree(state.rootNode);
+            print('═══════════════════════════════════════════════════');
+            print('📊 СТАТИСТИКА:');
+            print('  - Корень: ${state.rootNode.person.displayName}');
+            print('  - Детей у корня: ${state.rootNode.children.length}');
+            print('  - Супругов у корня: ${state.rootNode.spouses.length}');
+
+            // Подсчет всех людей в дереве
+            int totalPeople = 0;
+            void countPeople(TreeNode node) {
+              totalPeople++;
+              for (final child in node.children) {
+                countPeople(child);
+              }
+              for (final spouse in node.spouses) {
+                totalPeople++;
+                for (final child in spouse.children) {
+                  countPeople(child);
+                }
+              }
+            }
+
+            countPeople(state.rootNode);
+            print('  - Всего людей в дереве: $totalPeople');
+            print('═══════════════════════════════════════════════════');
           }
         },
         builder: (BuildContext context, TreeState state) {
@@ -151,6 +216,38 @@ class _TreeScreenState extends State<TreeScreen> {
           if (state is TreeLoaded) {
             final detailLevel = _getDetailLevel(_currentScale);
 
+            final hasChildren =
+                state.rootNode.children.isNotEmpty ||
+                state.rootNode.spouses.isNotEmpty;
+
+            if (!hasChildren) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.account_tree,
+                      size: 64,
+                      color: Colors.grey,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Нет данных для отображения',
+                      style: TextStyle(color: Colors.grey.shade600),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Добавьте людей и семьи в проект',
+                      style: TextStyle(
+                        color: Colors.grey.shade500,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
             return Stack(
               children: [
                 InteractiveViewer(
@@ -165,7 +262,9 @@ class _TreeScreenState extends State<TreeScreen> {
                   child: TreeVisualizer(
                     rootNode: state.rootNode,
                     selectedPersonId: state.selectedPersonId,
-                    centerPersonId: widget.rootPersonId,
+                    centerPersonId: widget.rootPersonId.isNotEmpty
+                        ? widget.rootPersonId
+                        : null,
                     onPersonTap: (personId) {
                       context.read<TreeBloc>().add(
                         SelectPersonEvent(personId, treeId: widget.treeId),
@@ -175,7 +274,6 @@ class _TreeScreenState extends State<TreeScreen> {
                     detailLevel: detailLevel,
                   ),
                 ),
-                // Индикатор масштаба
                 Positioned(
                   bottom: 16,
                   right: 16,
@@ -198,7 +296,6 @@ class _TreeScreenState extends State<TreeScreen> {
                     ),
                   ),
                 ),
-                // Легенда
                 Positioned(
                   bottom: 70,
                   right: 16,
@@ -295,13 +392,9 @@ class _TreeScreenState extends State<TreeScreen> {
   }
 
   DetailLevel _getDetailLevel(double scale) {
-    if (scale >= 1.5) {
-      return DetailLevel.full;
-    } else if (scale >= 0.8) {
-      return DetailLevel.medium;
-    } else {
-      return DetailLevel.minimal;
-    }
+    if (scale >= 1.5) return DetailLevel.full;
+    if (scale >= 0.8) return DetailLevel.medium;
+    return DetailLevel.minimal;
   }
 
   // =========================================================================
@@ -334,7 +427,17 @@ class _TreeScreenState extends State<TreeScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  // Заголовок
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   Row(
                     children: <Widget>[
                       CircleAvatar(
@@ -383,7 +486,6 @@ class _TreeScreenState extends State<TreeScreen> {
                   const SizedBox(height: 16),
                   const Divider(),
                   const SizedBox(height: 8),
-                  // Информация
                   Expanded(
                     child: SingleChildScrollView(
                       controller: scrollController,
@@ -413,7 +515,6 @@ class _TreeScreenState extends State<TreeScreen> {
                       ),
                     ),
                   ),
-                  // Кнопки
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: <Widget>[
@@ -425,7 +526,6 @@ class _TreeScreenState extends State<TreeScreen> {
                       ElevatedButton.icon(
                         onPressed: () {
                           Navigator.pop(context);
-                          // TODO: Перейти на экран редактирования
                         },
                         icon: const Icon(Icons.edit),
                         label: const Text('Редактировать'),

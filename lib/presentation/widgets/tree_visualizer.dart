@@ -34,26 +34,21 @@ class TreeVisualizer extends StatelessWidget {
     );
   }
 
+  /// Рекурсивное построение дерева
   Widget _buildNode(BuildContext context, TreeNode node, bool isRoot) {
     final isSelected = selectedPersonId == node.person.id;
     final isCenter = centerPersonId == node.person.id;
 
-    // Если есть супруги, показываем всех родителей
+    // Если есть супруги, показываем группу родителей с их детьми
     if (node.spouses.isNotEmpty) {
-      return _buildNodeWithAllParents(
-        context,
-        node,
-        isRoot,
-        isSelected,
-        isCenter,
-      );
+      return _buildNodeWithSpouses(context, node, isRoot, isSelected, isCenter);
     }
 
-    // Если нет супругов, показываем только одного человека и его детей
+    // Если нет супругов, показываем одного человека и его детей (рекурсивно)
     return _buildSinglePersonNode(context, node, isRoot, isSelected, isCenter);
   }
 
-  /// Узел с одним человеком
+  /// Узел с одним человеком (рекурсивно показывает детей)
   Widget _buildSinglePersonNode(
     BuildContext context,
     TreeNode node,
@@ -84,14 +79,14 @@ class TreeVisualizer extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          _buildChildrenRow(context, node.children),
+          _buildChildrenRow(context, node.children, false),
         ],
       ],
     );
   }
 
-  /// Узел со всеми родителями (основной + супруги)
-  Widget _buildNodeWithAllParents(
+  /// Узел с супругами (рекурсивно показывает детей)
+  Widget _buildNodeWithSpouses(
     BuildContext context,
     TreeNode node,
     bool isRoot,
@@ -100,6 +95,9 @@ class TreeVisualizer extends StatelessWidget {
   ) {
     // Все родители: основной + супруги
     final List<TreeNode> allParents = [node, ...node.spouses];
+
+    // Собираем всех уникальных детей от всех родителей
+    final allChildren = _getAllUniqueChildren(allParents);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -113,93 +111,6 @@ class TreeVisualizer extends StatelessWidget {
             final isParentCenter = parent.person.id == centerPersonId;
             final isParentSelected = parent.person.id == selectedPersonId;
 
-            /*return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Карточка родителя
-                TreeNodeWidget(
-                  node: parent,
-                  isRoot: false,
-                  isSelected: isParentSelected,
-                  isCenter: isParentCenter,
-                  onTap: () => onPersonTap(parent.person.id),
-                  detailLevel: detailLevel,
-                ),
-                // Дети этого родителя
-                if (parent.children.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  // Показываем детей этого родителя под его карточкой
-                  Wrap(
-                    alignment: WrapAlignment.center,
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: parent.children.map((child) {
-                      final isChildCenter = child.person.id == centerPersonId;
-                      final isChildSelected =
-                          child.person.id == selectedPersonId;
-
-                      return Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isChildCenter
-                              ? Colors.green.shade50
-                              : Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(
-                            color: isChildCenter
-                                ? Colors.green
-                                : Colors.grey.shade300,
-                            width: isChildCenter ? 2 : 0.5,
-                          ),
-                        ),
-                        child: GestureDetector(
-                          onTap: () => onPersonTap(child.person.id),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              CircleAvatar(
-                                radius: 10,
-                                backgroundColor:
-                                    child.person.gender == Gender.male
-                                    ? Colors.blue.shade100
-                                    : Colors.pink.shade100,
-                                child: Icon(
-                                  child.person.gender == Gender.male
-                                      ? Icons.male
-                                      : Icons.female,
-                                  size: 12,
-                                  color: child.person.gender == Gender.male
-                                      ? Colors.blue
-                                      : Colors.pink,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                child.person.displayName,
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: isChildCenter
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
-                                  color: isChildCenter
-                                      ? Colors.green.shade700
-                                      : Colors.black87,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
-              ],
-            );*/
-
-            // ОТРИСОВКА СУПРУГА (КРУПНАЯ КАРТОЧКА)
             return TreeNodeWidget(
               node: parent,
               isRoot: false,
@@ -211,15 +122,15 @@ class TreeVisualizer extends StatelessWidget {
           }).toList(),
         ),
 
-        // Общие дети (если есть)
-        if (_getAllUniqueChildren(allParents).isNotEmpty) ...[
+        // Общие дети всех родителей (рекурсивно)
+        if (allChildren.isNotEmpty) ...[
           const SizedBox(height: 16),
           _buildVerticalLine(),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Text(
-              'Все дети (${_getAllUniqueChildren(allParents).length})',
+              'Все дети (${allChildren.length})',
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.green.shade700,
@@ -228,7 +139,7 @@ class TreeVisualizer extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          _buildChildrenRow(context, _getAllUniqueChildren(allParents)),
+          _buildChildrenRow(context, allChildren, false),
         ],
       ],
     );
@@ -245,41 +156,68 @@ class TreeVisualizer extends StatelessWidget {
     return childMap.values.toList();
   }
 
-  Widget _buildChildrenRow(BuildContext context, List<TreeNode> children) {
-    if (children.length <= 4) {
-      return Wrap(
-        alignment: WrapAlignment.center,
-        spacing: 16,
-        runSpacing: 16,
-        children: children.map((child) {
-          return _buildChildNode(context, child);
-        }).toList(),
-      );
-    } else {
-      return Column(
-        children: [
-          for (int i = 0; i < children.length; i += 4)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 16,
-                children: children
-                    .skip(i)
-                    .take(4)
-                    .map((child) => _buildChildNode(context, child))
-                    .toList(),
-              ),
-            ),
-        ],
-      );
-    }
+  /// Построение строки детей (рекурсивно)
+  Widget _buildChildrenRow(
+    BuildContext context,
+    List<TreeNode> children,
+    bool isNested,
+  ) {
+    if (children.isEmpty) return const SizedBox.shrink();
+
+    // Если детей много, показываем их в несколько строк
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Ряд детей
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: isNested ? 8 : 16,
+          runSpacing: isNested ? 8 : 16,
+          children: children.map((child) {
+            return _buildChildNode(context, child);
+          }).toList(),
+        ),
+        // 🔥 Рекурсивно показываем внуков для каждого ребенка
+        if (children.any((c) => c.children.isNotEmpty))
+          ...children.where((c) => c.children.isNotEmpty).map((child) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 8),
+                _buildVerticalLine(),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Text(
+                    'Дети ${child.person.displayName} (${child.children.length})',
+                    style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                // Рекурсивно показываем внуков
+                _buildChildrenRow(context, child.children, true),
+              ],
+            );
+          }).toList(),
+      ],
+    );
   }
 
   Widget _buildChildNode(BuildContext context, TreeNode child) {
     final isSelected = selectedPersonId == child.person.id;
     final isCenter = centerPersonId == child.person.id;
 
+    // Если у ребенка есть супруги, показываем его в полном размере
+    if (child.spouses.isNotEmpty) {
+      return _buildNodeWithSpouses(context, child, false, isSelected, isCenter);
+    }
+
+    // Если у ребенка есть дети, показываем его в полном размере
+    if (child.children.isNotEmpty) {
+      return _buildNode(context, child, false);
+    }
+
+    // Иначе показываем компактный вид
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       child: TreeNodeWidget(
