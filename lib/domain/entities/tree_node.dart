@@ -8,6 +8,7 @@ class TreeNode extends Equatable {
   final List<TreeNode> spouses;
   final bool isRoot;
   final bool isCenter; // <-- Добавляем флаг для выделения центрального человека
+  final int generation;
 
   const TreeNode({
     required this.person,
@@ -15,6 +16,7 @@ class TreeNode extends Equatable {
     this.spouses = const [],
     this.isRoot = false,
     this.isCenter = false, // <-- По умолчанию false
+    this.generation = 0,
   });
 
   bool get isLeaf => children.isEmpty;
@@ -35,6 +37,7 @@ class TreeNode extends Equatable {
     List<TreeNode>? spouses,
     bool? isRoot,
     bool? isCenter,
+    int? generation,
   }) {
     return TreeNode(
       person: person ?? this.person,
@@ -42,9 +45,17 @@ class TreeNode extends Equatable {
       spouses: spouses ?? this.spouses,
       isRoot: isRoot ?? this.isRoot,
       isCenter: isCenter ?? this.isCenter,
+      generation: generation ?? this.generation,
     );
   }
 
   @override
-  List<Object?> get props => [person, children, spouses, isRoot, isCenter];
+  List<Object?> get props => [
+    person,
+    children,
+    spouses,
+    isRoot,
+    isCenter,
+    generation,
+  ];
 }

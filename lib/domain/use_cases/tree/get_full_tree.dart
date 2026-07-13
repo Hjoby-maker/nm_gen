@@ -17,7 +17,13 @@ class GetFullTreeUseCase {
     required this.familyRepository,
   });
 
-  /// Получить полное дерево со всеми людьми проекта
+  /// Получить полное дерево со всеми людьми проекта.
+  ///
+  /// В отличие от предыдущей версии, здесь строится НАСТОЯЩЕЕ дерево:
+  /// - каждый человек встречается в структуре ровно один раз;
+  /// - дети раскрываются рекурсивно на любую глубину (внуки, правнуки и т.д.);
+  /// - "корнями" леса становятся только люди без известных родителей,
+  ///   остальные попадают в дерево через своих родителей/супругов.
   Future<Either<Failure, TreeNode>> execute({
     required String treeId,
     String? selectedPersonId,
@@ -31,113 +37,150 @@ class GetFullTreeUseCase {
         return Left(NotFoundFailure('В проекте нет людей для отображения'));
       }
 
-      // 2. Создаем карты для быстрого доступа
+      // 2. Карта для быстрого доступа к человеку по id
       final personMap = {for (final p in allPersons) p.id: p};
 
-      // 3. Строим простую структуру: каждый человек - отдельный узел
-      final List<TreeNode> personNodes = [];
+      // 3. Индексы: в каких семьях человек - родитель / ребёнок.
+      //    Строим один раз за O(families), а не пере-фильтровываем
+      //    allFamilies для каждого человека (это было узким местом
+      //    и косвенно провоцировало плоскую структуру).
+      final Map<String, List<Family>> familiesAsParentMap = {};
+      final Map<String, List<Family>> familiesAsChildMap = {};
 
-      for (final person in allPersons) {
-        // Находим семьи, где человек - родитель
-        final familiesAsParent = allFamilies
-            .where((f) => f.husbandId == person.id || f.wifeId == person.id)
-            .toList();
-
-        // Находим семьи, где человек - ребенок
-        final familiesAsChild = allFamilies
-            .where((f) => f.childrenIds.contains(person.id))
-            .toList();
-
-        // Собираем детей
-        final List<TreeNode> children = [];
-        for (final family in familiesAsParent) {
-          for (final childId in family.childrenIds) {
-            final child = personMap[childId];
-            if (child != null) {
-              children.add(
-                TreeNode(
-                  person: child,
-                  children: const [],
-                  spouses: const [],
-                  isRoot: false,
-                  isCenter: child.id == selectedPersonId,
-                ),
-              );
-            }
-          }
+      for (final family in allFamilies) {
+        if (family.husbandId != null) {
+          familiesAsParentMap
+              .putIfAbsent(family.husbandId!, () => [])
+              .add(family);
         }
+        if (family.wifeId != null) {
+          familiesAsParentMap.putIfAbsent(family.wifeId!, () => []).add(family);
+        }
+        for (final childId in family.childrenIds) {
+          familiesAsChildMap.putIfAbsent(childId, () => []).add(family);
+        }
+      }
 
-        // Собираем супругов
+      // 4. Множество людей, уже включённых в дерево хоть где-то
+      //    (как родитель, супруг или ребёнок) - чтобы никого не задваивать.
+      final Set<String> renderedIds = {};
+
+      /// Рекурсивно строит узел человека вместе со всеми его супругами
+      /// и рекурсивно раскрытыми детьми от всех браков.
+      /// [visiting] - защита от зацикливания, если в данных случайно
+      /// образовалась циклическая ссылка (человек - сам себе предок).
+      TreeNode buildPersonNode(Person person, Set<String> visiting) {
+        if (visiting.contains(person.id)) {
+          // Обнаружен цикл в данных - обрываем рекурсию,
+          // чтобы не получить StackOverflow / бесконечный виджет-дерево.
+          return TreeNode(
+            person: person,
+            children: const [],
+            spouses: const [],
+            isRoot: false,
+            isCenter: person.id == selectedPersonId,
+          );
+        }
+        final nextVisiting = {...visiting, person.id};
+        renderedIds.add(person.id);
+
+        final parentFamilies = familiesAsParentMap[person.id] ?? const [];
+
+        // --- Супруги (без рекурсии вглубь их предков - они показываются
+        // рядом с человеком, а не как отдельная ветка) ---
         final List<TreeNode> spouses = [];
-        for (final family in familiesAsParent) {
+        final Set<String> spouseIds = {};
+        for (final family in parentFamilies) {
           final spouseId = family.husbandId == person.id
               ? family.wifeId
               : family.husbandId;
-          if (spouseId != null) {
-            final spouse = personMap[spouseId];
-            if (spouse != null) {
+          if (spouseId != null &&
+              spouseId != person.id &&
+              spouseIds.add(spouseId)) {
+            final spousePerson = personMap[spouseId];
+            if (spousePerson != null) {
+              renderedIds.add(spouseId);
               spouses.add(
                 TreeNode(
-                  person: spouse,
+                  person: spousePerson,
                   children: const [],
                   spouses: const [],
                   isRoot: false,
-                  isCenter: spouse.id == selectedPersonId,
+                  isCenter: spouseId == selectedPersonId,
                 ),
               );
             }
           }
         }
 
-        // Собираем родителей (как супругов для отображения)
-        for (final family in familiesAsChild) {
-          if (family.husbandId != null && family.husbandId != person.id) {
-            final parent = personMap[family.husbandId!];
-            if (parent != null &&
-                !spouses.any((s) => s.person.id == parent.id)) {
-              spouses.add(
-                TreeNode(
-                  person: parent,
-                  children: const [],
-                  spouses: const [],
-                  isRoot: false,
-                  isCenter: parent.id == selectedPersonId,
-                ),
-              );
-            }
-          }
-          if (family.wifeId != null && family.wifeId != person.id) {
-            final parent = personMap[family.wifeId!];
-            if (parent != null &&
-                !spouses.any((s) => s.person.id == parent.id)) {
-              spouses.add(
-                TreeNode(
-                  person: parent,
-                  children: const [],
-                  spouses: const [],
-                  isRoot: false,
-                  isCenter: parent.id == selectedPersonId,
-                ),
-              );
+        // --- Дети от ВСЕХ браков этого человека, рекурсивно ---
+        final List<TreeNode> children = [];
+        final Set<String> childIds = {};
+        for (final family in parentFamilies) {
+          for (final childId in family.childrenIds) {
+            if (childIds.add(childId)) {
+              final childPerson = personMap[childId];
+              if (childPerson != null) {
+                children.add(buildPersonNode(childPerson, nextVisiting));
+              }
             }
           }
         }
 
-        final isSelected = person.id == selectedPersonId;
-        final isRoot = familiesAsParent.isEmpty && familiesAsChild.isEmpty;
+        return TreeNode(
+          person: person,
+          children: children,
+          spouses: spouses,
+          isRoot: false,
+          isCenter: person.id == selectedPersonId,
+        );
+      }
 
-        personNodes.add(
+      // 5. "Корни" леса - люди, у которых нет известных родителей.
+      final rootPersons = allPersons
+          .where((p) => (familiesAsChildMap[p.id] ?? const []).isEmpty)
+          .toList();
+
+      final List<TreeNode> rootNodes = [];
+      for (final person in rootPersons) {
+        if (renderedIds.contains(person.id)) {
+          // Уже отрисован как супруг другого корня - не дублируем карточку.
+          continue;
+        }
+        final node = buildPersonNode(person, <String>{});
+        rootNodes.add(
           TreeNode(
-            person: person,
-            children: children,
-            spouses: spouses,
-            isRoot: isRoot,
-            isCenter: isSelected,
+            person: node.person,
+            children: node.children,
+            spouses: node.spouses,
+            isRoot: true,
+            isCenter: node.isCenter,
           ),
         );
       }
 
-      // 4. Создаем виртуальный корень "Все люди"
+      // 6. Подстраховка: если из-за неполных данных о семье кто-то
+      //    так и не попал в дерево (например, семья ссылается на
+      //    несуществующего родителя) - показываем его отдельным корнем,
+      //    а не теряем молча.
+      for (final person in allPersons) {
+        if (!renderedIds.contains(person.id)) {
+          final node = buildPersonNode(person, <String>{});
+          rootNodes.add(
+            TreeNode(
+              person: node.person,
+              children: node.children,
+              spouses: node.spouses,
+              isRoot: true,
+              isCenter: node.isCenter,
+            ),
+          );
+        }
+      }
+
+      // 7. Виртуальный корень "Все люди" - контейнер для леса генеалогических
+      //    линий. Сам по себе он не является реальным человеком и не должен
+      //    отображаться как карточка (см. правку в TreeVisualizer).
       final virtualRoot = TreeNode(
         person: Person(
           id: 'virtual_root',
@@ -148,7 +191,7 @@ class GetFullTreeUseCase {
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
         ),
-        children: personNodes,
+        children: rootNodes,
         spouses: const [],
         isRoot: true,
         isCenter: false,

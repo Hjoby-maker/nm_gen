@@ -24,12 +24,36 @@ class TreeVisualizer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // rootNode может быть служебным "виртуальным корнем"
+    final Widget content;
+    if (rootNode.person.id == 'virtual_root') {
+      if (rootNode.children.length == 1) {
+        content = _buildNode(context, rootNode.children.first, true);
+      } else {
+        // Используем SingleChildScrollView для горизонтальной прокрутки корневых узлов
+        content = SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: rootNode.children
+                .map(
+                  (node) => Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: _buildNode(context, node, true),
+                  ),
+                )
+                .toList(),
+          ),
+        );
+      }
+    } else {
+      content = _buildNode(context, rootNode, true);
+    }
+
     return SingleChildScrollView(
       child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32.0),
-          child: _buildNode(context, rootNode, true),
-        ),
+        child: Padding(padding: const EdgeInsets.all(32.0), child: content),
       ),
     );
   }
@@ -39,16 +63,14 @@ class TreeVisualizer extends StatelessWidget {
     final isSelected = selectedPersonId == node.person.id;
     final isCenter = centerPersonId == node.person.id;
 
-    // Если есть супруги, показываем группу родителей с их детьми
     if (node.spouses.isNotEmpty) {
       return _buildNodeWithSpouses(context, node, isRoot, isSelected, isCenter);
     }
 
-    // Если нет супругов, показываем одного человека и его детей (рекурсивно)
     return _buildSinglePersonNode(context, node, isRoot, isSelected, isCenter);
   }
 
-  /// Узел с одним человеком (рекурсивно показывает детей)
+  /// Узел с одним человеком
   Widget _buildSinglePersonNode(
     BuildContext context,
     TreeNode node,
@@ -85,7 +107,7 @@ class TreeVisualizer extends StatelessWidget {
     );
   }
 
-  /// Узел с супругами (рекурсивно показывает детей)
+  /// Узел с супругами
   Widget _buildNodeWithSpouses(
     BuildContext context,
     TreeNode node,
@@ -93,36 +115,37 @@ class TreeVisualizer extends StatelessWidget {
     bool isSelected,
     bool isCenter,
   ) {
-    // Все родители: основной + супруги
     final List<TreeNode> allParents = [node, ...node.spouses];
-
-    // Собираем всех уникальных детей от всех родителей
     final allChildren = _getAllUniqueChildren(allParents);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         // Горизонтальный ряд родителей
-        Wrap(
-          alignment: WrapAlignment.center,
-          spacing: 24,
-          runSpacing: 16,
-          children: allParents.map((parent) {
-            final isParentCenter = parent.person.id == centerPersonId;
-            final isParentSelected = parent.person.id == selectedPersonId;
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: allParents.map((parent) {
+              final isParentCenter = parent.person.id == centerPersonId;
+              final isParentSelected = parent.person.id == selectedPersonId;
 
-            return TreeNodeWidget(
-              node: parent,
-              isRoot: false,
-              isSelected: isParentSelected,
-              isCenter: isParentCenter,
-              onTap: () => onPersonTap(parent.person.id),
-              detailLevel: detailLevel,
-            );
-          }).toList(),
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: TreeNodeWidget(
+                  node: parent,
+                  isRoot: false,
+                  isSelected: isParentSelected,
+                  isCenter: isParentCenter,
+                  onTap: () => onPersonTap(parent.person.id),
+                  detailLevel: detailLevel,
+                ),
+              );
+            }).toList(),
+          ),
         ),
 
-        // Общие дети всех родителей (рекурсивно)
+        // Общие дети
         if (allChildren.isNotEmpty) ...[
           const SizedBox(height: 16),
           _buildVerticalLine(),
@@ -145,7 +168,7 @@ class TreeVisualizer extends StatelessWidget {
     );
   }
 
-  /// Получить всех уникальных детей из списка родителей
+  /// Получить всех уникальных детей
   List<TreeNode> _getAllUniqueChildren(List<TreeNode> parents) {
     final childMap = <String, TreeNode>{};
     for (final parent in parents) {
@@ -156,7 +179,7 @@ class TreeVisualizer extends StatelessWidget {
     return childMap.values.toList();
   }
 
-  /// Построение строки детей (рекурсивно)
+  /// Построение строки детей (без переноса на новые строки внутри поколения)
   Widget _buildChildrenRow(
     BuildContext context,
     List<TreeNode> children,
@@ -164,20 +187,23 @@ class TreeVisualizer extends StatelessWidget {
   ) {
     if (children.isEmpty) return const SizedBox.shrink();
 
-    // Если детей много, показываем их в несколько строк
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Ряд детей
-        Wrap(
-          alignment: WrapAlignment.center,
-          spacing: isNested ? 8 : 16,
-          runSpacing: isNested ? 8 : 16,
-          children: children.map((child) {
-            return _buildChildNode(context, child);
-          }).toList(),
+        // ✅ Горизонтальная прокрутка для детей одного поколения
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: children.map((child) {
+              return Padding(
+                padding: EdgeInsets.symmetric(horizontal: isNested ? 4 : 8),
+                child: _buildChildNode(context, child),
+              );
+            }).toList(),
+          ),
         ),
-        // 🔥 Рекурсивно показываем внуков для каждого ребенка
+        // ✅ Рекурсивно показываем внуков (без горизонтальных ограничений)
         if (children.any((c) => c.children.isNotEmpty))
           ...children.where((c) => c.children.isNotEmpty).map((child) {
             return Column(
@@ -194,7 +220,7 @@ class TreeVisualizer extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                // Рекурсивно показываем внуков
+                // ✅ Рекурсивный вызов с горизонтальной прокруткой
                 _buildChildrenRow(context, child.children, true),
               ],
             );
@@ -203,21 +229,19 @@ class TreeVisualizer extends StatelessWidget {
     );
   }
 
+  /// Построение узла ребенка
   Widget _buildChildNode(BuildContext context, TreeNode child) {
     final isSelected = selectedPersonId == child.person.id;
     final isCenter = centerPersonId == child.person.id;
 
-    // Если у ребенка есть супруги, показываем его в полном размере
     if (child.spouses.isNotEmpty) {
       return _buildNodeWithSpouses(context, child, false, isSelected, isCenter);
     }
 
-    // Если у ребенка есть дети, показываем его в полном размере
     if (child.children.isNotEmpty) {
       return _buildNode(context, child, false);
     }
 
-    // Иначе показываем компактный вид
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       child: TreeNodeWidget(
