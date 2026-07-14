@@ -1,3 +1,4 @@
+// lib/domain/entities/person.dart
 import 'package:equatable/equatable.dart';
 import 'package:nm_gen/core/enums/gender.dart';
 
@@ -18,8 +19,8 @@ class Person extends Equatable {
     this.biography,
     this.photoUrls = const [],
     this.photoPath,
-    required this.createdAt, // Теперь обязательный параметр
-    required this.updatedAt, // Теперь обязательный параметр
+    required this.createdAt,
+    required this.updatedAt,
   });
 
   /// Создать нового человека с автоматической генерацией ID
@@ -58,6 +59,7 @@ class Person extends Equatable {
       updatedAt: now,
     );
   }
+
   final String id;
   final String treeId;
   final String firstName;
@@ -119,6 +121,33 @@ class Person extends Equatable {
     }
     return '$years лет';
   }
+
+  /// ============================================
+  /// МЕТОДЫ ДЛЯ РАБОТЫ С МЕДИА-ФАЙЛАМИ
+  /// ============================================
+
+  /// Получить имя директории для файлов этого человека
+  String get mediaDirectoryName => 'person_$id';
+
+  /// Проверить, есть ли у человека основной портрет
+  bool get hasPrimaryPortrait => photoPath != null && photoPath!.isNotEmpty;
+
+  /// Получить URL основного портрета (если есть)
+  String? get primaryPortraitUrl => photoPath;
+
+  /// Проверить, можно ли добавить медиа к этому человеку
+  bool get canAddMedia => id.isNotEmpty;
+
+  /// Получить все типы медиа, которые есть у человека
+  Set<String> get mediaTypes {
+    final types = <String>{};
+    if (photoUrls.isNotEmpty) types.add('photos');
+    if (photoPath != null) types.add('portrait');
+    return types;
+  }
+
+  /// Количество медиа-файлов (приблизительное)
+  int get mediaCount => photoUrls.length + (photoPath != null ? 1 : 0);
 
   Person copyWith({
     String? id,

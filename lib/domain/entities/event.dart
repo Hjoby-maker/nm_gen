@@ -1,3 +1,4 @@
+// lib/domain/entities/event.dart
 import 'package:equatable/equatable.dart';
 
 /// Тип события
@@ -93,6 +94,77 @@ class Event extends Equatable {
       createdAt: now,
       updatedAt: now,
     );
+  }
+
+  /// ============================================
+  /// МЕТОДЫ ДЛЯ РАБОТЫ С МЕДИА-ФАЙЛАМИ
+  /// ============================================
+
+  /// Получить имя директории для файлов этого события
+  String get mediaDirectoryName => 'event_$id';
+
+  /// Проверить, есть ли у события какие-либо вложения
+  bool get hasAttachments =>
+      false; // Будет обновляться при загрузке из репозитория
+
+  /// Проверить, можно ли добавить медиа к этому событию
+  bool get canAddMedia => id.isNotEmpty;
+
+  /// Получить отображаемое название события для UI
+  String get displayTitle {
+    final dateStr = startDate != null ? ' (${_formatDate(startDate!)})' : '';
+    return '$type: $title$dateStr';
+  }
+
+  /// Форматирование даты для отображения
+  String _formatDate(DateTime date) {
+    final months = [
+      'янв',
+      'фев',
+      'мар',
+      'апр',
+      'май',
+      'июн',
+      'июл',
+      'авг',
+      'сен',
+      'окт',
+      'ноя',
+      'дек',
+    ];
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
+  }
+
+  /// Краткое описание события для списка
+  String get shortDescription {
+    final parts = <String>[];
+    if (place != null && place!.isNotEmpty) parts.add(place!);
+    if (startDate != null) parts.add(_formatDate(startDate!));
+    return parts.isNotEmpty
+        ? parts.join(', ')
+        : 'Нет дополнительной информации';
+  }
+
+  /// Получить цвет для типа события (для UI)
+  String get colorHex {
+    switch (type) {
+      case EventType.birth:
+        return '#4CAF50'; // Зеленый
+      case EventType.death:
+        return '#F44336'; // Красный
+      case EventType.baptism:
+        return '#2196F3'; // Синий
+      case EventType.burial:
+        return '#9E9E9E'; // Серый
+      case EventType.education:
+        return '#FF9800'; // Оранжевый
+      case EventType.occupation:
+        return '#795548'; // Коричневый
+      case EventType.relocation:
+        return '#9C27B0'; // Фиолетовый
+      case EventType.other:
+        return '#607D8B'; // Сине-серый
+    }
   }
 
   Event copyWith({

@@ -48,6 +48,8 @@ dependencies:
   # Image & File handling
   image_picker: ^1.1.2
   photo_view: ^0.15.0
+  flutter_image_compress: ^2.1.0  # ← ДОБАВЛЕНО
+  video_thumbnail: ^0.5.3          # ← ДОБАВЛЕНО
   
   # GEDCOM parsing
   xml: ^7.0.1
