@@ -25,7 +25,7 @@ class DatabaseHelper {
 
     return openDatabase(
       path,
-      version: 6,
+      version: 7,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -145,6 +145,46 @@ class DatabaseHelper {
     await db.execute('''
       CREATE INDEX idx_events_type ON events (type)
     ''');
+
+    // Таблица медиа-вложений (фото/файлы, привязанные к Person или Event)
+    await _createMediaAttachmentsTable(db);
+  }
+
+  /// Создаёт таблицу media_attachments и её индексы.
+  /// Вынесено в отдельный метод, т.к. используется и в _onCreate
+  /// (новые установки), и в _onUpgrade (существующие базы без этой таблицы).
+  Future<void> _createMediaAttachmentsTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE media_attachments (
+        id TEXT PRIMARY KEY,
+        person_id TEXT,
+        event_id TEXT,
+        file_name TEXT NOT NULL,
+        local_path TEXT NOT NULL,
+        remote_url TEXT,
+        mime_type TEXT NOT NULL,
+        file_size INTEGER NOT NULL,
+        description TEXT NOT NULL DEFAULT '',
+        is_primary INTEGER NOT NULL DEFAULT 0,
+        thumbnail_path TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER,
+        FOREIGN KEY (person_id) REFERENCES persons (id) ON DELETE CASCADE,
+        FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE INDEX idx_media_person_id ON media_attachments (person_id)
+    ''');
+    await db.execute('''
+      CREATE INDEX idx_media_event_id ON media_attachments (event_id)
+    ''');
+    // Отдельный индекс под самый частый запрос из лога:
+    // "WHERE person_id = ? AND is_primary = 1"
+    await db.execute('''
+      CREATE INDEX idx_media_person_primary ON media_attachments (person_id, is_primary)
+    ''');
   }
 
   /// Обновление базы данных (миграции)
@@ -221,6 +261,24 @@ class DatabaseHelper {
         }
       } catch (e) {
         print('⚠️ Ошибка миграции events: $e');
+      }
+    }
+
+    // Миграция для версии 7 — создаём таблицу media_attachments.
+    // Без неё у всех, кто уже открывал приложение раньше (база создана
+    // на version < 7), таблицы физически нет, и любой запрос к ней падает
+    // с "no such table: media_attachments" - именно это было в логах.
+    if (oldVersion < 7) {
+      try {
+        final tables = await db.rawQuery(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='media_attachments'",
+        );
+
+        if (tables.isEmpty) {
+          await _createMediaAttachmentsTable(db);
+        }
+      } catch (e) {
+        print('⚠️ Ошибка миграции media_attachments: $e');
       }
     }
   }

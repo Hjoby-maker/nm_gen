@@ -1,6 +1,4 @@
 // lib/presentation/screens/person_detail_screen.dart
-// ОБНОВЛЕННАЯ ВЕРСИЯ - добавляем TabBar с вкладками
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nm_gen/core/enums/gender.dart';
@@ -23,7 +21,7 @@ import 'package:nm_gen/presentation/blocs/media/media_event.dart';
 
 class PersonDetailScreen extends StatefulWidget {
   const PersonDetailScreen({Key? key, required this.personId})
-    : super(key: key);
+      : super(key: key);
   final String personId;
 
   @override
@@ -102,9 +100,15 @@ class _PersonDetailScreenState extends State<PersonDetailScreen>
           backgroundColor: Theme.of(context).colorScheme.inversePrimary,
           bottom: TabBar(
             controller: _tabController,
-            tabs: const [
-              Tab(icon: Icon(Icons.info), text: 'Информация'),
-              Tab(icon: Icon(Icons.folder), text: 'Файлы'),
+            tabs: [
+              Tab(
+                icon: Icon(Icons.info),
+                text: 'Информация',
+              ),
+              Tab(
+                icon: Icon(Icons.folder),
+                text: 'Файлы',
+              ),
             ],
           ),
           actions: [
@@ -127,16 +131,21 @@ class _PersonDetailScreenState extends State<PersonDetailScreen>
         body: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : _person == null || _person!.id.isEmpty
-            ? _buildNotFoundView()
-            : TabBarView(
-                controller: _tabController,
-                children: [
-                  // Вкладка "Информация" - существующий контент
-                  _buildInfoTab(),
-                  // Вкладка "Файлы" - новая
-                  _buildMediaTab(),
-                ],
-              ),
+                ? _buildNotFoundView()
+                : TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildInfoTab(),
+                      _buildMediaTab(),
+                    ],
+                  ),
+       floatingActionButton: FloatingActionButton(
+  onPressed: _person != null && _person!.id.isNotEmpty
+      ? () => _showAddEventDialog(context)
+      : null,
+  tooltip: 'Добавить событие',
+  child: const Icon(Icons.add),
+),
       ),
     );
   }
@@ -166,12 +175,15 @@ class _PersonDetailScreenState extends State<PersonDetailScreen>
   Widget _buildMediaTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      child: MediaSection(personId: widget.personId, showPrimaryBadge: true),
+      child: MediaSection(
+        personId: widget.personId,
+        showPrimaryBadge: true,
+      ),
     );
   }
 
   // =========================================================================
-  // ОСТАЛЬНЫЕ МЕТОДЫ (без изменений, но я показываю для полноты)
+  // ОСТАЛЬНЫЕ МЕТОДЫ
   // =========================================================================
 
   Widget _buildNotFoundView() {
@@ -217,30 +229,37 @@ class _PersonDetailScreenState extends State<PersonDetailScreen>
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                     ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 8),
-                  Row(
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 4,
                     children: [
-                      Icon(
-                        person.gender == Gender.male
-                            ? Icons.male
-                            : person.gender == Gender.female
-                            ? Icons.female
-                            : Icons.person,
-                        size: 16,
-                        color: person.gender == Gender.male
-                            ? Colors.blue
-                            : Colors.pink,
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            person.gender == Gender.male
+                                ? Icons.male
+                                : person.gender == Gender.female
+                                    ? Icons.female
+                                    : Icons.person,
+                            size: 16,
+                            color: person.gender == Gender.male
+                                ? Colors.blue
+                                : Colors.pink,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            person.gender.displayName,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        person.gender.displayName,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
                       Text(
                         age,
                         style: TextStyle(
@@ -248,21 +267,19 @@ class _PersonDetailScreenState extends State<PersonDetailScreen>
                           color: Colors.grey.shade600,
                         ),
                       ),
+                      if (person.occupation != null)
+                        Text(
+                          person.occupation!,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
                     ],
                   ),
-                  if (person.occupation != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      person.occupation!,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
                   if (person.birthDate != null) ...[
                     const SizedBox(height: 8),
-                    Row(
+                    Wrap(
                       children: [
                         const Icon(Icons.cake, size: 16, color: Colors.grey),
                         const SizedBox(width: 8),
@@ -278,7 +295,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen>
                   ],
                   if (person.deathDate != null) ...[
                     const SizedBox(height: 4),
-                    Row(
+                    Wrap(
                       children: [
                         const Icon(Icons.warning, size: 16, color: Colors.grey),
                         const SizedBox(width: 8),
@@ -294,7 +311,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen>
                   ],
                   if (person.birthPlace != null) ...[
                     const SizedBox(height: 4),
-                    Row(
+                    Wrap(
                       children: [
                         const Icon(
                           Icons.location_on,

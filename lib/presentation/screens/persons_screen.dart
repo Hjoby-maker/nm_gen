@@ -5,7 +5,7 @@ import 'package:nm_gen/core/enums/gender.dart';
 import 'package:nm_gen/di/injector.dart';
 import 'package:nm_gen/domain/entities/person.dart';
 import 'package:nm_gen/presentation/blocs/family/family_bloc.dart';
-import 'package:nm_gen/presentation/blocs/media/media_bloc.dart'; // ← ДОБАВЛЯЕМ
+import 'package:nm_gen/presentation/blocs/media/media_bloc.dart';
 import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
 import 'package:nm_gen/presentation/blocs/person/person_event.dart';
 import 'package:nm_gen/presentation/blocs/person/person_state.dart';
@@ -15,6 +15,9 @@ import 'package:nm_gen/presentation/screens/person_detail_screen.dart';
 import 'package:nm_gen/presentation/screens/tree_screen.dart';
 import 'package:nm_gen/presentation/widgets/person_avatar.dart';
 import 'package:nm_gen/presentation/widgets/person_form_dialog.dart';
+
+// lib/presentation/screens/persons_screen.dart
+// ... все импорты остаются без изменений
 
 class PersonsScreen extends StatefulWidget {
   final String treeId;
@@ -27,14 +30,14 @@ class PersonsScreen extends StatefulWidget {
 
 class _PersonsScreenState extends State<PersonsScreen> {
   late final PersonBloc _personBloc;
-  late final MediaBloc _mediaBloc; // ← ДОБАВЛЯЕМ
+  late final MediaBloc _mediaBloc;
   bool _isInitialized = false;
 
   @override
   void initState() {
     super.initState();
     _personBloc = getIt<PersonBloc>();
-    _mediaBloc = getIt<MediaBloc>(); // ← ДОБАВЛЯЕМ
+    _mediaBloc = getIt<MediaBloc>();
 
     debugPrint('🔍 PersonsScreen: initState вызван');
     debugPrint('🔍 PersonsScreen: treeId = ${widget.treeId}');
@@ -71,10 +74,9 @@ class _PersonsScreenState extends State<PersonsScreen> {
     debugPrint('🔍 PersonsScreen: build вызван, treeId = ${widget.treeId}');
 
     return MultiBlocProvider(
-      // ← МЕНЯЕМ на MultiBlocProvider
       providers: [
         BlocProvider.value(value: _personBloc),
-        BlocProvider.value(value: _mediaBloc), // ← ДОБАВЛЯЕМ
+        BlocProvider.value(value: _mediaBloc),
       ],
       child: Scaffold(
         appBar: AppBar(
@@ -341,9 +343,11 @@ class _PersonsScreenState extends State<PersonsScreen> {
             return const SizedBox.shrink();
           },
         ),
+        // Упрощенный FloatingActionButton - без Hero
         floatingActionButton: FloatingActionButton(
           onPressed: () => _showAddPersonDialog(context),
           child: const Icon(Icons.person_add),
+          tooltip: 'Добавить человека',
         ),
       ),
     );
