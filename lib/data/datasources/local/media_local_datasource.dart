@@ -2,6 +2,7 @@
 import 'dart:typed_data';
 import 'package:sqflite/sqflite.dart';
 import 'database/media_attachment_model.dart';
+import 'database/db_helper.dart';
 
 /// Локальный источник данных для медиа-файлов
 abstract class MediaLocalDataSource {
@@ -54,12 +55,19 @@ abstract class MediaLocalDataSource {
 
 /// Реализация локального датасорса
 class MediaLocalDataSourceImpl implements MediaLocalDataSource {
-  final Database db;
+  final DatabaseHelper _dbHelper; // ← Используем DatabaseHelper вместо Database
 
-  MediaLocalDataSourceImpl(this.db);
+  MediaLocalDataSourceImpl(this._dbHelper);
+
+  /// Получение экземпляра базы данных
+  Future<Database> _getDatabase() async {
+    return await _dbHelper
+        .database; // ← Предполагается, что у DatabaseHelper есть геттер database
+  }
 
   @override
   Future<List<MediaAttachmentModel>> getByPersonId(String personId) async {
+    final db = await _getDatabase();
     final result = await db.query(
       'media_attachments',
       where: 'person_id = ?',
@@ -71,6 +79,7 @@ class MediaLocalDataSourceImpl implements MediaLocalDataSource {
 
   @override
   Future<List<MediaAttachmentModel>> getByEventId(String eventId) async {
+    final db = await _getDatabase();
     final result = await db.query(
       'media_attachments',
       where: 'event_id = ?',
@@ -82,6 +91,7 @@ class MediaLocalDataSourceImpl implements MediaLocalDataSource {
 
   @override
   Future<MediaAttachmentModel?> getById(String id) async {
+    final db = await _getDatabase();
     final result = await db.query(
       'media_attachments',
       where: 'id = ?',
@@ -93,6 +103,7 @@ class MediaLocalDataSourceImpl implements MediaLocalDataSource {
 
   @override
   Future<MediaAttachmentModel?> getPrimaryPortrait(String personId) async {
+    final db = await _getDatabase();
     final result = await db.query(
       'media_attachments',
       where: 'person_id = ? AND is_primary = 1',
@@ -105,6 +116,7 @@ class MediaLocalDataSourceImpl implements MediaLocalDataSource {
 
   @override
   Future<void> save(MediaAttachmentModel media) async {
+    final db = await _getDatabase();
     await db.insert(
       'media_attachments',
       media.toMap(),
@@ -114,6 +126,7 @@ class MediaLocalDataSourceImpl implements MediaLocalDataSource {
 
   @override
   Future<void> update(MediaAttachmentModel media) async {
+    final db = await _getDatabase();
     await db.update(
       'media_attachments',
       media.toMap(),
@@ -124,11 +137,13 @@ class MediaLocalDataSourceImpl implements MediaLocalDataSource {
 
   @override
   Future<void> deleteById(String id) async {
+    final db = await _getDatabase();
     await db.delete('media_attachments', where: 'id = ?', whereArgs: [id]);
   }
 
   @override
   Future<void> deleteByPersonId(String personId) async {
+    final db = await _getDatabase();
     await db.delete(
       'media_attachments',
       where: 'person_id = ?',
@@ -138,6 +153,7 @@ class MediaLocalDataSourceImpl implements MediaLocalDataSource {
 
   @override
   Future<void> deleteByEventId(String eventId) async {
+    final db = await _getDatabase();
     await db.delete(
       'media_attachments',
       where: 'event_id = ?',
@@ -147,6 +163,7 @@ class MediaLocalDataSourceImpl implements MediaLocalDataSource {
 
   @override
   Future<void> clearPrimaryPortrait(String personId) async {
+    final db = await _getDatabase();
     await db.update(
       'media_attachments',
       {'is_primary': 0},
@@ -160,6 +177,7 @@ class MediaLocalDataSourceImpl implements MediaLocalDataSource {
     String? personId,
     String? eventId,
   }) async {
+    final db = await _getDatabase();
     String where = '';
     List<Object?> whereArgs = [];
 
@@ -196,11 +214,31 @@ class MediaLocalDataSourceImpl implements MediaLocalDataSource {
       };
     }
 
-    return result.first;
+    // Добавляем вычисляемое поле other_count
+    final data = result.first;
+    final totalCount = data['total_count'] as int? ?? 0;
+    final imageCount = data['image_count'] as int? ?? 0;
+    final videoCount = data['video_count'] as int? ?? 0;
+    final audioCount = data['audio_count'] as int? ?? 0;
+    final documentCount = data['document_count'] as int? ?? 0;
+    final otherCount =
+        totalCount - (imageCount + videoCount + audioCount + documentCount);
+
+    return {
+      'total_count': totalCount,
+      'total_size': data['total_size'] as int? ?? 0,
+      'image_count': imageCount,
+      'video_count': videoCount,
+      'audio_count': audioCount,
+      'document_count': documentCount,
+      'other_count': otherCount,
+      'primary_count': data['primary_count'] as int? ?? 0,
+    };
   }
 
   @override
   Future<List<String>> getAllFilePaths() async {
+    final db = await _getDatabase();
     final result = await db.query('media_attachments');
     return result
         .map((map) => map['local_path'] as String)
@@ -214,6 +252,7 @@ class MediaLocalDataSourceImpl implements MediaLocalDataSource {
     String? newPersonId,
     String? newEventId,
   }) async {
+    final db = await _getDatabase();
     final updates = <String, dynamic>{};
     if (newPersonId != null) updates['person_id'] = newPersonId;
     if (newEventId != null) updates['event_id'] = newEventId;

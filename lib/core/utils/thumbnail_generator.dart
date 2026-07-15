@@ -2,7 +2,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
-import 'package:video_thumbnail/video_thumbnail.dart';
+import 'package:video_compress/video_compress.dart';
 
 /// Сервис для генерации миниатюр
 class ThumbnailGenerator {
@@ -37,14 +37,37 @@ class ThumbnailGenerator {
     int maxHeight = 512,
   }) async {
     try {
-      final uint8list = await VideoThumbnail.thumbnailData(
-        video: videoPath,
-        imageFormat: ImageFormat.JPEG,
-        maxWidth: maxWidth,
-        maxHeight: maxHeight,
+      // Используем video_compress для получения миниатюры
+      final thumbnailFile = await VideoCompress.getFileThumbnail(
+        videoPath,
         quality: quality,
+        // Задаем максимальные размеры
+        // video_compress использует другие параметры
       );
-      return uint8list;
+
+      if (thumbnailFile == null) {
+        print('Не удалось создать миниатюру видео');
+        return null;
+      }
+
+      // Читаем файл миниатюры в Uint8List
+      final thumbnailData = await thumbnailFile.readAsBytes();
+
+      // Опционально: дополнительно сжимаем через flutter_image_compress
+      final compressedData = await FlutterImageCompress.compressWithList(
+        thumbnailData,
+        minWidth: maxWidth,
+        minHeight: maxHeight,
+        quality: quality,
+        format: CompressFormat.jpeg,
+      );
+
+      // Удаляем временный файл миниатюры
+      try {
+        await thumbnailFile.delete();
+      } catch (_) {}
+
+      return compressedData ?? thumbnailData;
     } catch (e) {
       print('Ошибка генерации миниатюры видео: $e');
       return null;

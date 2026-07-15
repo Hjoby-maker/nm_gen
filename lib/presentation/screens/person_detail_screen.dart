@@ -1,3 +1,6 @@
+// lib/presentation/screens/person_detail_screen.dart
+// ОБНОВЛЕННАЯ ВЕРСИЯ - добавляем TabBar с вкладками
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nm_gen/core/enums/gender.dart';
@@ -6,14 +9,17 @@ import 'package:nm_gen/domain/entities/person.dart';
 import 'package:nm_gen/presentation/blocs/event/event_bloc.dart';
 import 'package:nm_gen/presentation/blocs/event/event_event.dart';
 import 'package:nm_gen/presentation/blocs/event/event_state.dart';
+import 'package:nm_gen/presentation/blocs/media/media_bloc.dart';
 import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
 import 'package:nm_gen/presentation/blocs/person/person_event.dart';
 import 'package:nm_gen/presentation/blocs/person/person_state.dart';
 import 'package:nm_gen/presentation/widgets/event_form_dialog.dart';
 import 'package:nm_gen/presentation/widgets/event_tile.dart';
+import 'package:nm_gen/presentation/widgets/media_section.dart';
 import 'package:nm_gen/presentation/widgets/person_avatar.dart';
 import 'package:nm_gen/presentation/widgets/person_form_dialog.dart';
 import 'package:nm_gen/di/injector.dart';
+import 'package:nm_gen/presentation/blocs/media/media_event.dart';
 
 class PersonDetailScreen extends StatefulWidget {
   const PersonDetailScreen({Key? key, required this.personId})
@@ -24,23 +30,34 @@ class PersonDetailScreen extends StatefulWidget {
   State<PersonDetailScreen> createState() => _PersonDetailScreenState();
 }
 
-class _PersonDetailScreenState extends State<PersonDetailScreen> {
+class _PersonDetailScreenState extends State<PersonDetailScreen>
+    with SingleTickerProviderStateMixin {
   Person? _person;
   bool _isLoading = true;
   String? _treeId;
+  late TabController _tabController;
 
   late final PersonBloc _personBloc;
   late final EventBloc _eventBloc;
+  late final MediaBloc _mediaBloc;
 
   @override
   void initState() {
     super.initState();
     _personBloc = getIt<PersonBloc>();
     _eventBloc = getIt<EventBloc>();
+    _mediaBloc = getIt<MediaBloc>();
+    _tabController = TabController(length: 2, vsync: this);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
     });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -64,6 +81,8 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
       });
 
       _eventBloc.add(LoadPersonEventsEvent(widget.personId, treeId: _treeId));
+      _mediaBloc.add(LoadMediaForPerson(personId: widget.personId));
+      _mediaBloc.add(LoadPrimaryPortrait(widget.personId));
     } else {
       setState(() => _isLoading = false);
     }
@@ -75,11 +94,19 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
       providers: [
         BlocProvider.value(value: _personBloc),
         BlocProvider.value(value: _eventBloc),
+        BlocProvider.value(value: _mediaBloc),
       ],
       child: Scaffold(
         appBar: AppBar(
           title: Text(_person?.displayName ?? 'Загрузка...'),
           backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+          bottom: TabBar(
+            controller: _tabController,
+            tabs: const [
+              Tab(icon: Icon(Icons.info), text: 'Информация'),
+              Tab(icon: Icon(Icons.folder), text: 'Файлы'),
+            ],
+          ),
           actions: [
             IconButton(
               icon: const Icon(Icons.edit),
@@ -88,7 +115,6 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
                   : null,
               tooltip: 'Редактировать',
             ),
-            // Кнопка добавления события в AppBar (всегда доступна)
             IconButton(
               icon: const Icon(Icons.add_circle_outline),
               onPressed: _person != null && _person!.id.isNotEmpty
@@ -102,10 +128,51 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
             ? const Center(child: CircularProgressIndicator())
             : _person == null || _person!.id.isEmpty
             ? _buildNotFoundView()
-            : _buildContent(),
+            : TabBarView(
+                controller: _tabController,
+                children: [
+                  // Вкладка "Информация" - существующий контент
+                  _buildInfoTab(),
+                  // Вкладка "Файлы" - новая
+                  _buildMediaTab(),
+                ],
+              ),
       ),
     );
   }
+
+  // =========================================================================
+  // ВКЛАДКА "ИНФОРМАЦИЯ"
+  // =========================================================================
+
+  Widget _buildInfoTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildHeader(),
+          const SizedBox(height: 24),
+          _buildEventsSection(),
+        ],
+      ),
+    );
+  }
+
+  // =========================================================================
+  // ВКЛАДКА "ФАЙЛЫ"
+  // =========================================================================
+
+  Widget _buildMediaTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: MediaSection(personId: widget.personId, showPrimaryBadge: true),
+    );
+  }
+
+  // =========================================================================
+  // ОСТАЛЬНЫЕ МЕТОДЫ (без изменений, но я показываю для полноты)
+  // =========================================================================
 
   Widget _buildNotFoundView() {
     return Center(
@@ -127,24 +194,6 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
       ),
     );
   }
-
-  Widget _buildContent() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(),
-          const SizedBox(height: 24),
-          _buildEventsSection(),
-        ],
-      ),
-    );
-  }
-
-  // =========================================================================
-  // ЗАГОЛОВОК С ИНФОРМАЦИЕЙ О ЧЕЛОВЕКЕ
-  // =========================================================================
 
   Widget _buildHeader() {
     final person = _person!;
@@ -293,10 +342,6 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
     );
   }
 
-  // =========================================================================
-  // СЕКЦИЯ СОБЫТИЙ
-  // =========================================================================
-
   Widget _buildEventsSection() {
     return BlocConsumer<EventBloc, EventState>(
       listener: (context, state) {
@@ -320,7 +365,6 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Заголовок с кнопкой добавления
             Row(
               children: [
                 const Text(
@@ -431,10 +475,6 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
       ),
     );
   }
-
-  // =========================================================================
-  // СВАЙП-ДЕЙСТВИЯ ДЛЯ СОБЫТИЙ
-  // =========================================================================
 
   Widget _buildSwipeRightBackground() {
     return Container(

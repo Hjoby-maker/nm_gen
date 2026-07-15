@@ -121,27 +121,13 @@ class TreeVisualizer extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Горизонтальный ряд родителей
+        // Горизонтальный ряд родителей с явным коннектором брака между ними
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
             mainAxisSize: MainAxisSize.min,
-            children: allParents.map((parent) {
-              final isParentCenter = parent.person.id == centerPersonId;
-              final isParentSelected = parent.person.id == selectedPersonId;
-
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: TreeNodeWidget(
-                  node: parent,
-                  isRoot: false,
-                  isSelected: isParentSelected,
-                  isCenter: isParentCenter,
-                  onTap: () => onPersonTap(parent.person.id),
-                  detailLevel: detailLevel,
-                ),
-              );
-            }).toList(),
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: _buildParentsWithConnectors(allParents),
           ),
         ),
 
@@ -165,6 +151,58 @@ class TreeVisualizer extends StatelessWidget {
           _buildChildrenRow(context, allChildren, false),
         ],
       ],
+    );
+  }
+
+  /// Строит ряд карточек супругов, вставляя между каждой парой заметный
+  /// коннектор брака (⚭), чтобы горизонтальная семейная связь читалась
+  /// с первого взгляда, а не терялась в обычных отступах Row.
+  List<Widget> _buildParentsWithConnectors(List<TreeNode> parents) {
+    final List<Widget> widgets = [];
+    for (int i = 0; i < parents.length; i++) {
+      final parent = parents[i];
+      final isParentCenter = parent.person.id == centerPersonId;
+      final isParentSelected = parent.person.id == selectedPersonId;
+
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: TreeNodeWidget(
+            node: parent,
+            isRoot: false,
+            isSelected: isParentSelected,
+            isCenter: isParentCenter,
+            onTap: () => onPersonTap(parent.person.id),
+            detailLevel: detailLevel,
+          ),
+        ),
+      );
+
+      if (i < parents.length - 1) {
+        widgets.add(_buildMarriageConnector());
+      }
+    }
+    return widgets;
+  }
+
+  /// Небольшая горизонтальная линия с иконкой брака между карточками
+  /// супругов.
+  Widget _buildMarriageConnector() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 12, height: 2, color: Colors.pink.shade200),
+              Icon(Icons.favorite, size: 12, color: Colors.pink.shade300),
+              Container(width: 12, height: 2, color: Colors.pink.shade200),
+            ],
+          ),
+        ],
+      ),
     );
   }
 

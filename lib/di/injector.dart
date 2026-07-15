@@ -1,16 +1,22 @@
+// lib/di/injector.dart
 import 'package:get_it/get_it.dart';
 import 'package:injectable/injectable.dart';
+import 'package:nm_gen/core/utils/file_storage_service.dart';
+import 'package:nm_gen/core/utils/thumbnail_generator.dart';
 import 'package:nm_gen/data/datasources/local/database/db_helper.dart';
 import 'package:nm_gen/data/datasources/local/event_local_datasource.dart';
 import 'package:nm_gen/data/datasources/local/family_local_datasource.dart';
+import 'package:nm_gen/data/datasources/local/media_local_datasource.dart';
 import 'package:nm_gen/data/datasources/local/person_local_datasource.dart';
 import 'package:nm_gen/data/datasources/local/project_local_datasource.dart';
 import 'package:nm_gen/data/repositories/event_repository_impl.dart';
 import 'package:nm_gen/data/repositories/family_repository_impl.dart';
+import 'package:nm_gen/data/repositories/media_repository_impl.dart';
 import 'package:nm_gen/data/repositories/person_repository_impl.dart';
 import 'package:nm_gen/data/repositories/project_repository_impl.dart';
 import 'package:nm_gen/domain/repositories/event_repository.dart';
 import 'package:nm_gen/domain/repositories/family_repository.dart';
+import 'package:nm_gen/domain/repositories/media_repository.dart';
 import 'package:nm_gen/domain/repositories/person_repository.dart';
 import 'package:nm_gen/domain/repositories/project_repository.dart';
 import 'package:nm_gen/domain/use_cases/family/add_child_to_family.dart';
@@ -28,9 +34,10 @@ import 'package:nm_gen/domain/use_cases/person/search_persons.dart';
 import 'package:nm_gen/domain/use_cases/person/sync_person_events.dart';
 import 'package:nm_gen/domain/use_cases/person/update_person.dart';
 import 'package:nm_gen/domain/use_cases/tree/get_family_tree.dart';
-import 'package:nm_gen/domain/use_cases/tree/get_full_tree.dart'; // <-- ДОБАВЛЯЕМ
+import 'package:nm_gen/domain/use_cases/tree/get_full_tree.dart';
 import 'package:nm_gen/presentation/blocs/event/event_bloc.dart';
 import 'package:nm_gen/presentation/blocs/family/family_bloc.dart';
+import 'package:nm_gen/presentation/blocs/media/media_bloc.dart';
 import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
 import 'package:nm_gen/presentation/blocs/project/project_bloc.dart';
 import 'package:nm_gen/presentation/blocs/tree/tree_bloc.dart';
@@ -93,7 +100,25 @@ void registerUseCasesAndBlocs() {
   );
 
   // ============================================================
-  // 2. РЕГИСТРАЦИЯ РЕПОЗИТОРИЕВ
+  // 2. РЕГИСТРАЦИЯ СЕРВИСОВ
+  // ============================================================
+  registerLazySingletonIfNotRegistered<FileStorageService>(
+    () => FileStorageService(),
+  );
+
+  registerLazySingletonIfNotRegistered<ThumbnailGenerator>(
+    () => ThumbnailGenerator(),
+  );
+
+  // ============================================================
+  // 3. РЕГИСТРАЦИЯ MEDIA DATA SOURCE
+  // ============================================================
+  registerLazySingletonIfNotRegistered<MediaLocalDataSource>(
+    () => MediaLocalDataSourceImpl(getIt<DatabaseHelper>()),
+  );
+
+  // ============================================================
+  // 4. РЕГИСТРАЦИЯ РЕПОЗИТОРИЕВ
   // ============================================================
   registerLazySingletonIfNotRegistered<PersonRepository>(
     () => PersonRepositoryImpl(getIt<PersonLocalDataSource>()),
@@ -112,20 +137,31 @@ void registerUseCasesAndBlocs() {
   );
 
   // ============================================================
-  // 3. РЕГИСТРАЦИЯ USE CASE SyncPersonEventsUseCase
+  // 5. РЕГИСТРАЦИЯ MEDIA REPOSITORY
+  // ============================================================
+  registerLazySingletonIfNotRegistered<MediaRepository>(
+    () => MediaRepositoryImpl(
+      getIt<MediaLocalDataSource>(),
+      getIt<FileStorageService>(),
+    ),
+  );
+
+  // ============================================================
+  // 6. РЕГИСТРАЦИЯ USE CASE SyncPersonEventsUseCase
   // ============================================================
   registerFactoryIfNotRegistered<SyncPersonEventsUseCase>(
     () => SyncPersonEventsUseCase(getIt<EventRepository>()),
   );
 
   // ============================================================
-  // 4. ПОЛУЧАЕМ РЕПОЗИТОРИИ ИЗ КОНТЕЙНЕРА
+  // 7. ПОЛУЧАЕМ РЕПОЗИТОРИИ ИЗ КОНТЕЙНЕРА
   // ============================================================
   final PersonRepository personRepo = getIt<PersonRepository>();
   final FamilyRepository familyRepo = getIt<FamilyRepository>();
+  final MediaRepository mediaRepo = getIt<MediaRepository>();
 
   // ============================================================
-  // 5. РЕГИСТРАЦИЯ USE CASES ДЛЯ PERSON
+  // 8. РЕГИСТРАЦИЯ USE CASES ДЛЯ PERSON
   // ============================================================
   registerFactoryIfNotRegistered<AddPersonUseCase>(
     () => AddPersonUseCase(personRepo, getIt<SyncPersonEventsUseCase>()),
@@ -152,7 +188,7 @@ void registerUseCasesAndBlocs() {
   );
 
   // ============================================================
-  // 6. РЕГИСТРАЦИЯ USE CASES ДЛЯ FAMILY
+  // 9. РЕГИСТРАЦИЯ USE CASES ДЛЯ FAMILY
   // ============================================================
   registerFactoryIfNotRegistered<AddFamilyUseCase>(
     () => AddFamilyUseCase(familyRepo),
@@ -178,7 +214,7 @@ void registerUseCasesAndBlocs() {
   );
 
   // ============================================================
-  // 7. РЕГИСТРАЦИЯ USE CASES ДЛЯ GEDCOM
+  // 10. РЕГИСТРАЦИЯ USE CASES ДЛЯ GEDCOM
   // ============================================================
   registerFactoryIfNotRegistered<ImportGedcomUseCase>(
     () => ImportGedcomUseCase(
@@ -195,7 +231,7 @@ void registerUseCasesAndBlocs() {
   );
 
   // ============================================================
-  // 8. РЕГИСТРАЦИЯ USE CASES ДЛЯ TREE
+  // 11. РЕГИСТРАЦИЯ USE CASES ДЛЯ TREE
   // ============================================================
   registerFactoryIfNotRegistered<GetFamilyTreeUseCase>(
     () => GetFamilyTreeUseCase(
@@ -204,7 +240,6 @@ void registerUseCasesAndBlocs() {
     ),
   );
 
-  // ✅ НОВЫЙ USE CASE — строит дерево из всех людей проекта
   registerFactoryIfNotRegistered<GetFullTreeUseCase>(
     () => GetFullTreeUseCase(
       personRepository: personRepo,
@@ -213,7 +248,22 @@ void registerUseCasesAndBlocs() {
   );
 
   // ============================================================
-  // 9. РЕГИСТРАЦИЯ BLOC
+  // 12. РЕГИСТРАЦИЯ USE CASES ДЛЯ MEDIA
+  // ============================================================
+  // Здесь можно добавить use cases для медиа, если они понадобятся
+  // Например:
+  // registerFactoryIfNotRegistered<AddMediaUseCase>(
+  //   () => AddMediaUseCase(mediaRepo),
+  // );
+  // registerFactoryIfNotRegistered<GetMediaForPersonUseCase>(
+  //   () => GetMediaForPersonUseCase(mediaRepo),
+  // );
+  // registerFactoryIfNotRegistered<DeleteMediaUseCase>(
+  //   () => DeleteMediaUseCase(mediaRepo),
+  // );
+
+  // ============================================================
+  // 13. РЕГИСТРАЦИЯ BLOC
   // ============================================================
   final getAllPersonsUseCase = getIt<GetAllPersonsUseCase>();
   final addPersonUseCase = getIt<AddPersonUseCase>();
@@ -239,7 +289,6 @@ void registerUseCasesAndBlocs() {
     ),
   );
 
-  // ✅ TreeBloc теперь использует GetFullTreeUseCase
   registerFactoryIfNotRegistered<TreeBloc>(() => TreeBloc());
 
   registerFactoryIfNotRegistered<FamilyBloc>(
@@ -255,12 +304,17 @@ void registerUseCasesAndBlocs() {
   );
 
   // ============================================================
-  // 10. РЕГИСТРАЦИЯ PROJECT BLOC
+  // 14. РЕГИСТРАЦИЯ MEDIA BLOC
+  // ============================================================
+  registerFactoryIfNotRegistered<MediaBloc>(() => MediaBloc(mediaRepo));
+
+  // ============================================================
+  // 15. РЕГИСТРАЦИЯ PROJECT BLOC
   // ============================================================
   registerFactoryIfNotRegistered<ProjectBloc>(() => ProjectBloc());
 
   // ============================================================
-  // 11. РЕГИСТРАЦИЯ EVENT BLOC
+  // 16. РЕГИСТРАЦИЯ EVENT BLOC
   // ============================================================
   registerFactoryIfNotRegistered<EventBloc>(() => EventBloc());
 }

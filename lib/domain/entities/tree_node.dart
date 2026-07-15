@@ -10,6 +10,14 @@ class TreeNode extends Equatable {
   final bool isCenter; // <-- Добавляем флаг для выделения центрального человека
   final int generation;
 
+  /// true, если этот человек уже был полностью развёрнут (со своими детьми)
+  /// в другой ветке дерева - например, он одновременно чей-то ребёнок в
+  /// одной родительской линии и супруг/родитель в другой. Чтобы не строить
+  /// один и тот же семейный кусок дважды, здесь показывается "ссылочная"
+  /// карточка без собственных детей - полная версия уже отрисована в другом
+  /// месте.
+  final bool isDuplicateReference;
+
   const TreeNode({
     required this.person,
     this.children = const [],
@@ -17,6 +25,7 @@ class TreeNode extends Equatable {
     this.isRoot = false,
     this.isCenter = false, // <-- По умолчанию false
     this.generation = 0,
+    this.isDuplicateReference = false,
   });
 
   bool get isLeaf => children.isEmpty;
@@ -38,6 +47,7 @@ class TreeNode extends Equatable {
     bool? isRoot,
     bool? isCenter,
     int? generation,
+    bool? isDuplicateReference,
   }) {
     return TreeNode(
       person: person ?? this.person,
@@ -46,6 +56,7 @@ class TreeNode extends Equatable {
       isRoot: isRoot ?? this.isRoot,
       isCenter: isCenter ?? this.isCenter,
       generation: generation ?? this.generation,
+      isDuplicateReference: isDuplicateReference ?? this.isDuplicateReference,
     );
   }
 
@@ -57,5 +68,6 @@ class TreeNode extends Equatable {
     isRoot,
     isCenter,
     generation,
+    isDuplicateReference,
   ];
 }

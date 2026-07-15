@@ -55,6 +55,13 @@ class TreeNodeWidget extends StatelessWidget {
       borderColor = colorScheme.primary;
       backgroundColor = colorScheme.primary.withOpacity(0.15);
       borderWidth = 2.0;
+    } else if (node.isDuplicateReference) {
+      // Этот человек уже полностью отображён в другой ветке дерева
+      // (например, как чей-то ребёнок в родительской линии супруга/супруги).
+      // Показываем облегчённую карточку-ссылку, а не дублируем всю ветку.
+      borderColor = Colors.orange.shade400;
+      backgroundColor = Colors.orange.shade50;
+      borderWidth = 1.5;
     }
 
     return GestureDetector(
@@ -113,6 +120,23 @@ class TreeNodeWidget extends StatelessWidget {
                       ),
                     ),
                   ),
+                if (node.isDuplicateReference)
+                  Positioned(
+                    left: -2,
+                    bottom: -2,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade400,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.link,
+                        color: Colors.white,
+                        size: 12,
+                      ),
+                    ),
+                  ),
               ],
             ),
             // Имя
@@ -166,6 +190,27 @@ class TreeNodeWidget extends StatelessWidget {
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
+                ),
+              // Подпись для карточки-ссылки на уже отрисованного человека
+              if (node.isDuplicateReference && isFull)
+                Container(
+                  margin: const EdgeInsets.only(top: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 1,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade100,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'Семья показана в другой ветке',
+                    style: TextStyle(
+                      fontSize: 8,
+                      color: Colors.orange.shade900,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
               // Подпись "Центр" для выделенного человека
               if (isCenter)

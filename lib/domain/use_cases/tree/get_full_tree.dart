@@ -79,8 +79,30 @@ class GetFullTreeUseCase {
             spouses: const [],
             isRoot: false,
             isCenter: person.id == selectedPersonId,
+            isDuplicateReference: true,
           );
         }
+
+        // ✅ КЛЮЧЕВОЙ ФИКС ДУБЛЕЙ: генеалогическое дерево - это граф, а не
+        // строгое дерево (у ребёнка два родителя, и обе родительские линии
+        // могут вести к одному и тому же человеку). Раньше renderedIds
+        // проверялся только на уровне корней леса, поэтому один и тот же
+        // человек мог быть полностью развёрнут (со всеми своими детьми и
+        // внуками) дважды: один раз как чей-то ребёнок, второй раз - как
+        // супруг в семье, до которой добрались из другой родительской линии.
+        // Если человек уже где-то полностью отрисован - не строим его
+        // поддерево ещё раз, а возвращаем "ссылочную" карточку без детей.
+        if (renderedIds.contains(person.id)) {
+          return TreeNode(
+            person: person,
+            children: const [],
+            spouses: const [],
+            isRoot: false,
+            isCenter: person.id == selectedPersonId,
+            isDuplicateReference: true,
+          );
+        }
+
         final nextVisiting = {...visiting, person.id};
         renderedIds.add(person.id);
 
