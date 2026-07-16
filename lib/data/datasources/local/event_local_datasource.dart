@@ -1,7 +1,7 @@
+import 'package:injectable/injectable.dart';
 import 'package:nm_gen/data/datasources/local/database/db_helper.dart';
 import 'package:nm_gen/data/datasources/local/database/event_model.dart';
 import 'package:sqflite_common/sqlite_api.dart';
-import 'package:injectable/injectable.dart';
 
 @injectable
 class EventLocalDataSource {
@@ -34,8 +34,8 @@ class EventLocalDataSource {
   }) async {
     final Database db = await dbHelper.database;
 
-    final List<String> whereClauses = ['person_id = ?'];
-    final List<Object?> whereArgs = [personId];
+    final List<String> whereClauses = <String>['person_id = ?'];
+    final List<Object?> whereArgs = <Object?>[personId];
 
     if (treeId != null && treeId.isNotEmpty) {
       whereClauses.add('tree_id = ?');
@@ -96,8 +96,8 @@ class EventLocalDataSource {
   /// Удалить все события человека
   Future<void> deleteEventsByPersonId(String personId, {String? treeId}) async {
     final Database db = await dbHelper.database;
-    final List<String> whereClauses = ['person_id = ?'];
-    final List<Object?> whereArgs = [personId];
+    final List<String> whereClauses = <String>['person_id = ?'];
+    final List<Object?> whereArgs = <Object?>[personId];
 
     if (treeId != null && treeId.isNotEmpty) {
       whereClauses.add('tree_id = ?');
@@ -115,8 +115,8 @@ class EventLocalDataSource {
   Future<int> getEventsCountForPerson(String personId, {String? treeId}) async {
     final Database db = await dbHelper.database;
 
-    final List<String> whereClauses = ['person_id = ?'];
-    final List<Object?> whereArgs = [personId];
+    final List<String> whereClauses = <String>['person_id = ?'];
+    final List<Object?> whereArgs = <Object?>[personId];
 
     if (treeId != null && treeId.isNotEmpty) {
       whereClauses.add('tree_id = ?');

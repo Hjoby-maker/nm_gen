@@ -5,50 +5,50 @@ abstract class ProjectEvent extends Equatable {
   const ProjectEvent();
 
   @override
-  List<Object?> get props => [];
+  List<Object?> get props => <Object?>[];
 }
 
 class LoadProjectsEvent extends ProjectEvent {}
 
 class AddProjectEvent extends ProjectEvent {
-  final Project project;
   const AddProjectEvent(this.project);
+  final Project project;
   @override
-  List<Object?> get props => [project];
+  List<Object?> get props => <Object?>[project];
 }
 
 class UpdateProjectEvent extends ProjectEvent {
-  final Project project;
   const UpdateProjectEvent(this.project);
+  final Project project;
   @override
-  List<Object?> get props => [project];
+  List<Object?> get props => <Object?>[project];
 }
 
 class DeleteProjectEvent extends ProjectEvent {
-  final String projectId;
   const DeleteProjectEvent(this.projectId);
+  final String projectId;
   @override
-  List<Object?> get props => [projectId];
+  List<Object?> get props => <Object?>[projectId];
 }
 
 class SelectProjectEvent extends ProjectEvent {
-  final String projectId;
   const SelectProjectEvent(this.projectId);
+  final String projectId;
   @override
-  List<Object?> get props => [projectId];
+  List<Object?> get props => <Object?>[projectId];
 }
 
 class CheckCanDeleteProjectEvent extends ProjectEvent {
-  final String projectId;
   const CheckCanDeleteProjectEvent(this.projectId);
+  final String projectId;
   @override
-  List<Object?> get props => [projectId];
+  List<Object?> get props => <Object?>[projectId];
 }
 
 class SetDefaultProjectEvent extends ProjectEvent {
+  const SetDefaultProjectEvent(this.projectId);
   // <-- ДОБАВЛЯЕМ
   final String projectId;
-  const SetDefaultProjectEvent(this.projectId);
   @override
-  List<Object?> get props => [projectId];
+  List<Object?> get props => <Object?>[projectId];
 }

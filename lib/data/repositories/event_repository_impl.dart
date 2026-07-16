@@ -1,6 +1,6 @@
 import 'package:injectable/injectable.dart';
-import 'package:nm_gen/data/datasources/local/event_local_datasource.dart';
 import 'package:nm_gen/data/datasources/local/database/event_model.dart';
+import 'package:nm_gen/data/datasources/local/event_local_datasource.dart';
 import 'package:nm_gen/domain/entities/event.dart';
 import 'package:nm_gen/domain/repositories/event_repository.dart';
 

@@ -11,7 +11,7 @@ class SettingsScreen extends StatelessWidget {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: ListView(
-        children: [
+        children: <_SettingsSection>[
           const _SettingsSection(
             title: 'Внешний вид',
             children: [
@@ -74,10 +74,9 @@ class SettingsScreen extends StatelessWidget {
 }
 
 class _SettingsSection extends StatelessWidget {
+  const _SettingsSection({required this.title, required this.children});
   final String title;
   final List<Widget> children;
-
-  const _SettingsSection({required this.title, required this.children});
 
   @override
   Widget build(BuildContext context) {
@@ -103,17 +102,16 @@ class _SettingsSection extends StatelessWidget {
 }
 
 class _SettingsTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Widget? trailing;
-
   const _SettingsTile({
     required this.icon,
     required this.title,
     required this.subtitle,
     this.trailing,
   });
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {

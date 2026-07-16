@@ -82,7 +82,7 @@ class ThumbnailGenerator {
     int maxSize = maxThumbnailSize,
   }) async {
     try {
-      final data = fileData ?? await File(filePath).readAsBytes();
+      final Uint8List data = fileData ?? await File(filePath).readAsBytes();
 
       if (mimeType.startsWith('image/')) {
         return await generateImageThumbnail(imageData: data, maxSize: maxSize);

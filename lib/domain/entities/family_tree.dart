@@ -1,14 +1,15 @@
 import 'package:equatable/equatable.dart';
-import 'person.dart';
+
 import 'family.dart';
+import 'person.dart';
 
 /// Полное генеалогическое древо
 class FamilyTree extends Equatable {
   const FamilyTree({
     required this.treeId,
     required this.rootPerson,
-    this.allPersons = const [],
-    this.families = const [],
+    this.allPersons = const <Person>[],
+    this.families = const <Family>[],
     this.name = 'Мое древо',
   });
   final String treeId;

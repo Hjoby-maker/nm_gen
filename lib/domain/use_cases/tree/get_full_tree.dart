@@ -9,13 +9,12 @@ import 'package:nm_gen/core/enums/gender.dart';
 
 /// Use Case: Получение полного генеалогического древа для проекта
 class GetFullTreeUseCase {
-  final PersonRepository personRepository;
-  final FamilyRepository familyRepository;
-
   GetFullTreeUseCase({
     required this.personRepository,
     required this.familyRepository,
   });
+  final PersonRepository personRepository;
+  final FamilyRepository familyRepository;
 
   /// Получить полное дерево со всеми людьми проекта.
   ///
@@ -35,11 +34,11 @@ class GetFullTreeUseCase {
 
       // 👇👇👇 ВСТАВЬТЕ СЮДА ВЕСЬ КОД ИЗ _diagnostic_snippet.dart 👇👇👇
       print('--- ДИАГНОСТИКА: allPersons.length = ${allPersons.length} ---');
-      final idCounts = <String, int>{};
+      final Map<String, int> idCounts = <String, int>{};
       for (final p in allPersons) {
         idCounts[p.id] = (idCounts[p.id] ?? 0) + 1;
       }
-      idCounts.forEach((id, count) {
+      idCounts.forEach((String id, int count) {
         if (count > 1) {
           print('⚠️ ДУБЛЬ PERSON.ID: $id встречается $count раз(а)');
         }
@@ -61,7 +60,6 @@ class GetFullTreeUseCase {
         }
       }
       // 👆👆👆 КОНЕЦ ВСТАВЛЯЕМОГО БЛОКА 👆👆👆
-
 
       if (allPersons.isEmpty) {
         return Left(NotFoundFailure('В проекте нет людей для отображения'));
@@ -93,7 +91,7 @@ class GetFullTreeUseCase {
 
       // 4. Множество людей, уже включённых в дерево хоть где-то
       //    (как родитель, супруг или ребёнок) - чтобы никого не задваивать.
-      final Set<String> renderedIds = {};
+      final Set<String> renderedIds = <String>{};
 
       /// Рекурсивно строит узел человека вместе со всеми его супругами
       /// и рекурсивно раскрытыми детьми от всех браков.
@@ -167,7 +165,7 @@ class GetFullTreeUseCase {
 
         // --- Дети от ВСЕХ браков этого человека, рекурсивно ---
         final List<TreeNode> children = [];
-        final Set<String> childIds = {};
+        final Set<String> childIds = <String>{};
         for (final family in parentFamilies) {
           for (final childId in family.childrenIds) {
             if (childIds.add(childId)) {

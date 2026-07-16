@@ -1,6 +1,6 @@
+import 'package:nm_gen/core/enums/gender.dart';
 import 'package:nm_gen/domain/entities/family.dart';
 import 'package:nm_gen/domain/entities/person.dart';
-import 'package:nm_gen/core/enums/gender.dart';
 
 /// Класс для генерации GEDCOM файлов
 class GedcomGenerator {

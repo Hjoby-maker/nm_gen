@@ -17,14 +17,14 @@ enum EventType {
 
   static EventType fromString(String value) {
     return EventType.values.firstWhere(
-      (e) => e.name == value,
+      (EventType e) => e.name == value,
       orElse: () => EventType.other,
     );
   }
 
   /// Список типов событий, которые доступны для выбора (без брака и развода)
   static List<EventType> get availableTypes {
-    return [
+    return <EventType>[
       EventType.birth,
       EventType.death,
       EventType.baptism,
@@ -54,19 +54,6 @@ class Event extends Equatable {
     this.updatedAt,
   });
 
-  final String id;
-  final String personId;
-  final String treeId;
-  final EventType type;
-  final String title;
-  final String? description;
-  final DateTime? startDate;
-  final DateTime? endDate;
-  final String? place;
-  final String? notes;
-  final DateTime? createdAt;
-  final DateTime? updatedAt;
-
   /// Создать новое событие
   factory Event.create({
     required String personId,
@@ -79,7 +66,7 @@ class Event extends Equatable {
     String? place,
     String? notes,
   }) {
-    final now = DateTime.now();
+    final DateTime now = DateTime.now();
     return Event(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       personId: personId,
@@ -95,6 +82,19 @@ class Event extends Equatable {
       updatedAt: now,
     );
   }
+
+  final String id;
+  final String personId;
+  final String treeId;
+  final EventType type;
+  final String title;
+  final String? description;
+  final DateTime? startDate;
+  final DateTime? endDate;
+  final String? place;
+  final String? notes;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
 
   /// ============================================
   /// МЕТОДЫ ДЛЯ РАБОТЫ С МЕДИА-ФАЙЛАМИ
@@ -112,13 +112,15 @@ class Event extends Equatable {
 
   /// Получить отображаемое название события для UI
   String get displayTitle {
-    final dateStr = startDate != null ? ' (${_formatDate(startDate!)})' : '';
+    final String dateStr = startDate != null
+        ? ' (${_formatDate(startDate!)})'
+        : '';
     return '$type: $title$dateStr';
   }
 
   /// Форматирование даты для отображения
   String _formatDate(DateTime date) {
-    final months = [
+    final List<String> months = <String>[
       'янв',
       'фев',
       'мар',
@@ -137,7 +139,7 @@ class Event extends Equatable {
 
   /// Краткое описание события для списка
   String get shortDescription {
-    final parts = <String>[];
+    final List<String> parts = <String>[];
     if (place != null && place!.isNotEmpty) parts.add(place!);
     if (startDate != null) parts.add(_formatDate(startDate!));
     return parts.isNotEmpty
@@ -198,7 +200,7 @@ class Event extends Equatable {
   }
 
   @override
-  List<Object?> get props => [
+  List<Object?> get props => <Object?>[
     id,
     personId,
     treeId,

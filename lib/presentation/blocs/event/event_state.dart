@@ -5,7 +5,7 @@ abstract class EventState extends Equatable {
   const EventState();
 
   @override
-  List<Object?> get props => [];
+  List<Object?> get props => <Object?>[];
 }
 
 class EventInitial extends EventState {}
@@ -13,23 +13,23 @@ class EventInitial extends EventState {}
 class EventLoading extends EventState {}
 
 class EventsLoaded extends EventState {
+  const EventsLoaded({required this.events, this.treeId});
   final List<Event> events;
   final String? treeId;
-  const EventsLoaded({required this.events, this.treeId});
   @override
-  List<Object?> get props => [events, treeId];
+  List<Object?> get props => <Object?>[events, treeId];
 }
 
 class EventOperationSuccess extends EventState {
-  final String message;
   const EventOperationSuccess(this.message);
+  final String message;
   @override
-  List<Object> get props => [message];
+  List<Object> get props => <Object>[message];
 }
 
 class EventError extends EventState {
-  final String message;
   const EventError(this.message);
+  final String message;
   @override
-  List<Object> get props => [message];
+  List<Object> get props => <Object>[message];
 }

@@ -1,10 +1,11 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:nm_gen/core/enums/gender.dart';
 import 'package:nm_gen/core/utils/image_picker_service.dart';
 import 'package:nm_gen/domain/entities/person.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 
 class PersonFormDialog extends StatefulWidget {
   const PersonFormDialog({
@@ -74,7 +75,7 @@ class _PersonFormDialogState extends State<PersonFormDialog> {
     final file = await _imagePickerService.pickImage(context);
     if (file != null) {
       // Сохраняем фото в локальное хранилище приложения
-      final savedPath = await _saveImageToAppDirectory(file);
+      final String savedPath = await _saveImageToAppDirectory(file);
       setState(() {
         _photoPath = savedPath;
       });
@@ -89,9 +90,9 @@ class _PersonFormDialogState extends State<PersonFormDialog> {
   Future<String> _saveImageToAppDirectory(File imageFile) async {
     try {
       final appDir = await getApplicationDocumentsDirectory();
-      final fileName =
+      final String fileName =
           '${DateTime.now().millisecondsSinceEpoch}_${path.basename(imageFile.path)}';
-      final savedFile = File('${appDir.path}/photos/$fileName');
+      final File savedFile = File('${appDir.path}/photos/$fileName');
 
       // Создаем директорию если её нет
       await savedFile.parent.create(recursive: true);
@@ -165,7 +166,7 @@ class _PersonFormDialogState extends State<PersonFormDialog> {
             _buildDatePicker(
               label: 'Дата рождения',
               date: _birthDate,
-              onChanged: (date) => setState(() => _birthDate = date),
+              onChanged: (DateTime? date) => setState(() => _birthDate = date),
               onClear: () => setState(() => _birthDate = null),
             ),
             const SizedBox(height: 4),
@@ -173,7 +174,7 @@ class _PersonFormDialogState extends State<PersonFormDialog> {
             _buildDatePicker(
               label: 'Дата смерти',
               date: _deathDate,
-              onChanged: (date) => setState(() => _deathDate = date),
+              onChanged: (DateTime? date) => setState(() => _deathDate = date),
               onClear: () => setState(() => _deathDate = null),
             ),
             const SizedBox(height: 8),

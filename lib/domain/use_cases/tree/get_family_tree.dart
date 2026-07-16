@@ -10,13 +10,12 @@ import 'package:nm_gen/core/enums/gender.dart';
 
 /// Use Case: Получение генеалогического древа с полным обходом всех связей
 class GetFamilyTreeUseCase {
-  final PersonRepository personRepository;
-  final FamilyRepository familyRepository;
-
   GetFamilyTreeUseCase({
     required this.personRepository,
     required this.familyRepository,
   });
+  final PersonRepository personRepository;
+  final FamilyRepository familyRepository;
 
   /// Получить полное дерево, начиная с выбранного человека
   Future<Either<Failure, TreeNode>> execute(
@@ -41,7 +40,7 @@ class GetFamilyTreeUseCase {
       }
 
       // 4. Собираем ВСЕХ связанных людей (полный обход)
-      final allRelatedIds = <String>{};
+      final Set<String> allRelatedIds = <String>{};
       _collectAllRelativesFull(centerPersonId, allRelatedIds, allFamilies);
 
       // Добавляем центрального человека
@@ -53,10 +52,10 @@ class GetFamilyTreeUseCase {
           .toList();
 
       // 6. Строим граф от корневого человека
-      final visited = <String>{};
+      final Set<String> visited = <String>{};
 
       // Находим "корневого" человека
-      String rootId = _findRootPerson(allRelatedIds, allFamilies);
+      final String rootId = _findRootPerson(allRelatedIds, allFamilies);
 
       final rootNode = _buildFullGraph(
         rootId,
@@ -83,12 +82,12 @@ class GetFamilyTreeUseCase {
     if (collected.contains(personId)) return;
 
     // BFS обход
-    final queue = Queue<String>();
+    final Queue<String> queue = Queue<String>();
     queue.add(personId);
     collected.add(personId);
 
     while (queue.isNotEmpty) {
-      final currentId = queue.removeFirst();
+      final String currentId = queue.removeFirst();
 
       final relatedFamilies = allFamilies
           .where(
@@ -121,7 +120,7 @@ class GetFamilyTreeUseCase {
   /// Найти корневого человека (первого в семейной иерархии)
   String _findRootPerson(Set<String> allIds, List<Family> allFamilies) {
     // Ищем человека, у которого нет родителей в нашем наборе
-    for (final id in allIds) {
+    for (final String id in allIds) {
       bool hasParents = false;
       for (final family in allFamilies) {
         if (family.childrenIds.contains(id)) {
@@ -174,7 +173,7 @@ class GetFamilyTreeUseCase {
     }
     visited.add(currentId);
 
-    final isCenter = currentId == centerPersonId;
+    final bool isCenter = currentId == centerPersonId;
 
     // ============================================================
     // 1. Собираем всех связанных людей

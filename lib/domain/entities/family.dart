@@ -7,7 +7,7 @@ class Family extends Equatable {
     required this.treeId,
     this.husbandId,
     this.wifeId,
-    this.childrenIds = const [],
+    this.childrenIds = const <String>[],
     this.marriageDate,
     this.divorceDate,
     this.marriagePlace,

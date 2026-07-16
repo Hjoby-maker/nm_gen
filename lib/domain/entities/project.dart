@@ -13,22 +13,13 @@ class Project extends Equatable {
     this.isDefault = false,
   });
 
-  final String id;
-  final String name;
-  final String? description;
-  final DateTime? createdAt;
-  final DateTime? updatedAt;
-  final int personCount;
-  final int familyCount;
-  final bool isDefault;
-
   /// Создать новый проект
   factory Project.create({
     required String name,
     String? description,
     bool isDefault = false,
   }) {
-    final now = DateTime.now();
+    final DateTime now = DateTime.now();
     return Project(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       name: name,
@@ -38,6 +29,15 @@ class Project extends Equatable {
       isDefault: isDefault,
     );
   }
+
+  final String id;
+  final String name;
+  final String? description;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final int personCount;
+  final int familyCount;
+  final bool isDefault;
 
   Project copyWith({
     String? id,
@@ -62,7 +62,7 @@ class Project extends Equatable {
   }
 
   @override
-  List<Object?> get props => [
+  List<Object?> get props => <Object?>[
     id,
     name,
     description,

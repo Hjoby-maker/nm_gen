@@ -18,13 +18,13 @@ class FileHelper {
 
   /// Получение расширения файла
   static String getFileExtension(String fileName) {
-    final parts = fileName.split('.');
+    final List<String> parts = fileName.split('.');
     return parts.length > 1 ? parts.last.toLowerCase() : '';
   }
 
   /// Проверка, является ли файл изображением по расширению
   static bool isImageByExtension(String fileName) {
-    const imageExtensions = [
+    const List<String> imageExtensions = <String>[
       'jpg',
       'jpeg',
       'png',
@@ -39,19 +39,34 @@ class FileHelper {
 
   /// Проверка, является ли файл видео по расширению
   static bool isVideoByExtension(String fileName) {
-    const videoExtensions = ['mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv', 'webm'];
+    const List<String> videoExtensions = <String>[
+      'mp4',
+      'avi',
+      'mov',
+      'wmv',
+      'flv',
+      'mkv',
+      'webm',
+    ];
     return videoExtensions.contains(getFileExtension(fileName));
   }
 
   /// Проверка, является ли файл аудио по расширению
   static bool isAudioByExtension(String fileName) {
-    const audioExtensions = ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a'];
+    const List<String> audioExtensions = <String>[
+      'mp3',
+      'wav',
+      'ogg',
+      'aac',
+      'flac',
+      'm4a',
+    ];
     return audioExtensions.contains(getFileExtension(fileName));
   }
 
   /// Проверка, является ли файл документом по расширению
   static bool isDocumentByExtension(String fileName) {
-    const documentExtensions = [
+    const List<String> documentExtensions = <String>[
       'pdf',
       'doc',
       'docx',
@@ -75,7 +90,7 @@ class FileHelper {
 
   /// Определение MIME-типа по расширению файла
   static String getMimeTypeFromExtension(String fileName) {
-    const mimeTypes = {
+    const Map<String, String> mimeTypes = <String, String>{
       // Изображения
       'jpg': 'image/jpeg',
       'jpeg': 'image/jpeg',
@@ -117,7 +132,7 @@ class FileHelper {
       'ods': 'application/vnd.oasis.opendocument.spreadsheet',
       'odp': 'application/vnd.oasis.opendocument.presentation',
     };
-    final extension = getFileExtension(fileName);
+    final String extension = getFileExtension(fileName);
     return mimeTypes[extension] ?? 'application/octet-stream';
   }
 
@@ -135,7 +150,7 @@ class FileHelper {
     return XTypeGroup(
       label: label,
       extensions: extensions,
-      mimeTypes: mimeTypes ?? [],
+      mimeTypes: mimeTypes ?? <String>[],
     );
   }
 }

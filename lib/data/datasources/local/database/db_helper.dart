@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'dart:io';
+
+import 'package:injectable/injectable.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:injectable/injectable.dart';
 
 @injectable
 class DatabaseHelper {
@@ -46,7 +47,7 @@ class DatabaseHelper {
     ''');
 
     // Создаем проект по умолчанию
-    await db.insert('projects', {
+    await db.insert('projects', <String, Object>{
       'id': 'default',
       'name': 'Мое древо',
       'description': 'Основное генеалогическое древо',
@@ -209,9 +210,9 @@ class DatabaseHelper {
             );
             await db.update(
               'projects',
-              {'is_default': 1},
+              <String, int>{'is_default': 1},
               where: 'id = ?',
-              whereArgs: ['default'],
+              whereArgs: <String>['default'],
             );
           }
         }

@@ -38,20 +38,6 @@ extension MediaTypeExtension on MediaType {
 
 /// Сущность медиа-вложения (доменная модель)
 class MediaAttachment extends Equatable {
-  final String id;
-  final String? personId;
-  final String? eventId;
-  final String fileName;
-  final String localPath;
-  final String? remoteUrl;
-  final String mimeType;
-  final int fileSize;
-  final String description;
-  final bool isPrimary;
-  final String? thumbnailPath;
-  final DateTime createdAt;
-  final DateTime? updatedAt;
-
   const MediaAttachment({
     required this.id,
     this.personId,
@@ -67,6 +53,19 @@ class MediaAttachment extends Equatable {
     required this.createdAt,
     this.updatedAt,
   });
+  final String id;
+  final String? personId;
+  final String? eventId;
+  final String fileName;
+  final String localPath;
+  final String? remoteUrl;
+  final String mimeType;
+  final int fileSize;
+  final String description;
+  final bool isPrimary;
+  final String? thumbnailPath;
+  final DateTime createdAt;
+  final DateTime? updatedAt;
 
   /// Определение типа медиа по mimeType
   MediaType get mediaType {
@@ -89,7 +88,7 @@ class MediaAttachment extends Equatable {
   bool get isDocument => mediaType == MediaType.document;
 
   String get fileExtension {
-    final parts = fileName.split('.');
+    final List<String> parts = fileName.split('.');
     return parts.length > 1 ? parts.last.toLowerCase() : '';
   }
 
@@ -137,7 +136,7 @@ class MediaAttachment extends Equatable {
   }
 
   @override
-  List<Object?> get props => [
+  List<Object?> get props => <Object?>[
     id,
     personId,
     eventId,

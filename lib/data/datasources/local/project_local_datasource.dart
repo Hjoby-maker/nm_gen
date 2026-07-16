@@ -1,7 +1,7 @@
+import 'package:injectable/injectable.dart';
 import 'package:nm_gen/data/datasources/local/database/db_helper.dart';
 import 'package:nm_gen/data/datasources/local/database/project_model.dart';
 import 'package:sqflite_common/sqlite_api.dart';
-import 'package:injectable/injectable.dart';
 
 @injectable
 class ProjectLocalDataSource {
@@ -74,9 +74,9 @@ class ProjectLocalDataSource {
     // Проверяем наличие персон в проекте
     final personsResult = await db.rawQuery(
       'SELECT COUNT(*) as count FROM persons WHERE tree_id = ?',
-      [treeId],
+      <String>[treeId],
     );
-    final personsCount =
+    final int personsCount =
         personsResult.isNotEmpty && personsResult.first.containsKey('count')
         ? personsResult.first['count'] as int? ?? 0
         : 0;
@@ -84,9 +84,9 @@ class ProjectLocalDataSource {
     // Проверяем наличие семей в проекте
     final familiesResult = await db.rawQuery(
       'SELECT COUNT(*) as count FROM families WHERE tree_id = ?',
-      [treeId],
+      <String>[treeId],
     );
-    final familiesCount =
+    final int familiesCount =
         familiesResult.isNotEmpty && familiesResult.first.containsKey('count')
         ? familiesResult.first['count'] as int? ?? 0
         : 0;
@@ -104,7 +104,7 @@ class ProjectLocalDataSource {
     final Database db = await dbHelper.database;
     final List<Map<String, dynamic>> result = await db.rawQuery(
       'SELECT COUNT(*) as count FROM persons WHERE tree_id = ?',
-      [treeId],
+      <String>[treeId],
     );
     if (result.isNotEmpty && result.first.containsKey('count')) {
       return result.first['count'] as int? ?? 0;
@@ -117,7 +117,7 @@ class ProjectLocalDataSource {
     final Database db = await dbHelper.database;
     final List<Map<String, dynamic>> result = await db.rawQuery(
       'SELECT COUNT(*) as count FROM families WHERE tree_id = ?',
-      [treeId],
+      <String>[treeId],
     );
     if (result.isNotEmpty && result.first.containsKey('count')) {
       return result.first['count'] as int? ?? 0;
@@ -150,7 +150,7 @@ class ProjectLocalDataSource {
     final List<Map<String, dynamic>> maps = await db.query(
       'projects',
       where: 'is_default = ?',
-      whereArgs: [1],
+      whereArgs: <int>[1],
     );
     if (maps.isEmpty) return null;
     return ProjectModel.fromMap(maps.first);
@@ -161,14 +161,14 @@ class ProjectLocalDataSource {
     final Database db = await dbHelper.database;
 
     // Сбрасываем флаг у всех проектов
-    await db.update('projects', {'is_default': 0});
+    await db.update('projects', <String, int>{'is_default': 0});
 
     // Устанавливаем флаг у выбранного проекта
     await db.update(
       'projects',
-      {'is_default': 1},
+      <String, int>{'is_default': 1},
       where: 'id = ?',
-      whereArgs: [id],
+      whereArgs: <String>[id],
     );
   }
 }

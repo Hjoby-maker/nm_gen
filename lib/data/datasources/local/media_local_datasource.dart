@@ -1,8 +1,10 @@
 // lib/data/datasources/local/media_local_datasource.dart
 import 'dart:typed_data';
+
 import 'package:sqflite/sqflite.dart';
-import 'database/media_attachment_model.dart';
+
 import 'database/db_helper.dart';
+import 'database/media_attachment_model.dart';
 
 /// Локальный источник данных для медиа-файлов
 abstract class MediaLocalDataSource {
@@ -55,13 +57,14 @@ abstract class MediaLocalDataSource {
 
 /// Реализация локального датасорса
 class MediaLocalDataSourceImpl implements MediaLocalDataSource {
-  final DatabaseHelper _dbHelper; // ← Используем DatabaseHelper вместо Database
+  // ← Используем DatabaseHelper вместо Database
 
   MediaLocalDataSourceImpl(this._dbHelper);
+  final DatabaseHelper _dbHelper;
 
   /// Получение экземпляра базы данных
   Future<Database> _getDatabase() async {
-    return await _dbHelper
+    return _dbHelper
         .database; // ← Предполагается, что у DatabaseHelper есть геттер database
   }
 
@@ -71,7 +74,7 @@ class MediaLocalDataSourceImpl implements MediaLocalDataSource {
     final result = await db.query(
       'media_attachments',
       where: 'person_id = ?',
-      whereArgs: [personId],
+      whereArgs: <String>[personId],
       orderBy: 'created_at DESC',
     );
     return result.map((map) => MediaAttachmentModel.fromMap(map)).toList();
@@ -83,7 +86,7 @@ class MediaLocalDataSourceImpl implements MediaLocalDataSource {
     final result = await db.query(
       'media_attachments',
       where: 'event_id = ?',
-      whereArgs: [eventId],
+      whereArgs: <String>[eventId],
       orderBy: 'created_at DESC',
     );
     return result.map((map) => MediaAttachmentModel.fromMap(map)).toList();
@@ -95,7 +98,7 @@ class MediaLocalDataSourceImpl implements MediaLocalDataSource {
     final result = await db.query(
       'media_attachments',
       where: 'id = ?',
-      whereArgs: [id],
+      whereArgs: <String>[id],
     );
     if (result.isEmpty) return null;
     return MediaAttachmentModel.fromMap(result.first);
@@ -107,7 +110,7 @@ class MediaLocalDataSourceImpl implements MediaLocalDataSource {
     final result = await db.query(
       'media_attachments',
       where: 'person_id = ? AND is_primary = 1',
-      whereArgs: [personId],
+      whereArgs: <String>[personId],
       limit: 1,
     );
     if (result.isEmpty) return null;
@@ -131,14 +134,18 @@ class MediaLocalDataSourceImpl implements MediaLocalDataSource {
       'media_attachments',
       media.toMap(),
       where: 'id = ?',
-      whereArgs: [media.id],
+      whereArgs: <String>[media.id],
     );
   }
 
   @override
   Future<void> deleteById(String id) async {
     final db = await _getDatabase();
-    await db.delete('media_attachments', where: 'id = ?', whereArgs: [id]);
+    await db.delete(
+      'media_attachments',
+      where: 'id = ?',
+      whereArgs: <String>[id],
+    );
   }
 
   @override
@@ -147,7 +154,7 @@ class MediaLocalDataSourceImpl implements MediaLocalDataSource {
     await db.delete(
       'media_attachments',
       where: 'person_id = ?',
-      whereArgs: [personId],
+      whereArgs: <String>[personId],
     );
   }
 
@@ -157,7 +164,7 @@ class MediaLocalDataSourceImpl implements MediaLocalDataSource {
     await db.delete(
       'media_attachments',
       where: 'event_id = ?',
-      whereArgs: [eventId],
+      whereArgs: <String>[eventId],
     );
   }
 
@@ -166,9 +173,9 @@ class MediaLocalDataSourceImpl implements MediaLocalDataSource {
     final db = await _getDatabase();
     await db.update(
       'media_attachments',
-      {'is_primary': 0},
+      <String, int>{'is_primary': 0},
       where: 'person_id = ? AND is_primary = 1',
-      whereArgs: [personId],
+      whereArgs: <String>[personId],
     );
   }
 
@@ -179,14 +186,14 @@ class MediaLocalDataSourceImpl implements MediaLocalDataSource {
   }) async {
     final db = await _getDatabase();
     String where = '';
-    List<Object?> whereArgs = [];
+    List<Object?> whereArgs = <Object?>[];
 
     if (personId != null) {
       where = 'person_id = ?';
-      whereArgs = [personId];
+      whereArgs = <Object?>[personId];
     } else if (eventId != null) {
       where = 'event_id = ?';
-      whereArgs = [eventId];
+      whereArgs = <Object?>[eventId];
     }
 
     final result = await db.rawQuery('''
@@ -203,7 +210,7 @@ class MediaLocalDataSourceImpl implements MediaLocalDataSource {
     ''', whereArgs);
 
     if (result.isEmpty) {
-      return {
+      return <String, dynamic>{
         'total_count': 0,
         'total_size': 0,
         'image_count': 0,
@@ -216,15 +223,15 @@ class MediaLocalDataSourceImpl implements MediaLocalDataSource {
 
     // Добавляем вычисляемое поле other_count
     final data = result.first;
-    final totalCount = data['total_count'] as int? ?? 0;
-    final imageCount = data['image_count'] as int? ?? 0;
-    final videoCount = data['video_count'] as int? ?? 0;
-    final audioCount = data['audio_count'] as int? ?? 0;
-    final documentCount = data['document_count'] as int? ?? 0;
-    final otherCount =
+    final int totalCount = data['total_count'] as int? ?? 0;
+    final int imageCount = data['image_count'] as int? ?? 0;
+    final int videoCount = data['video_count'] as int? ?? 0;
+    final int audioCount = data['audio_count'] as int? ?? 0;
+    final int documentCount = data['document_count'] as int? ?? 0;
+    final int otherCount =
         totalCount - (imageCount + videoCount + audioCount + documentCount);
 
-    return {
+    return <String, dynamic>{
       'total_count': totalCount,
       'total_size': data['total_size'] as int? ?? 0,
       'image_count': imageCount,
@@ -253,7 +260,7 @@ class MediaLocalDataSourceImpl implements MediaLocalDataSource {
     String? newEventId,
   }) async {
     final db = await _getDatabase();
-    final updates = <String, dynamic>{};
+    final Map<String, dynamic> updates = <String, dynamic>{};
     if (newPersonId != null) updates['person_id'] = newPersonId;
     if (newEventId != null) updates['event_id'] = newEventId;
     updates['updated_at'] = DateTime.now().millisecondsSinceEpoch;
@@ -262,7 +269,7 @@ class MediaLocalDataSourceImpl implements MediaLocalDataSource {
       'media_attachments',
       updates,
       where: 'id = ?',
-      whereArgs: [mediaId],
+      whereArgs: <String>[mediaId],
     );
   }
 }

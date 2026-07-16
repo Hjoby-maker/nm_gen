@@ -1,12 +1,12 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:file_selector/file_selector.dart';
-import 'package:nm_gen/di/injector.dart';
-import 'package:nm_gen/domain/use_cases/gedcom/export_gedcom.dart';
 
 // Импортируем dartz с псевдонимом для избежания конфликта
 import 'package:dartz/dartz.dart' as dartz;
+import 'package:file_selector/file_selector.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:nm_gen/di/injector.dart';
+import 'package:nm_gen/domain/use_cases/gedcom/export_gedcom.dart';
 
 class ExportGedcomScreen extends StatefulWidget {
   const ExportGedcomScreen({Key? key}) : super(key: key);
@@ -179,11 +179,11 @@ class _ExportGedcomScreenState extends State<ExportGedcomScreen> {
           try {
             const gedcomTypeGroup = XTypeGroup(
               label: 'GEDCOM',
-              extensions: ['ged'],
-              mimeTypes: ['text/plain'],
+              extensions: <String>['ged'],
+              mimeTypes: <String>['text/plain'],
             );
 
-            final fileName =
+            final String fileName =
                 'family_tree_${DateTime.now().millisecondsSinceEpoch}.ged';
 
             final FileSaveLocation? saveLocation = await getSaveLocation(
@@ -200,7 +200,7 @@ class _ExportGedcomScreenState extends State<ExportGedcomScreen> {
               return;
             }
 
-            final file = File(saveLocation.path);
+            final File file = File(saveLocation.path);
             await file.writeAsString(gedcom);
 
             setState(() {

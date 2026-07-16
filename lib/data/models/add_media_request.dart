@@ -3,15 +3,6 @@ import 'dart:typed_data';
 
 /// DTO для добавления нового медиа-файла (из презентационного слоя)
 class AddMediaRequest {
-  final Uint8List fileData;
-  final String fileName;
-  final String mimeType;
-  final String description;
-  final String? personId;
-  final String? eventId;
-  final bool setAsPrimary;
-  final bool generateThumbnail;
-
   const AddMediaRequest({
     required this.fileData,
     required this.fileName,
@@ -26,13 +17,21 @@ class AddMediaRequest {
              (personId == null && eventId != null),
          'Файл должен быть привязан либо к Person, либо к Event',
        );
+  final Uint8List fileData;
+  final String fileName;
+  final String mimeType;
+  final String description;
+  final String? personId;
+  final String? eventId;
+  final bool setAsPrimary;
+  final bool generateThumbnail;
 
   bool get isValidSize => fileData.length <= 50 * 1024 * 1024;
   bool get isImage => mimeType.startsWith('image/');
   bool get isVideo => mimeType.startsWith('video/');
 
   String get safeFileName {
-    final cleaned = fileName.replaceAll(RegExp(r'[^\w\s.-]'), '');
+    final String cleaned = fileName.replaceAll(RegExp(r'[^\w\s.-]'), '');
     return cleaned.isNotEmpty
         ? cleaned
         : 'file_${DateTime.now().millisecondsSinceEpoch}';

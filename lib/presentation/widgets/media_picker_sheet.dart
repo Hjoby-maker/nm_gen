@@ -15,28 +15,37 @@ class FileTypes {
   /// Все изображения
   static const XTypeGroup images = XTypeGroup(
     label: 'Изображения',
-    extensions: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'heic', 'heif'],
-    mimeTypes: ['image/*'],
+    extensions: <String>[
+      'jpg',
+      'jpeg',
+      'png',
+      'gif',
+      'bmp',
+      'webp',
+      'heic',
+      'heif',
+    ],
+    mimeTypes: <String>['image/*'],
   );
 
   /// Все видео
   static const XTypeGroup videos = XTypeGroup(
     label: 'Видео',
-    extensions: ['mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv', 'webm'],
-    mimeTypes: ['video/*'],
+    extensions: <String>['mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv', 'webm'],
+    mimeTypes: <String>['video/*'],
   );
 
   /// Все аудио
   static const XTypeGroup audios = XTypeGroup(
     label: 'Аудио',
-    extensions: ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a'],
-    mimeTypes: ['audio/*'],
+    extensions: <String>['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a'],
+    mimeTypes: <String>['audio/*'],
   );
 
   /// Все документы
   static const XTypeGroup documents = XTypeGroup(
     label: 'Документы',
-    extensions: [
+    extensions: <String>[
       'pdf',
       'doc',
       'docx',
@@ -50,7 +59,7 @@ class FileTypes {
       'ods',
       'odp',
     ],
-    mimeTypes: [
+    mimeTypes: <String>[
       'application/pdf',
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -64,10 +73,9 @@ class FileTypes {
 
 /// Нижний лист для выбора и добавления медиа-файлов
 class MediaPickerSheet extends StatefulWidget {
+  const MediaPickerSheet({super.key, this.personId, this.eventId});
   final String? personId;
   final String? eventId;
-
-  const MediaPickerSheet({super.key, this.personId, this.eventId});
 
   @override
   State<MediaPickerSheet> createState() => _MediaPickerSheetState();
@@ -222,9 +230,9 @@ class _MediaPickerSheetState extends State<MediaPickerSheet> {
   }
 
   Widget _buildPreview() {
-    final isImage = _selectedMimeType?.startsWith('image/') ?? false;
-    final isVideo = _selectedMimeType?.startsWith('video/') ?? false;
-    final isAudio = _selectedMimeType?.startsWith('audio/') ?? false;
+    final bool isImage = _selectedMimeType?.startsWith('image/') ?? false;
+    final bool isVideo = _selectedMimeType?.startsWith('video/') ?? false;
+    final bool isAudio = _selectedMimeType?.startsWith('audio/') ?? false;
 
     return Container(
       height: 100,
@@ -342,7 +350,7 @@ class _MediaPickerSheetState extends State<MediaPickerSheet> {
   }
 
   Widget _buildAddButton() {
-    final isValid =
+    final bool isValid =
         _selectedFileData != null &&
         _descriptionController.text.trim().isNotEmpty;
 
@@ -439,7 +447,7 @@ class _MediaPickerSheetState extends State<MediaPickerSheet> {
 
   /// Определение MIME-типа по расширению
   String _getMimeTypeFromExtension(String extension) {
-    const mimeTypes = {
+    const Map<String, String> mimeTypes = <String, String>{
       // Изображения
       'jpg': 'image/jpeg',
       'jpeg': 'image/jpeg',

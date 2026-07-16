@@ -5,14 +5,6 @@ import 'package:nm_gen/presentation/screens/tree_screen.dart';
 
 /// Виджет для отображения узла дерева
 class TreeNodeWidget extends StatelessWidget {
-  final TreeNode node;
-  final VoidCallback? onTap;
-  final bool isSelected;
-  final bool isRoot;
-  final bool isCenter; // <-- Добавляем флаг
-  final DetailLevel detailLevel;
-  final bool isCompact;
-
   const TreeNodeWidget({
     Key? key,
     required this.node,
@@ -23,19 +15,26 @@ class TreeNodeWidget extends StatelessWidget {
     this.detailLevel = DetailLevel.medium,
     this.isCompact = false,
   }) : super(key: key);
+  final TreeNode node;
+  final VoidCallback? onTap;
+  final bool isSelected;
+  final bool isRoot;
+  final bool isCenter; // <-- Добавляем флаг
+  final DetailLevel detailLevel;
+  final bool isCompact;
 
   @override
   Widget build(BuildContext context) {
     final person = node.person;
     final colorScheme = Theme.of(context).colorScheme;
 
-    final isMinimal = detailLevel == DetailLevel.minimal || isCompact;
-    final isFull = detailLevel == DetailLevel.full && !isCompact;
+    final bool isMinimal = detailLevel == DetailLevel.minimal || isCompact;
+    final bool isFull = detailLevel == DetailLevel.full && !isCompact;
 
-    final avatarRadius = isMinimal ? 16 : (isFull ? 28 : 22);
-    final iconSize = isMinimal ? 18 : (isFull ? 28 : 22);
-    final fontSize = isMinimal ? 10 : (isFull ? 14 : 12);
-    final padding = isMinimal ? 4.0 : (isFull ? 12.0 : 8.0);
+    final int avatarRadius = isMinimal ? 16 : (isFull ? 28 : 22);
+    final int iconSize = isMinimal ? 18 : (isFull ? 28 : 22);
+    final int fontSize = isMinimal ? 10 : (isFull ? 14 : 12);
+    final double padding = isMinimal ? 4.0 : (isFull ? 12.0 : 8.0);
 
     // Определяем цвет выделения
     Color borderColor = Colors.grey.shade300;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:nm_gen/core/enums/gender.dart';
 import 'package:nm_gen/domain/entities/family.dart';
 import 'package:nm_gen/domain/entities/person.dart';
 import 'package:nm_gen/domain/use_cases/family/get_family_with_details.dart';
@@ -13,7 +14,6 @@ import 'package:nm_gen/presentation/widgets/add_child_dialog.dart';
 import 'package:nm_gen/presentation/widgets/family_card.dart';
 import 'package:nm_gen/presentation/widgets/family_details_view.dart';
 import 'package:nm_gen/presentation/widgets/family_form_dialog.dart';
-import 'package:nm_gen/core/enums/gender.dart';
 
 class FamilyScreen extends StatefulWidget {
   const FamilyScreen({

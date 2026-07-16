@@ -1,14 +1,12 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:nm_gen/di/injector.dart';
 import 'package:nm_gen/domain/entities/event.dart';
 import 'package:nm_gen/domain/repositories/event_repository.dart';
-import 'package:nm_gen/di/injector.dart';
 import 'package:nm_gen/presentation/blocs/event/event_event.dart';
 import 'package:nm_gen/presentation/blocs/event/event_state.dart';
 
 class EventBloc extends Bloc<EventEvent, EventState> {
-  final EventRepository _repository = getIt<EventRepository>();
-
   EventBloc() : super(EventInitial()) {
     on<LoadPersonEventsEvent>(_onLoadPersonEvents);
     on<LoadAllEventsEvent>(_onLoadAllEvents);
@@ -17,6 +15,7 @@ class EventBloc extends Bloc<EventEvent, EventState> {
     on<DeleteEventEvent>(_onDeleteEvent);
     on<DeleteAllPersonEventsEvent>(_onDeleteAllPersonEvents);
   }
+  final EventRepository _repository = getIt<EventRepository>();
 
   Future<void> _onLoadPersonEvents(
     LoadPersonEventsEvent event,

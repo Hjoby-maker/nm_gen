@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:nm_gen/di/injector.dart';
 import 'package:nm_gen/domain/entities/family.dart';
 import 'package:nm_gen/domain/entities/person.dart';
 import 'package:nm_gen/domain/repositories/family_repository.dart';
@@ -11,17 +12,8 @@ import 'package:nm_gen/domain/use_cases/person/search_persons.dart';
 import 'package:nm_gen/domain/use_cases/person/update_person.dart';
 import 'package:nm_gen/presentation/blocs/person/person_event.dart';
 import 'package:nm_gen/presentation/blocs/person/person_state.dart';
-import 'package:nm_gen/di/injector.dart';
 
 class PersonBloc extends Bloc<PersonEvent, PersonState> {
-  final GetAllPersonsUseCase getAllPersonsUseCase;
-  final AddPersonUseCase addPersonUseCase;
-  final UpdatePersonUseCase updatePersonUseCase;
-  final DeletePersonUseCase deletePersonUseCase;
-  final SearchPersonsUseCase searchPersonsUseCase;
-  final FamilyRepository familyRepository;
-  final PersonRepository personRepository;
-
   PersonBloc({
     required this.getAllPersonsUseCase,
     required this.addPersonUseCase,
@@ -39,6 +31,13 @@ class PersonBloc extends Bloc<PersonEvent, PersonState> {
     on<ClearSearchEvent>(_onClearSearch);
     on<DeleteAllPersonsEvent>(_onDeleteAllPersons);
   }
+  final GetAllPersonsUseCase getAllPersonsUseCase;
+  final AddPersonUseCase addPersonUseCase;
+  final UpdatePersonUseCase updatePersonUseCase;
+  final DeletePersonUseCase deletePersonUseCase;
+  final SearchPersonsUseCase searchPersonsUseCase;
+  final FamilyRepository familyRepository;
+  final PersonRepository personRepository;
 
   /// Обработчик: Загрузка всех людей
   Future<void> _onLoadPersons(

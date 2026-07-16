@@ -1,7 +1,7 @@
+import 'package:injectable/injectable.dart';
 import 'package:nm_gen/data/datasources/local/database/db_helper.dart';
 import 'package:nm_gen/data/datasources/local/database/person_model.dart';
 import 'package:sqflite_common/sqlite_api.dart';
-import 'package:injectable/injectable.dart';
 
 @injectable
 class PersonLocalDataSource {
@@ -155,7 +155,7 @@ class PersonLocalDataSource {
     if (treeId != null && treeId.isNotEmpty) {
       result = await db.rawQuery(
         'SELECT COUNT(*) as count FROM persons WHERE tree_id = ?',
-        [treeId],
+        <String>[treeId],
       );
     } else {
       result = await db.rawQuery('SELECT COUNT(*) as count FROM persons');

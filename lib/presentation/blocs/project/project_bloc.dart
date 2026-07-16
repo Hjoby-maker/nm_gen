@@ -1,14 +1,12 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:nm_gen/di/injector.dart';
 import 'package:nm_gen/domain/entities/project.dart';
 import 'package:nm_gen/domain/repositories/project_repository.dart';
-import 'package:nm_gen/di/injector.dart';
 import 'package:nm_gen/presentation/blocs/project/project_event.dart';
 import 'package:nm_gen/presentation/blocs/project/project_state.dart';
 
 class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
-  final ProjectRepository _repository = getIt<ProjectRepository>();
-
   ProjectBloc() : super(ProjectInitial()) {
     on<LoadProjectsEvent>(_onLoadProjects);
     on<AddProjectEvent>(_onAddProject);
@@ -18,6 +16,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     on<CheckCanDeleteProjectEvent>(_onCheckCanDeleteProject);
     on<SetDefaultProjectEvent>(_onSetDefaultProject);
   }
+  final ProjectRepository _repository = getIt<ProjectRepository>();
 
   Future<void> _onLoadProjects(
     LoadProjectsEvent event,

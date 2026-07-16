@@ -14,10 +14,9 @@ import '../models/media_sort.dart';
 
 /// Реализация репозитория медиа-файлов
 class MediaRepositoryImpl implements MediaRepository {
+  MediaRepositoryImpl(this._dataSource, this._fileStorage);
   final MediaLocalDataSource _dataSource;
   final FileStorageService _fileStorage;
-
-  MediaRepositoryImpl(this._dataSource, this._fileStorage);
 
   @override
   Future<Either<Failure, List<MediaAttachment>>> getMediaByPerson(
@@ -26,8 +25,12 @@ class MediaRepositoryImpl implements MediaRepository {
     MediaSortOrder sortOrder = MediaSortOrder.newestFirst,
   }) async {
     try {
-      final models = await _dataSource.getByPersonId(personId);
-      var entities = models.map((model) => model.toEntity()).toList();
+      final List<MediaAttachmentModel> models = await _dataSource.getByPersonId(
+        personId,
+      );
+      var entities = models
+          .map((MediaAttachmentModel model) => model.toEntity())
+          .toList();
 
       // Применяем фильтр
       if (filter != null) {
@@ -52,8 +55,12 @@ class MediaRepositoryImpl implements MediaRepository {
     MediaSortOrder sortOrder = MediaSortOrder.newestFirst,
   }) async {
     try {
-      final models = await _dataSource.getByEventId(eventId);
-      var entities = models.map((model) => model.toEntity()).toList();
+      final List<MediaAttachmentModel> models = await _dataSource.getByEventId(
+        eventId,
+      );
+      var entities = models
+          .map((MediaAttachmentModel model) => model.toEntity())
+          .toList();
 
       if (filter != null) {
         entities = entities.where(filter.matches).toList();
@@ -74,7 +81,9 @@ class MediaRepositoryImpl implements MediaRepository {
     String personId,
   ) async {
     try {
-      final model = await _dataSource.getPrimaryPortrait(personId);
+      final MediaAttachmentModel? model = await _dataSource.getPrimaryPortrait(
+        personId,
+      );
       return Right(model?.toEntity());
     } catch (e) {
       return Left(
@@ -86,7 +95,7 @@ class MediaRepositoryImpl implements MediaRepository {
   @override
   Future<Either<Failure, MediaAttachment>> getMediaById(String id) async {
     try {
-      final model = await _dataSource.getById(id);
+      final MediaAttachmentModel? model = await _dataSource.getById(id);
       if (model == null) {
         return Left(MediaNotFoundFailure(id, message: 'Медиа-файл не найден'));
       }
@@ -112,12 +121,14 @@ class MediaRepositoryImpl implements MediaRepository {
     try {
       // Валидация
       if (fileData.isEmpty) {
-        return Left(MediaValidationFailure('Файл пустой', code: 'EMPTY_FILE'));
+        return Left(
+          const MediaValidationFailure('Файл пустой', code: 'EMPTY_FILE'),
+        );
       }
 
       if (fileData.length > 50 * 1024 * 1024) {
         return Left(
-          MediaValidationFailure(
+          const MediaValidationFailure(
             'Файл слишком большой (макс. 50 МБ)',
             code: 'FILE_TOO_LARGE',
           ),
@@ -126,7 +137,7 @@ class MediaRepositoryImpl implements MediaRepository {
 
       if (description.trim().isEmpty) {
         return Left(
-          MediaValidationFailure(
+          const MediaValidationFailure(
             'Описание не может быть пустым',
             code: 'EMPTY_DESCRIPTION',
           ),
@@ -134,7 +145,9 @@ class MediaRepositoryImpl implements MediaRepository {
       }
 
       // Определяем поддиректорию
-      final subDir = personId != null ? 'person_$personId' : 'event_$eventId';
+      final String subDir = personId != null
+          ? 'person_$personId'
+          : 'event_$eventId';
 
       // Сохраняем файл
       final filePath = await _fileStorage.saveFile(
@@ -166,7 +179,7 @@ class MediaRepositoryImpl implements MediaRepository {
       }
 
       // Создаем модель
-      final model = MediaAttachmentModel.create(
+      final MediaAttachmentModel model = MediaAttachmentModel.create(
         fileName: fileName,
         localPath: filePath,
         mimeType: mimeType,
@@ -203,21 +216,21 @@ class MediaRepositoryImpl implements MediaRepository {
     try {
       if (newDescription.trim().isEmpty) {
         return Left(
-          MediaValidationFailure(
+          const MediaValidationFailure(
             'Описание не может быть пустым',
             code: 'EMPTY_DESCRIPTION',
           ),
         );
       }
 
-      final model = await _dataSource.getById(mediaId);
+      final MediaAttachmentModel? model = await _dataSource.getById(mediaId);
       if (model == null) {
         return Left(
           MediaNotFoundFailure(mediaId, message: 'Медиа-файл не найден'),
         );
       }
 
-      final updatedModel = MediaAttachmentModel(
+      final MediaAttachmentModel updatedModel = MediaAttachmentModel(
         id: model.id,
         personId: model.personId,
         eventId: model.eventId,
@@ -251,7 +264,7 @@ class MediaRepositoryImpl implements MediaRepository {
     String personId,
   ) async {
     try {
-      final model = await _dataSource.getById(mediaId);
+      final MediaAttachmentModel? model = await _dataSource.getById(mediaId);
       if (model == null) {
         return Left(
           MediaNotFoundFailure(mediaId, message: 'Медиа-файл не найден'),
@@ -261,7 +274,7 @@ class MediaRepositoryImpl implements MediaRepository {
       // Проверяем, что файл принадлежит этому человеку
       if (model.personId != personId) {
         return Left(
-          MediaValidationFailure(
+          const MediaValidationFailure(
             'Файл не принадлежит этому человеку',
             code: 'WRONG_OWNER',
           ),
@@ -272,7 +285,7 @@ class MediaRepositoryImpl implements MediaRepository {
       await _dataSource.clearPrimaryPortrait(personId);
 
       // Устанавливаем новый
-      final updatedModel = MediaAttachmentModel(
+      final MediaAttachmentModel updatedModel = MediaAttachmentModel(
         id: model.id,
         personId: model.personId,
         eventId: model.eventId,
@@ -305,7 +318,7 @@ class MediaRepositoryImpl implements MediaRepository {
   @override
   Future<Either<Failure, void>> deleteMedia(String mediaId) async {
     try {
-      final model = await _dataSource.getById(mediaId);
+      final MediaAttachmentModel? model = await _dataSource.getById(mediaId);
       if (model == null) {
         return Left(
           MediaNotFoundFailure(mediaId, message: 'Медиа-файл не найден'),
@@ -341,7 +354,9 @@ class MediaRepositoryImpl implements MediaRepository {
   Future<Either<Failure, void>> deleteAllMediaByPerson(String personId) async {
     try {
       // Получаем все файлы для удаления с диска
-      final models = await _dataSource.getByPersonId(personId);
+      final List<MediaAttachmentModel> models = await _dataSource.getByPersonId(
+        personId,
+      );
 
       // Удаляем из БД
       await _dataSource.deleteByPersonId(personId);
@@ -390,7 +405,7 @@ class MediaRepositoryImpl implements MediaRepository {
       // Проверяем, что новый владелец указан
       if (newPersonId == null && newEventId == null) {
         return Left(
-          MediaValidationFailure(
+          const MediaValidationFailure(
             'Не указан новый владелец',
             code: 'NO_NEW_OWNER',
           ),
@@ -400,14 +415,14 @@ class MediaRepositoryImpl implements MediaRepository {
       // Проверяем, что указан только один владелец
       if (newPersonId != null && newEventId != null) {
         return Left(
-          MediaValidationFailure(
+          const MediaValidationFailure(
             'Файл должен принадлежать либо Person, либо Event',
             code: 'MULTIPLE_OWNERS',
           ),
         );
       }
 
-      final model = await _dataSource.getById(mediaId);
+      final MediaAttachmentModel? model = await _dataSource.getById(mediaId);
       if (model == null) {
         return Left(
           MediaNotFoundFailure(mediaId, message: 'Медиа-файл не найден'),
@@ -415,10 +430,10 @@ class MediaRepositoryImpl implements MediaRepository {
       }
 
       // Перемещаем файл на диске
-      final oldDir = model.personId != null
+      final String oldDir = model.personId != null
           ? 'person_${model.personId}'
           : 'event_${model.eventId}';
-      final newDir = newPersonId != null
+      final String newDir = newPersonId != null
           ? 'person_$newPersonId'
           : 'event_$newEventId';
 
@@ -428,7 +443,7 @@ class MediaRepositoryImpl implements MediaRepository {
           newSubDirectory: newDir,
         );
         // Обновляем путь в модели
-        final updatedModel = MediaAttachmentModel(
+        final MediaAttachmentModel updatedModel = MediaAttachmentModel(
           id: model.id,
           personId: newPersonId,
           eventId: newEventId,
@@ -464,7 +479,7 @@ class MediaRepositoryImpl implements MediaRepository {
     String? eventId,
   }) async {
     try {
-      final stats = await _dataSource.getStatistics(
+      final Map<String, dynamic> stats = await _dataSource.getStatistics(
         personId: personId,
         eventId: eventId,
       );
@@ -491,7 +506,7 @@ class MediaRepositoryImpl implements MediaRepository {
   @override
   Future<Either<Failure, int>> cleanUnusedFiles() async {
     try {
-      final validPaths = await _dataSource.getAllFilePaths();
+      final List<String> validPaths = await _dataSource.getAllFilePaths();
       final deletedCount = await _fileStorage.cleanUnusedFiles(
         validPaths.toSet(),
       );

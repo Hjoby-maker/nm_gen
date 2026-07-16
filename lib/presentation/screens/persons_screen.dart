@@ -20,9 +20,8 @@ import 'package:nm_gen/presentation/widgets/person_form_dialog.dart';
 // ... все импорты остаются без изменений
 
 class PersonsScreen extends StatefulWidget {
-  final String treeId;
-
   const PersonsScreen({super.key, required this.treeId});
+  final String treeId;
 
   @override
   State<PersonsScreen> createState() => _PersonsScreenState();
@@ -278,7 +277,7 @@ class _PersonsScreenState extends State<PersonsScreen> {
                           ),
                           confirmDismiss: (direction) async {
                             if (direction == DismissDirection.startToEnd) {
-                              return await _confirmDeleteDialog(
+                              return _confirmDeleteDialog(
                                 context,
                                 person.id,
                                 person.displayName,

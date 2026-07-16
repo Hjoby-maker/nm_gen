@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter/services.dart';
 import 'package:file_selector/file_selector.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nm_gen/di/injector.dart';
 import 'package:nm_gen/domain/use_cases/gedcom/import_gedcom.dart';
 import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
@@ -258,8 +258,8 @@ class _ImportGedcomScreenState extends State<ImportGedcomScreen> {
 
       const gedcomTypeGroup = XTypeGroup(
         label: 'GEDCOM',
-        extensions: ['ged'],
-        mimeTypes: ['text/plain', 'application/gedcom'],
+        extensions: <String>['ged'],
+        mimeTypes: <String>['text/plain', 'application/gedcom'],
       );
 
       final XFile? file = await openFile(acceptedTypeGroups: [gedcomTypeGroup]);

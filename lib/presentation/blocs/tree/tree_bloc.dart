@@ -1,18 +1,17 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:nm_gen/di/injector.dart';
 import 'package:nm_gen/domain/entities/person.dart';
 import 'package:nm_gen/domain/use_cases/tree/get_full_tree.dart';
 import 'package:nm_gen/presentation/blocs/tree/tree_event.dart';
 import 'package:nm_gen/presentation/blocs/tree/tree_state.dart';
-import 'package:nm_gen/di/injector.dart';
 
 class TreeBloc extends Bloc<TreeEvent, TreeState> {
-  final GetFullTreeUseCase _getFullTreeUseCase = getIt<GetFullTreeUseCase>();
-
   TreeBloc() : super(TreeInitial()) {
     on<LoadTreeEvent>(_onLoadTree);
     on<ChangeRootPersonEvent>(_onChangeRootPerson);
     on<SelectPersonEvent>(_onSelectPerson);
   }
+  final GetFullTreeUseCase _getFullTreeUseCase = getIt<GetFullTreeUseCase>();
 
   Future<void> _onLoadTree(LoadTreeEvent event, Emitter<TreeState> emit) async {
     emit(TreeLoading());

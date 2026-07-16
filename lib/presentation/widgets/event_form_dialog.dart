@@ -103,14 +103,14 @@ class _EventFormDialogState extends State<EventFormDialog> {
             _buildDatePicker(
               label: 'Дата начала',
               date: _startDate,
-              onChanged: (date) => setState(() => _startDate = date),
+              onChanged: (DateTime? date) => setState(() => _startDate = date),
               onClear: () => setState(() => _startDate = null),
             ),
             // Дата окончания
             _buildDatePicker(
               label: 'Дата окончания',
               date: _endDate,
-              onChanged: (date) => setState(() => _endDate = date),
+              onChanged: (DateTime? date) => setState(() => _endDate = date),
               onClear: () => setState(() => _endDate = null),
             ),
             const SizedBox(height: 8),

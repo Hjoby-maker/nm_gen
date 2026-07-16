@@ -98,13 +98,13 @@ class ImportGedcomUseCase {
         .toList();
 
     // Собираем всех детей из семей
-    final allChildrenIds = <String>{};
+    final Set<String> allChildrenIds = <String>{};
     for (final family in familiesWithChildren) {
       allChildrenIds.addAll(family.childrenIds);
     }
 
     // Находим людей, у которых есть братья/сестры, но нет семьи родителей
-    final peopleWithoutParents = <String>[];
+    final List<String> peopleWithoutParents = <String>[];
     for (final individual in data.individuals) {
       // Проверяем, есть ли у этого человека семья, где он ребенок
       final hasParentFamily = data.families.any(
@@ -115,7 +115,7 @@ class ImportGedcomUseCase {
       // и у него есть братья/сестры (определяем по фамилии)
       if (!hasParentFamily) {
         // Ищем людей с такой же фамилией (предполагаем, что это братья/сестры)
-        final surname = _extractSurname(individual.name);
+        final String surname = _extractSurname(individual.name);
         if (surname.isNotEmpty) {
           final siblings = data.individuals
               .where(
@@ -137,7 +137,7 @@ class ImportGedcomUseCase {
               childrenIds: [
                 individual.id,
                 ...siblings,
-              ].map((id) => idMap[id]).whereType<String>().toList(),
+              ].map((Object? id) => idMap[id]).whereType<String>().toList(),
               marriageDate: null,
               divorceDate: null,
               marriagePlace: null,
@@ -156,7 +156,7 @@ class ImportGedcomUseCase {
 
   String _extractSurname(String fullName) {
     // Извлекаем фамилию из формата "Имя /Фамилия/"
-    final match = RegExp(r'/([^/]+)/').firstMatch(fullName);
+    final RegExpMatch? match = RegExp(r'/([^/]+)/').firstMatch(fullName);
     if (match != null && match.groupCount >= 1) {
       return match.group(1)?.trim() ?? '';
     }

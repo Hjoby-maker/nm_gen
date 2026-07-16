@@ -2,12 +2,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nm_gen/core/enums/gender.dart';
+import 'package:nm_gen/di/injector.dart';
 import 'package:nm_gen/domain/entities/event.dart';
 import 'package:nm_gen/domain/entities/person.dart';
 import 'package:nm_gen/presentation/blocs/event/event_bloc.dart';
 import 'package:nm_gen/presentation/blocs/event/event_event.dart';
 import 'package:nm_gen/presentation/blocs/event/event_state.dart';
 import 'package:nm_gen/presentation/blocs/media/media_bloc.dart';
+import 'package:nm_gen/presentation/blocs/media/media_event.dart';
 import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
 import 'package:nm_gen/presentation/blocs/person/person_event.dart';
 import 'package:nm_gen/presentation/blocs/person/person_state.dart';
@@ -16,12 +18,10 @@ import 'package:nm_gen/presentation/widgets/event_tile.dart';
 import 'package:nm_gen/presentation/widgets/media_section.dart';
 import 'package:nm_gen/presentation/widgets/person_avatar.dart';
 import 'package:nm_gen/presentation/widgets/person_form_dialog.dart';
-import 'package:nm_gen/di/injector.dart';
-import 'package:nm_gen/presentation/blocs/media/media_event.dart';
 
 class PersonDetailScreen extends StatefulWidget {
   const PersonDetailScreen({Key? key, required this.personId})
-      : super(key: key);
+    : super(key: key);
   final String personId;
 
   @override
@@ -101,14 +101,8 @@ class _PersonDetailScreenState extends State<PersonDetailScreen>
           bottom: TabBar(
             controller: _tabController,
             tabs: [
-              Tab(
-                icon: Icon(Icons.info),
-                text: 'Информация',
-              ),
-              Tab(
-                icon: Icon(Icons.folder),
-                text: 'Файлы',
-              ),
+              Tab(icon: Icon(Icons.info), text: 'Информация'),
+              Tab(icon: Icon(Icons.folder), text: 'Файлы'),
             ],
           ),
           actions: [
@@ -131,21 +125,18 @@ class _PersonDetailScreenState extends State<PersonDetailScreen>
         body: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : _person == null || _person!.id.isEmpty
-                ? _buildNotFoundView()
-                : TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildInfoTab(),
-                      _buildMediaTab(),
-                    ],
-                  ),
-       floatingActionButton: FloatingActionButton(
-  onPressed: _person != null && _person!.id.isNotEmpty
-      ? () => _showAddEventDialog(context)
-      : null,
-  tooltip: 'Добавить событие',
-  child: const Icon(Icons.add),
-),
+            ? _buildNotFoundView()
+            : TabBarView(
+                controller: _tabController,
+                children: [_buildInfoTab(), _buildMediaTab()],
+              ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: _person != null && _person!.id.isNotEmpty
+              ? () => _showAddEventDialog(context)
+              : null,
+          tooltip: 'Добавить событие',
+          child: const Icon(Icons.add),
+        ),
       ),
     );
   }
@@ -175,10 +166,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen>
   Widget _buildMediaTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      child: MediaSection(
-        personId: widget.personId,
-        showPrimaryBadge: true,
-      ),
+      child: MediaSection(personId: widget.personId, showPrimaryBadge: true),
     );
   }
 
@@ -209,7 +197,9 @@ class _PersonDetailScreenState extends State<PersonDetailScreen>
 
   Widget _buildHeader() {
     final person = _person!;
-    final age = person.age != null ? '${person.age} лет' : 'Возраст неизвестен';
+    final String age = person.age != null
+        ? '${person.age} лет'
+        : 'Возраст неизвестен';
 
     return Card(
       child: Padding(
@@ -243,8 +233,8 @@ class _PersonDetailScreenState extends State<PersonDetailScreen>
                             person.gender == Gender.male
                                 ? Icons.male
                                 : person.gender == Gender.female
-                                    ? Icons.female
-                                    : Icons.person,
+                                ? Icons.female
+                                : Icons.person,
                             size: 16,
                             color: person.gender == Gender.male
                                 ? Colors.blue
@@ -449,7 +439,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen>
           secondaryBackground: _buildSwipeLeftBackground(),
           confirmDismiss: (direction) async {
             if (direction == DismissDirection.startToEnd) {
-              return await _confirmDeleteEvent(context, event.id);
+              return _confirmDeleteEvent(context, event.id);
             } else if (direction == DismissDirection.endToStart) {
               _showEditEventDialog(context, event);
               return false;

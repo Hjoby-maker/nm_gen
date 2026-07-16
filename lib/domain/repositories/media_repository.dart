@@ -1,10 +1,12 @@
 // lib/domain/repositories/media_repository.dart
 import 'dart:typed_data';
+
 import 'package:dartz/dartz.dart';
-import '../entities/media_attachment.dart';
+
 import '../../core/errors/failures.dart';
 import '../../data/models/media_filter.dart';
 import '../../data/models/media_sort.dart';
+import '../entities/media_attachment.dart';
 
 /// Абстрактный репозиторий для работы с медиа-файлами
 abstract class MediaRepository {
@@ -80,15 +82,6 @@ abstract class MediaRepository {
 
 /// Статистика по медиа-файлам
 class MediaStatistics {
-  final int totalCount;
-  final int totalSize;
-  final int imageCount;
-  final int videoCount;
-  final int audioCount;
-  final int documentCount;
-  final int otherCount;
-  final int primaryPortraits;
-
   const MediaStatistics({
     required this.totalCount,
     required this.totalSize,
@@ -99,6 +92,14 @@ class MediaStatistics {
     required this.otherCount,
     required this.primaryPortraits,
   });
+  final int totalCount;
+  final int totalSize;
+  final int imageCount;
+  final int videoCount;
+  final int audioCount;
+  final int documentCount;
+  final int otherCount;
+  final int primaryPortraits;
 
   String get formattedTotalSize {
     if (totalSize < 1024) return '$totalSize B';

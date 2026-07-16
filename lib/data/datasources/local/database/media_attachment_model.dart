@@ -4,20 +4,6 @@ import 'package:uuid/uuid.dart';
 
 /// Модель медиа-вложения для работы с SQLite
 class MediaAttachmentModel {
-  final String id;
-  final String? personId;
-  final String? eventId;
-  final String fileName;
-  final String localPath;
-  final String? remoteUrl;
-  final String mimeType;
-  final int fileSize;
-  final String description;
-  final int isPrimary; // SQLite использует 0/1 вместо bool
-  final String? thumbnailPath;
-  final int createdAt;
-  final int? updatedAt;
-
   const MediaAttachmentModel({
     required this.id,
     this.personId,
@@ -51,46 +37,6 @@ class MediaAttachmentModel {
       createdAt: entity.createdAt.millisecondsSinceEpoch,
       updatedAt: entity.updatedAt?.millisecondsSinceEpoch,
     );
-  }
-
-  /// Преобразование в доменную сущность
-  MediaAttachment toEntity() {
-    return MediaAttachment(
-      id: id,
-      personId: personId,
-      eventId: eventId,
-      fileName: fileName,
-      localPath: localPath,
-      remoteUrl: remoteUrl,
-      mimeType: mimeType,
-      fileSize: fileSize,
-      description: description,
-      isPrimary: isPrimary == 1,
-      thumbnailPath: thumbnailPath,
-      createdAt: DateTime.fromMillisecondsSinceEpoch(createdAt),
-      updatedAt: updatedAt != null
-          ? DateTime.fromMillisecondsSinceEpoch(updatedAt!)
-          : null,
-    );
-  }
-
-  /// Преобразование в Map для SQLite
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'person_id': personId,
-      'event_id': eventId,
-      'file_name': fileName,
-      'local_path': localPath,
-      'remote_url': remoteUrl,
-      'mime_type': mimeType,
-      'file_size': fileSize,
-      'description': description,
-      'is_primary': isPrimary,
-      'thumbnail_path': thumbnailPath,
-      'created_at': createdAt,
-      'updated_at': updatedAt,
-    };
   }
 
   /// Создание из Map (из SQLite)
@@ -132,7 +78,7 @@ class MediaAttachmentModel {
       'Файл должен быть привязан либо к Person, либо к Event',
     );
 
-    final now = DateTime.now().millisecondsSinceEpoch;
+    final int now = DateTime.now().millisecondsSinceEpoch;
 
     return MediaAttachmentModel(
       id: id ?? const Uuid().v4(),
@@ -149,5 +95,58 @@ class MediaAttachmentModel {
       createdAt: now,
       updatedAt: null,
     );
+  }
+  final String id;
+  final String? personId;
+  final String? eventId;
+  final String fileName;
+  final String localPath;
+  final String? remoteUrl;
+  final String mimeType;
+  final int fileSize;
+  final String description;
+  final int isPrimary; // SQLite использует 0/1 вместо bool
+  final String? thumbnailPath;
+  final int createdAt;
+  final int? updatedAt;
+
+  /// Преобразование в доменную сущность
+  MediaAttachment toEntity() {
+    return MediaAttachment(
+      id: id,
+      personId: personId,
+      eventId: eventId,
+      fileName: fileName,
+      localPath: localPath,
+      remoteUrl: remoteUrl,
+      mimeType: mimeType,
+      fileSize: fileSize,
+      description: description,
+      isPrimary: isPrimary == 1,
+      thumbnailPath: thumbnailPath,
+      createdAt: DateTime.fromMillisecondsSinceEpoch(createdAt),
+      updatedAt: updatedAt != null
+          ? DateTime.fromMillisecondsSinceEpoch(updatedAt!)
+          : null,
+    );
+  }
+
+  /// Преобразование в Map для SQLite
+  Map<String, dynamic> toMap() {
+    return <String, dynamic>{
+      'id': id,
+      'person_id': personId,
+      'event_id': eventId,
+      'file_name': fileName,
+      'local_path': localPath,
+      'remote_url': remoteUrl,
+      'mime_type': mimeType,
+      'file_size': fileSize,
+      'description': description,
+      'is_primary': isPrimary,
+      'thumbnail_path': thumbnailPath,
+      'created_at': createdAt,
+      'updated_at': updatedAt,
+    };
   }
 }

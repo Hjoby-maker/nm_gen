@@ -1,6 +1,6 @@
 import 'package:injectable/injectable.dart';
-import 'package:nm_gen/data/datasources/local/family_local_datasource.dart';
 import 'package:nm_gen/data/datasources/local/database/family_model.dart';
+import 'package:nm_gen/data/datasources/local/family_local_datasource.dart';
 import 'package:nm_gen/domain/entities/family.dart';
 import 'package:nm_gen/domain/repositories/family_repository.dart';
 

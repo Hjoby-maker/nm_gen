@@ -11,16 +11,15 @@ import 'package:nm_gen/presentation/widgets/media_picker_sheet.dart';
 
 /// Секция с медиа-файлами для отображения в профиле человека или события
 class MediaSection extends StatefulWidget {
-  final String? personId;
-  final String? eventId;
-  final bool showPrimaryBadge;
-
   const MediaSection({
     super.key,
     this.personId,
     this.eventId,
     this.showPrimaryBadge = true,
   });
+  final String? personId;
+  final String? eventId;
+  final bool showPrimaryBadge;
 
   @override
   State<MediaSection> createState() => _MediaSectionState();

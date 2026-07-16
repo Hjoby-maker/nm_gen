@@ -3,6 +3,15 @@ import 'person.dart';
 
 /// Узел дерева для визуализации
 class TreeNode extends Equatable {
+  const TreeNode({
+    required this.person,
+    this.children = const <TreeNode>[],
+    this.spouses = const <TreeNode>[],
+    this.isRoot = false,
+    this.isCenter = false, // <-- По умолчанию false
+    this.generation = 0,
+    this.isDuplicateReference = false,
+  });
   final Person person;
   final List<TreeNode> children;
   final List<TreeNode> spouses;
@@ -18,21 +27,11 @@ class TreeNode extends Equatable {
   /// месте.
   final bool isDuplicateReference;
 
-  const TreeNode({
-    required this.person,
-    this.children = const [],
-    this.spouses = const [],
-    this.isRoot = false,
-    this.isCenter = false, // <-- По умолчанию false
-    this.generation = 0,
-    this.isDuplicateReference = false,
-  });
-
   bool get isLeaf => children.isEmpty;
 
   int get descendantsCount {
     int count = children.length;
-    for (final child in children) {
+    for (final TreeNode child in children) {
       count += child.descendantsCount;
     }
     return count;
@@ -61,7 +60,7 @@ class TreeNode extends Equatable {
   }
 
   @override
-  List<Object?> get props => [
+  List<Object?> get props => <Object?>[
     person,
     children,
     spouses,

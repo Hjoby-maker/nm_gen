@@ -3,20 +3,19 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nm_gen/core/enums/gender.dart';
 import 'package:nm_gen/domain/entities/person.dart';
 import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
-import 'package:nm_gen/presentation/blocs/person/person_state.dart';
 import 'package:nm_gen/presentation/blocs/person/person_event.dart';
+import 'package:nm_gen/presentation/blocs/person/person_state.dart';
 
 class PersonListView extends StatelessWidget {
-  final String treeId;
-  final Function(String) onPersonTap;
-  final VoidCallback onAddPerson;
-
   const PersonListView({
     super.key,
     required this.treeId,
     required this.onPersonTap,
     required this.onAddPerson,
   });
+  final String treeId;
+  final Function(String) onPersonTap;
+  final VoidCallback onAddPerson;
 
   @override
   Widget build(BuildContext context) {

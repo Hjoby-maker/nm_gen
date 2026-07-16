@@ -17,7 +17,7 @@ class Person extends Equatable {
     this.deathPlace,
     this.occupation,
     this.biography,
-    this.photoUrls = const [],
+    this.photoUrls = const <String>[],
     this.photoPath,
     required this.createdAt,
     required this.updatedAt,
@@ -39,7 +39,7 @@ class Person extends Equatable {
     List<String>? photoUrls,
     String? photoPath,
   }) {
-    final now = DateTime.now();
+    final DateTime now = DateTime.now();
     return Person(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       treeId: treeId ?? 'default',
@@ -53,7 +53,7 @@ class Person extends Equatable {
       deathPlace: deathPlace,
       occupation: occupation,
       biography: biography,
-      photoUrls: photoUrls ?? const [],
+      photoUrls: photoUrls ?? const <String>[],
       photoPath: photoPath,
       createdAt: now,
       updatedAt: now,
@@ -140,7 +140,7 @@ class Person extends Equatable {
 
   /// Получить все типы медиа, которые есть у человека
   Set<String> get mediaTypes {
-    final types = <String>{};
+    final Set<String> types = <String>{};
     if (photoUrls.isNotEmpty) types.add('photos');
     if (photoPath != null) types.add('portrait');
     return types;

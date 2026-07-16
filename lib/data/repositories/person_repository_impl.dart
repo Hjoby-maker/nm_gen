@@ -1,6 +1,6 @@
 import 'package:injectable/injectable.dart';
-import 'package:nm_gen/data/datasources/local/person_local_datasource.dart';
 import 'package:nm_gen/data/datasources/local/database/person_model.dart';
+import 'package:nm_gen/data/datasources/local/person_local_datasource.dart';
 import 'package:nm_gen/domain/entities/person.dart';
 import 'package:nm_gen/domain/repositories/person_repository.dart';
 

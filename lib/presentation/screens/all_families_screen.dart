@@ -18,9 +18,8 @@ import 'package:nm_gen/presentation/blocs/person/person_event.dart';
 import 'package:nm_gen/presentation/widgets/add_child_dialog.dart';
 
 class AllFamiliesScreen extends StatefulWidget {
-  final String treeId;
-
   const AllFamiliesScreen({super.key, required this.treeId});
+  final String treeId;
 
   @override
   State<AllFamiliesScreen> createState() => _AllFamiliesScreenState();
@@ -209,10 +208,7 @@ class _AllFamiliesScreenState extends State<AllFamiliesScreen> {
                     confirmDismiss: (direction) async {
                       if (direction == DismissDirection.startToEnd) {
                         // Свайп ВПРАВО → Удаление
-                        return await _confirmDeleteFamilyDialog(
-                          context,
-                          family.id,
-                        );
+                        return _confirmDeleteFamilyDialog(context, family.id);
                       } else if (direction == DismissDirection.endToStart) {
                         // Свайп ВЛЕВО → Показать действия (не удаляем)
                         _showSwipeLeftActions(context, family);
@@ -462,7 +458,7 @@ class _AllFamiliesScreenState extends State<AllFamiliesScreen> {
   Future<void> _ensurePersonsLoaded(BuildContext context) async {
     final state = _personBloc.state;
     if (state is! PersonsLoaded) {
-      final completer = Completer<void>();
+      final Completer<void> completer = Completer<void>();
 
       final subscription = _personBloc.stream.listen((newState) {
         if (newState is PersonsLoaded) {
@@ -618,8 +614,8 @@ class _AllFamiliesScreenState extends State<AllFamiliesScreen> {
     List<Person> persons,
   ) {
     final familyState = _familyBloc.state;
-    List<String> existingChildIds = [];
-    List<String> parentIds = [];
+    List<String> existingChildIds = <String>[];
+    List<String> parentIds = <String>[];
 
     if (familyState is FamiliesLoaded) {
       final family = familyState.families.firstWhere(
@@ -627,7 +623,7 @@ class _AllFamiliesScreenState extends State<AllFamiliesScreen> {
         orElse: () => Family.empty(),
       );
       existingChildIds = family.childrenIds;
-      parentIds = [
+      parentIds = <String>[
         if (family.husbandId != null) family.husbandId!,
         if (family.wifeId != null) family.wifeId!,
       ];

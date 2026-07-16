@@ -31,36 +31,42 @@ extension MediaSortOrderExtension on MediaSortOrder {
 
   /// Сортировка списка медиа
   List<MediaAttachment> sort(List<MediaAttachment> media) {
-    final sorted = [...media];
+    final List<MediaAttachment> sorted = <MediaAttachment>[...media];
     switch (this) {
       case MediaSortOrder.newestFirst:
         sorted.sort(
-          (a, b) => b.createdAt.compareTo(a.createdAt),
+          (MediaAttachment a, MediaAttachment b) =>
+              b.createdAt.compareTo(a.createdAt),
         ); // ← createdAt не null
         break;
       case MediaSortOrder.oldestFirst:
         sorted.sort(
-          (a, b) => a.createdAt.compareTo(b.createdAt),
+          (MediaAttachment a, MediaAttachment b) =>
+              a.createdAt.compareTo(b.createdAt),
         ); // ← createdAt не null
         break;
       case MediaSortOrder.nameAsc:
         sorted.sort(
-          (a, b) => a.fileName.compareTo(b.fileName),
+          (MediaAttachment a, MediaAttachment b) =>
+              a.fileName.compareTo(b.fileName),
         ); // ← fileName не null
         break;
       case MediaSortOrder.nameDesc:
         sorted.sort(
-          (a, b) => b.fileName.compareTo(a.fileName),
+          (MediaAttachment a, MediaAttachment b) =>
+              b.fileName.compareTo(a.fileName),
         ); // ← fileName не null
         break;
       case MediaSortOrder.sizeAsc:
         sorted.sort(
-          (a, b) => a.fileSize.compareTo(b.fileSize),
+          (MediaAttachment a, MediaAttachment b) =>
+              a.fileSize.compareTo(b.fileSize),
         ); // ← fileSize не null
         break;
       case MediaSortOrder.sizeDesc:
         sorted.sort(
-          (a, b) => b.fileSize.compareTo(a.fileSize),
+          (MediaAttachment a, MediaAttachment b) =>
+              b.fileSize.compareTo(a.fileSize),
         ); // ← fileSize не null
         break;
     }

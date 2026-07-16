@@ -9,62 +9,50 @@ abstract class MediaEvent extends Equatable {
   const MediaEvent();
 
   @override
-  List<Object?> get props => [];
+  List<Object?> get props => <Object?>[];
 }
 
 /// Загрузить медиа для человека
 class LoadMediaForPerson extends MediaEvent {
-  final String personId;
-  final MediaFilter? filter;
-  final MediaSortOrder sortOrder;
-
   const LoadMediaForPerson({
     required this.personId,
     this.filter,
     this.sortOrder = MediaSortOrder.newestFirst,
   });
+  final String personId;
+  final MediaFilter? filter;
+  final MediaSortOrder sortOrder;
 
   @override
-  List<Object?> get props => [personId, filter, sortOrder];
+  List<Object?> get props => <Object?>[personId, filter, sortOrder];
 }
 
 /// Загрузить медиа для события
 class LoadMediaForEvent extends MediaEvent {
-  final String eventId;
-  final MediaFilter? filter;
-  final MediaSortOrder sortOrder;
-
   const LoadMediaForEvent({
     required this.eventId,
     this.filter,
     this.sortOrder = MediaSortOrder.newestFirst,
   });
+  final String eventId;
+  final MediaFilter? filter;
+  final MediaSortOrder sortOrder;
 
   @override
-  List<Object?> get props => [eventId, filter, sortOrder];
+  List<Object?> get props => <Object?>[eventId, filter, sortOrder];
 }
 
 /// Загрузить основной портрет человека
 class LoadPrimaryPortrait extends MediaEvent {
+  const LoadPrimaryPortrait(this.personId);
   final String personId;
 
-  const LoadPrimaryPortrait(this.personId);
-
   @override
-  List<Object?> get props => [personId];
+  List<Object?> get props => <Object?>[personId];
 }
 
 /// Добавить новый медиа-файл
 class AddMediaFile extends MediaEvent {
-  final Uint8List fileData;
-  final String fileName;
-  final String mimeType;
-  final String description;
-  final String? personId;
-  final String? eventId;
-  final bool setAsPrimary;
-  final bool generateThumbnail;
-
   const AddMediaFile({
     required this.fileData,
     required this.fileName,
@@ -75,9 +63,17 @@ class AddMediaFile extends MediaEvent {
     this.setAsPrimary = false,
     this.generateThumbnail = true,
   });
+  final Uint8List fileData;
+  final String fileName;
+  final String mimeType;
+  final String description;
+  final String? personId;
+  final String? eventId;
+  final bool setAsPrimary;
+  final bool generateThumbnail;
 
   @override
-  List<Object?> get props => [
+  List<Object?> get props => <Object?>[
     fileData,
     fileName,
     mimeType,
@@ -91,77 +87,70 @@ class AddMediaFile extends MediaEvent {
 
 /// Обновить описание медиа-файла
 class UpdateMediaDescription extends MediaEvent {
-  final String mediaId;
-  final String newDescription;
-
   const UpdateMediaDescription({
     required this.mediaId,
     required this.newDescription,
   });
+  final String mediaId;
+  final String newDescription;
 
   @override
-  List<Object?> get props => [mediaId, newDescription];
+  List<Object?> get props => <Object?>[mediaId, newDescription];
 }
 
 /// Установить файл как основной портрет
 class SetAsPrimaryPortrait extends MediaEvent {
+  const SetAsPrimaryPortrait({required this.mediaId, required this.personId});
   final String mediaId;
   final String personId;
 
-  const SetAsPrimaryPortrait({required this.mediaId, required this.personId});
-
   @override
-  List<Object?> get props => [mediaId, personId];
+  List<Object?> get props => <Object?>[mediaId, personId];
 }
 
 /// Удалить медиа-файл
 class DeleteMediaFile extends MediaEvent {
+  const DeleteMediaFile(this.mediaId);
   final String mediaId;
 
-  const DeleteMediaFile(this.mediaId);
-
   @override
-  List<Object?> get props => [mediaId];
+  List<Object?> get props => <Object?>[mediaId];
 }
 
 /// Удалить все медиа человека
 class DeleteAllMediaForPerson extends MediaEvent {
+  const DeleteAllMediaForPerson(this.personId);
   final String personId;
 
-  const DeleteAllMediaForPerson(this.personId);
-
   @override
-  List<Object?> get props => [personId];
+  List<Object?> get props => <Object?>[personId];
 }
 
 /// Удалить все медиа события
 class DeleteAllMediaForEvent extends MediaEvent {
+  const DeleteAllMediaForEvent(this.eventId);
   final String eventId;
 
-  const DeleteAllMediaForEvent(this.eventId);
-
   @override
-  List<Object?> get props => [eventId];
+  List<Object?> get props => <Object?>[eventId];
 }
 
 /// Применить фильтр
 class ApplyMediaFilter extends MediaEvent {
+  const ApplyMediaFilter(this.filter);
   final MediaFilter? filter;
 
-  const ApplyMediaFilter(this.filter);
-
   @override
-  List<Object?> get props => [filter];
+  List<Object?> get props => <Object?>[filter];
 }
 
 /// Применить сортировку
 class ApplyMediaSort extends MediaEvent {
+  const ApplyMediaSort(this.sortOrder);
   final MediaSortOrder sortOrder;
 
-  const ApplyMediaSort(this.sortOrder);
-
   @override
-  List<Object?> get props => [sortOrder];
+  List<Object?> get props => <Object?>[sortOrder];
 }
 
 /// Очистить состояние
@@ -169,27 +158,25 @@ class ClearMediaState extends MediaEvent {}
 
 /// Загрузить статистику
 class LoadMediaStatistics extends MediaEvent {
+  const LoadMediaStatistics({this.personId, this.eventId});
   final String? personId;
   final String? eventId;
 
-  const LoadMediaStatistics({this.personId, this.eventId});
-
   @override
-  List<Object?> get props => [personId, eventId];
+  List<Object?> get props => <Object?>[personId, eventId];
 }
 
 /// Переместить медиа-файл
 class MoveMediaFile extends MediaEvent {
-  final String mediaId;
-  final String? newPersonId;
-  final String? newEventId;
-
   const MoveMediaFile({
     required this.mediaId,
     this.newPersonId,
     this.newEventId,
   });
+  final String mediaId;
+  final String? newPersonId;
+  final String? newEventId;
 
   @override
-  List<Object?> get props => [mediaId, newPersonId, newEventId];
+  List<Object?> get props => <Object?>[mediaId, newPersonId, newEventId];
 }

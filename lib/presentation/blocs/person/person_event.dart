@@ -9,65 +9,59 @@ abstract class PersonEvent extends Equatable {
   const PersonEvent();
 
   @override
-  List<Object?> get props => [];
+  List<Object?> get props => <Object?>[];
 }
 
 class LoadPersonsEvent extends PersonEvent {
+  const LoadPersonsEvent({this.treeId});
   final String? treeId;
 
-  const LoadPersonsEvent({this.treeId});
-
   @override
-  List<Object?> get props => [treeId];
+  List<Object?> get props => <Object?>[treeId];
 }
 
 class AddPersonEvent extends PersonEvent {
+  const AddPersonEvent(this.person, {this.treeId});
   final Person person;
   final String? treeId;
 
-  const AddPersonEvent(this.person, {this.treeId});
-
   @override
-  List<Object?> get props => [person, treeId];
+  List<Object?> get props => <Object?>[person, treeId];
 }
 
 class UpdatePersonEvent extends PersonEvent {
+  const UpdatePersonEvent(this.person, {this.treeId});
   final Person person;
   final String? treeId;
 
-  const UpdatePersonEvent(this.person, {this.treeId});
-
   @override
-  List<Object?> get props => [person, treeId];
+  List<Object?> get props => <Object?>[person, treeId];
 }
 
 class DeletePersonEvent extends PersonEvent {
+  const DeletePersonEvent(this.personId, {this.treeId});
   final String personId;
   final String? treeId;
 
-  const DeletePersonEvent(this.personId, {this.treeId});
-
   @override
-  List<Object?> get props => [personId, treeId];
+  List<Object?> get props => <Object?>[personId, treeId];
 }
 
 class DeleteAllPersonsEvent extends PersonEvent {
+  const DeleteAllPersonsEvent({this.treeId});
   final String? treeId;
 
-  const DeleteAllPersonsEvent({this.treeId});
-
   @override
-  List<Object?> get props => [treeId];
+  List<Object?> get props => <Object?>[treeId];
 }
 
 class SearchPersonsEvent extends PersonEvent {
+  const SearchPersonsEvent(this.query, {this.treeId});
   final String query;
   final String? treeId;
 
-  const SearchPersonsEvent(this.query, {this.treeId});
-
   @override
-  List<Object?> get props => [query, treeId];
+  List<Object?> get props => <Object?>[query, treeId];
 }
 
 class ClearSearchEvent extends PersonEvent {
@@ -75,11 +69,10 @@ class ClearSearchEvent extends PersonEvent {
 }
 
 class SelectPersonEvent extends PersonEvent {
+  const SelectPersonEvent(this.personId, {this.treeId});
   final String personId;
   final String? treeId;
 
-  const SelectPersonEvent(this.personId, {this.treeId});
-
   @override
-  List<Object?> get props => [personId, treeId];
+  List<Object?> get props => <Object?>[personId, treeId];
 }

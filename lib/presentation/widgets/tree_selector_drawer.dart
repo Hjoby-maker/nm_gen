@@ -2,13 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:nm_gen/domain/entities/project.dart';
 
 class TreeSelectorDrawer extends StatelessWidget {
-  final String currentTreeId;
-  final List<Project> projects;
-  final Function(String, String) onTreeSelected;
-  final VoidCallback onAddTree;
-  final Function(String)? onDeleteProject;
-  final Function(String)? onSetDefaultProject;
-  final Function(String, String)? onRenameProject; // <-- ДОБАВЛЯЕМ
+  // <-- ДОБАВЛЯЕМ
 
   const TreeSelectorDrawer({
     super.key,
@@ -20,6 +14,13 @@ class TreeSelectorDrawer extends StatelessWidget {
     this.onSetDefaultProject,
     this.onRenameProject,
   });
+  final String currentTreeId;
+  final List<Project> projects;
+  final Function(String, String) onTreeSelected;
+  final VoidCallback onAddTree;
+  final Function(String)? onDeleteProject;
+  final Function(String)? onSetDefaultProject;
+  final Function(String, String)? onRenameProject;
 
   @override
   Widget build(BuildContext context) {
@@ -62,8 +63,8 @@ class TreeSelectorDrawer extends StatelessWidget {
               itemCount: projects.length,
               itemBuilder: (context, index) {
                 final project = projects[index];
-                final isSelected = project.id == currentTreeId;
-                final canDelete =
+                final bool isSelected = project.id == currentTreeId;
+                final bool canDelete =
                     project.personCount == 0 &&
                     project.familyCount == 0 &&
                     !project.isDefault;
@@ -88,7 +89,7 @@ class TreeSelectorDrawer extends StatelessWidget {
                   ),
                   confirmDismiss: (direction) async {
                     if (onDeleteProject != null && canDelete) {
-                      final result = await _showDeleteConfirmationDialog(
+                      final bool? result = await _showDeleteConfirmationDialog(
                         context,
                         project,
                       );
@@ -212,7 +213,7 @@ class TreeSelectorDrawer extends StatelessWidget {
   }
 
   void _showProjectActions(BuildContext context, Project project) {
-    final canDelete =
+    final bool canDelete =
         project.personCount == 0 &&
         project.familyCount == 0 &&
         !project.isDefault;

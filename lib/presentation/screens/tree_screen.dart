@@ -60,10 +60,12 @@ class _TreeScreenState extends State<TreeScreen> {
     String prefix = '',
     bool isLast = true,
   }) {
-    final connector = isLast ? '└── ' : '├── ';
-    final childPrefix = isLast ? '    ' : '│   ';
+    final String connector = isLast ? '└── ' : '├── ';
+    final String childPrefix = isLast ? '    ' : '│   ';
 
-    final duplicateMark = node.isDuplicateReference ? ' [ссылка-дубль]' : '';
+    final String duplicateMark = node.isDuplicateReference
+        ? ' [ссылка-дубль]'
+        : '';
     print(
       '$prefix$connector${node.person.displayName} (id: ${node.person.id})$duplicateMark',
     );
@@ -74,19 +76,19 @@ class _TreeScreenState extends State<TreeScreen> {
     // Выводим детей
     for (int i = 0; i < node.children.length; i++) {
       final child = node.children[i];
-      final isChildLast = i == node.children.length - 1;
+      final bool isChildLast = i == node.children.length - 1;
       _debugPrintTree(child, prefix: prefix + childPrefix, isLast: isChildLast);
     }
 
     // Выводим супругов
     for (int i = 0; i < node.spouses.length; i++) {
       final spouse = node.spouses[i];
-      final isSpouseLast = i == node.spouses.length - 1;
+      final bool isSpouseLast = i == node.spouses.length - 1;
       print('$prefix$childPrefix   ─── Супруг: ${spouse.person.displayName}');
       // Рекурсивно показываем детей супруга
       for (int j = 0; j < spouse.children.length; j++) {
         final child = spouse.children[j];
-        final isChildLast = j == spouse.children.length - 1;
+        final bool isChildLast = j == spouse.children.length - 1;
         _debugPrintTree(
           child,
           prefix: prefix + childPrefix + '    ',
@@ -159,7 +161,7 @@ class _TreeScreenState extends State<TreeScreen> {
             // в таких случаях возвращает "карточку-ссылку"
             // (isDuplicateReference), а не разворачивает его заново.
             // Считаем уникальные id, а не количество визитов узлов.
-            final Set<String> uniqueIds = {};
+            final Set<String> uniqueIds = <String>{};
             void countPeople(TreeNode node) {
               uniqueIds.add(node.person.id);
               for (final child in node.children) {
@@ -223,9 +225,9 @@ class _TreeScreenState extends State<TreeScreen> {
           }
 
           if (state is TreeLoaded) {
-            final detailLevel = _getDetailLevel(_currentScale);
+            final DetailLevel detailLevel = _getDetailLevel(_currentScale);
 
-            final hasChildren =
+            final bool hasChildren =
                 state.rootNode.children.isNotEmpty ||
                 state.rootNode.spouses.isNotEmpty;
 

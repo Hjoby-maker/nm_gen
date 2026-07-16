@@ -7,13 +7,12 @@ import 'package:nm_gen/data/models/media_filter.dart';
 import 'package:nm_gen/data/models/media_sort.dart';
 import 'package:nm_gen/domain/entities/media_attachment.dart';
 import 'package:nm_gen/domain/repositories/media_repository.dart';
+import '../../../domain/entities/media_attachment.dart';
 import 'media_event.dart';
 import 'media_state.dart';
 
 /// BLoC для управления медиа-файлами
 class MediaBloc extends Bloc<MediaEvent, MediaState> {
-  final MediaRepository _repository;
-
   MediaBloc(this._repository) : super(MediaInitial()) {
     // Регистрация обработчиков событий
     on<LoadMediaForPerson>(_onLoadMediaForPerson);
@@ -31,6 +30,7 @@ class MediaBloc extends Bloc<MediaEvent, MediaState> {
     on<LoadMediaStatistics>(_onLoadMediaStatistics);
     on<MoveMediaFile>(_onMoveMediaFile);
   }
+  final MediaRepository _repository;
 
   /// Обработчик загрузки медиа для человека
   Future<void> _onLoadMediaForPerson(
@@ -150,7 +150,10 @@ class MediaBloc extends Bloc<MediaEvent, MediaState> {
   ) async {
     try {
       emit(
-        MediaLoadingWithProgress(progress: 0.0, message: 'Сохранение файла...'),
+        const MediaLoadingWithProgress(
+          progress: 0.0,
+          message: 'Сохранение файла...',
+        ),
       );
 
       final result = await _repository.addMedia(
@@ -217,7 +220,7 @@ class MediaBloc extends Bloc<MediaEvent, MediaState> {
           emit(MediaUpdated(media));
           // Обновляем текущий список, если есть
           if (state is MediaLoaded) {
-            final currentState = state as MediaLoaded;
+            final MediaLoaded currentState = state as MediaLoaded;
             final updatedList = currentState.mediaList.map((m) {
               return m.id == media.id ? media : m;
             }).toList();
@@ -270,7 +273,7 @@ class MediaBloc extends Bloc<MediaEvent, MediaState> {
 
           // Обновляем список
           if (state is MediaLoaded) {
-            final currentState = state as MediaLoaded;
+            final MediaLoaded currentState = state as MediaLoaded;
             final updatedList = currentState.mediaList.map((m) {
               return m.id == media.id ? media : m.copyWith(isPrimary: false);
             }).toList();
@@ -317,9 +320,9 @@ class MediaBloc extends Bloc<MediaEvent, MediaState> {
 
           // Обновляем текущий список, если есть
           if (state is MediaLoaded) {
-            final currentState = state as MediaLoaded;
-            final updatedList = currentState.mediaList
-                .where((m) => m.id != event.mediaId)
+            final MediaLoaded currentState = state as MediaLoaded;
+            final List<MediaAttachment> updatedList = currentState.mediaList
+                .where((MediaAttachment m) => m.id != event.mediaId)
                 .toList();
             emit(
               MediaLoaded(
@@ -358,9 +361,9 @@ class MediaBloc extends Bloc<MediaEvent, MediaState> {
           );
         },
         (_) async {
-          emit(MediaOperationSuccess('Все медиа-файлы человека удалены'));
+          emit(const MediaOperationSuccess('Все медиа-файлы человека удалены'));
           // Очищаем список
-          emit(MediaLoaded(mediaList: []));
+          emit(const MediaLoaded(mediaList: <MediaAttachment>[]));
         },
       );
     } catch (e) {
@@ -391,8 +394,8 @@ class MediaBloc extends Bloc<MediaEvent, MediaState> {
           );
         },
         (_) async {
-          emit(MediaOperationSuccess('Все медиа-файлы события удалены'));
-          emit(MediaLoaded(mediaList: []));
+          emit(const MediaOperationSuccess('Все медиа-файлы события удалены'));
+          emit(const MediaLoaded(mediaList: <MediaAttachment>[]));
         },
       );
     } catch (e) {
@@ -405,10 +408,10 @@ class MediaBloc extends Bloc<MediaEvent, MediaState> {
   /// Обработчик применения фильтра
   void _onApplyMediaFilter(ApplyMediaFilter event, Emitter<MediaState> emit) {
     if (state is MediaLoaded) {
-      final currentState = state as MediaLoaded;
-      final filteredList = event.filter != null
+      final MediaLoaded currentState = state as MediaLoaded;
+      final List<MediaAttachment> filteredList = event.filter != null
           ? currentState.mediaList
-                .where((media) => event.filter!.matches(media))
+                .where((MediaAttachment media) => event.filter!.matches(media))
                 .toList()
           : currentState.mediaList;
 
@@ -426,7 +429,7 @@ class MediaBloc extends Bloc<MediaEvent, MediaState> {
   /// Обработчик применения сортировки
   void _onApplyMediaSort(ApplyMediaSort event, Emitter<MediaState> emit) {
     if (state is MediaLoaded) {
-      final currentState = state as MediaLoaded;
+      final MediaLoaded currentState = state as MediaLoaded;
       final sortedList = event.sortOrder.sort(currentState.mediaList);
 
       emit(
@@ -505,7 +508,7 @@ class MediaBloc extends Bloc<MediaEvent, MediaState> {
         },
         (media) async {
           emit(MediaUpdated(media));
-          emit(MediaOperationSuccess('Файл успешно перемещен'));
+          emit(const MediaOperationSuccess('Файл успешно перемещен'));
         },
       );
     } catch (e) {

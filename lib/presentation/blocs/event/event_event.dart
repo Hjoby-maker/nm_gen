@@ -5,49 +5,49 @@ abstract class EventEvent extends Equatable {
   const EventEvent();
 
   @override
-  List<Object?> get props => [];
+  List<Object?> get props => <Object?>[];
 }
 
 class LoadPersonEventsEvent extends EventEvent {
+  const LoadPersonEventsEvent(this.personId, {this.treeId});
   final String personId;
   final String? treeId;
-  const LoadPersonEventsEvent(this.personId, {this.treeId});
   @override
-  List<Object?> get props => [personId, treeId];
+  List<Object?> get props => <Object?>[personId, treeId];
 }
 
 class LoadAllEventsEvent extends EventEvent {
-  final String? treeId;
   const LoadAllEventsEvent({this.treeId});
+  final String? treeId;
   @override
-  List<Object?> get props => [treeId];
+  List<Object?> get props => <Object?>[treeId];
 }
 
 class AddEventEvent extends EventEvent {
-  final Event event;
   const AddEventEvent(this.event);
+  final Event event;
   @override
-  List<Object?> get props => [event];
+  List<Object?> get props => <Object?>[event];
 }
 
 class UpdateEventEvent extends EventEvent {
-  final Event event;
   const UpdateEventEvent(this.event);
+  final Event event;
   @override
-  List<Object?> get props => [event];
+  List<Object?> get props => <Object?>[event];
 }
 
 class DeleteEventEvent extends EventEvent {
-  final String eventId;
   const DeleteEventEvent(this.eventId);
+  final String eventId;
   @override
-  List<Object?> get props => [eventId];
+  List<Object?> get props => <Object?>[eventId];
 }
 
 class DeleteAllPersonEventsEvent extends EventEvent {
+  const DeleteAllPersonEventsEvent(this.personId, {this.treeId});
   final String personId;
   final String? treeId;
-  const DeleteAllPersonEventsEvent(this.personId, {this.treeId});
   @override
-  List<Object?> get props => [personId, treeId];
+  List<Object?> get props => <Object?>[personId, treeId];
 }

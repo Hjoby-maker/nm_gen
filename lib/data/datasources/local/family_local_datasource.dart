@@ -1,7 +1,7 @@
+import 'package:injectable/injectable.dart';
 import 'package:nm_gen/data/datasources/local/database/db_helper.dart';
 import 'package:nm_gen/data/datasources/local/database/family_model.dart';
 import 'package:sqflite_common/sqlite_api.dart';
-import 'package:injectable/injectable.dart';
 
 @injectable
 class FamilyLocalDataSource {
@@ -89,10 +89,14 @@ class FamilyLocalDataSource {
   }) async {
     final Database db = await dbHelper.database;
 
-    final List<String> whereClauses = [
+    final List<String> whereClauses = <String>[
       'husband_id = ? OR wife_id = ? OR children_ids LIKE ?',
     ];
-    final List<Object?> whereArgs = [personId, personId, '%$personId%'];
+    final List<Object?> whereArgs = <Object?>[
+      personId,
+      personId,
+      '%$personId%',
+    ];
 
     if (treeId != null && treeId.isNotEmpty) {
       whereClauses.add('tree_id = ?');
@@ -117,8 +121,8 @@ class FamilyLocalDataSource {
   }) async {
     final Database db = await dbHelper.database;
 
-    final List<String> whereClauses = ['husband_id = ? OR wife_id = ?'];
-    final List<Object?> whereArgs = [personId, personId];
+    final List<String> whereClauses = <String>['husband_id = ? OR wife_id = ?'];
+    final List<Object?> whereArgs = <Object?>[personId, personId];
 
     if (treeId != null && treeId.isNotEmpty) {
       whereClauses.add('tree_id = ?');
@@ -143,8 +147,8 @@ class FamilyLocalDataSource {
   }) async {
     final Database db = await dbHelper.database;
 
-    final List<String> whereClauses = ['children_ids LIKE ?'];
-    final List<Object?> whereArgs = ['%$personId%'];
+    final List<String> whereClauses = <String>['children_ids LIKE ?'];
+    final List<Object?> whereArgs = <Object?>['%$personId%'];
 
     if (treeId != null && treeId.isNotEmpty) {
       whereClauses.add('tree_id = ?');

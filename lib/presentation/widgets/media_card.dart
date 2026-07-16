@@ -1,18 +1,12 @@
 // lib/presentation/widgets/media/media_card.dart
 import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:nm_gen/domain/entities/media_attachment.dart';
 import 'package:nm_gen/core/utils/file_helper.dart';
+import 'package:nm_gen/domain/entities/media_attachment.dart';
 
 /// Карточка медиа-файла для отображения в сетке
 class MediaCard extends StatelessWidget {
-  final MediaAttachment media;
-  final bool isPrimary;
-  final VoidCallback? onTap;
-  final VoidCallback? onDelete;
-  final VoidCallback? onSetPrimary;
-  final VoidCallback? onEditDescription;
-
   const MediaCard({
     super.key,
     required this.media,
@@ -22,6 +16,12 @@ class MediaCard extends StatelessWidget {
     this.onSetPrimary,
     this.onEditDescription,
   });
+  final MediaAttachment media;
+  final bool isPrimary;
+  final VoidCallback? onTap;
+  final VoidCallback? onDelete;
+  final VoidCallback? onSetPrimary;
+  final VoidCallback? onEditDescription;
 
   @override
   Widget build(BuildContext context) {
@@ -55,9 +55,9 @@ class MediaCard extends StatelessWidget {
   }
 
   Widget _buildThumbnail() {
-    final hasThumbnail =
+    final bool hasThumbnail =
         media.thumbnailPath != null && File(media.thumbnailPath!).existsSync();
-    final hasFile = File(media.localPath).existsSync();
+    final bool hasFile = File(media.localPath).existsSync();
 
     // Если есть миниатюра
     if (hasThumbnail) {
@@ -315,8 +315,8 @@ class MediaCard extends StatelessWidget {
   }
 
   String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
+    final DateTime now = DateTime.now();
+    final Duration difference = now.difference(date);
 
     if (difference.inDays == 0) {
       return 'Сегодня';
@@ -325,13 +325,13 @@ class MediaCard extends StatelessWidget {
     } else if (difference.inDays < 7) {
       return '${difference.inDays} дн. назад';
     } else if (difference.inDays < 30) {
-      final weeks = difference.inDays ~/ 7;
+      final int weeks = difference.inDays ~/ 7;
       return '$weeks нед. назад';
     } else if (difference.inDays < 365) {
-      final months = difference.inDays ~/ 30;
+      final int months = difference.inDays ~/ 30;
       return '$months мес. назад';
     } else {
-      final years = difference.inDays ~/ 365;
+      final int years = difference.inDays ~/ 365;
       return '$years г. назад';
     }
   }

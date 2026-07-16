@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nm_gen/di/injector.dart';
 import 'package:nm_gen/domain/entities/project.dart';
+import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
+import 'package:nm_gen/presentation/blocs/person/person_event.dart';
 import 'package:nm_gen/presentation/blocs/project/project_bloc.dart';
 import 'package:nm_gen/presentation/blocs/project/project_event.dart';
 import 'package:nm_gen/presentation/blocs/project/project_state.dart';
-import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
-import 'package:nm_gen/presentation/blocs/person/person_event.dart';
 import 'package:nm_gen/presentation/blocs/tree/tree_bloc.dart';
 import 'package:nm_gen/presentation/screens/all_families_screen.dart';
 import 'package:nm_gen/presentation/screens/export_gedcom_screen.dart';
@@ -343,14 +343,13 @@ class _MainScreenState extends State<MainScreen> {
 
 /// Обертка для TreeScreen с передачей treeId и TreeBloc
 class TreeScreenWrapper extends StatelessWidget {
-  final String treeId;
-  final TreeBloc treeBloc;
-
   const TreeScreenWrapper({
     super.key,
     required this.treeId,
     required this.treeBloc,
   });
+  final String treeId;
+  final TreeBloc treeBloc;
 
   @override
   Widget build(BuildContext context) {

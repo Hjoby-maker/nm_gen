@@ -1,8 +1,9 @@
 // lib/core/services/file_storage_service.dart
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:path_provider/path_provider.dart';
+
 import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
 /// Сервис для работы с файловой системой
@@ -17,8 +18,8 @@ class FileStorageService {
 
   /// Получение директории для медиа-файлов
   Future<Directory> _getMediaDirectory() async {
-    final appDir = await _getAppDirectory();
-    final mediaDir = Directory(path.join(appDir.path, mediaDirName));
+    final Directory appDir = await _getAppDirectory();
+    final Directory mediaDir = Directory(path.join(appDir.path, mediaDirName));
     if (!await mediaDir.exists()) {
       await mediaDir.create(recursive: true);
     }
@@ -27,8 +28,10 @@ class FileStorageService {
 
   /// Получение директории для миниатюр
   Future<Directory> _getThumbnailsDirectory() async {
-    final appDir = await _getAppDirectory();
-    final thumbnailsDir = Directory(path.join(appDir.path, thumbnailsDirName));
+    final Directory appDir = await _getAppDirectory();
+    final Directory thumbnailsDir = Directory(
+      path.join(appDir.path, thumbnailsDirName),
+    );
     if (!await thumbnailsDir.exists()) {
       await thumbnailsDir.create(recursive: true);
     }
@@ -50,17 +53,19 @@ class FileStorageService {
     required String subDirectory,
   }) async {
     try {
-      final mediaDir = await _getMediaDirectory();
+      final Directory mediaDir = await _getMediaDirectory();
 
-      final subDir = Directory(path.join(mediaDir.path, subDirectory));
+      final Directory subDir = Directory(
+        path.join(mediaDir.path, subDirectory),
+      );
       if (!await subDir.exists()) {
         await subDir.create(recursive: true);
       }
 
-      final uniqueName = _generateUniqueFileName(fileName);
+      final String uniqueName = _generateUniqueFileName(fileName);
       final filePath = path.join(subDir.path, uniqueName);
 
-      final file = File(filePath);
+      final File file = File(filePath);
       await file.writeAsBytes(fileData);
 
       return filePath;
@@ -75,14 +80,14 @@ class FileStorageService {
     required String originalFilePath,
   }) async {
     try {
-      final thumbnailsDir = await _getThumbnailsDirectory();
+      final Directory thumbnailsDir = await _getThumbnailsDirectory();
 
       final originalName = path.basename(originalFilePath);
-      final thumbnailName =
+      final String thumbnailName =
           'thumb_${path.basenameWithoutExtension(originalName)}.jpg';
       final thumbnailPath = path.join(thumbnailsDir.path, thumbnailName);
 
-      final file = File(thumbnailPath);
+      final File file = File(thumbnailPath);
       await file.writeAsBytes(thumbnailData);
 
       return thumbnailPath;
@@ -95,7 +100,7 @@ class FileStorageService {
   /// Чтение файла с диска
   Future<Uint8List> readFile(String filePath) async {
     try {
-      final file = File(filePath);
+      final File file = File(filePath);
       if (!await file.exists()) {
         throw Exception('Файл не найден: $filePath');
       }
@@ -108,7 +113,7 @@ class FileStorageService {
   /// Проверка существования файла
   Future<bool> fileExists(String filePath) async {
     try {
-      final file = File(filePath);
+      final File file = File(filePath);
       return await file.exists();
     } catch (e) {
       return false;
@@ -118,7 +123,7 @@ class FileStorageService {
   /// Удаление файла
   Future<void> deleteFile(String filePath) async {
     try {
-      final file = File(filePath);
+      final File file = File(filePath);
       if (await file.exists()) {
         await file.delete();
       }
@@ -130,7 +135,7 @@ class FileStorageService {
   /// Удаление всей директории с файлами
   Future<void> deleteDirectory(String dirPath) async {
     try {
-      final dir = Directory(dirPath);
+      final Directory dir = Directory(dirPath);
       if (await dir.exists()) {
         await dir.delete(recursive: true);
       }
@@ -142,7 +147,7 @@ class FileStorageService {
   /// Получение размера файла
   Future<int> getFileSize(String filePath) async {
     try {
-      final file = File(filePath);
+      final File file = File(filePath);
       if (!await file.exists()) {
         throw Exception('Файл не найден: $filePath');
       }
@@ -154,11 +159,11 @@ class FileStorageService {
 
   /// Получение всех файлов в директории (рекурсивно)
   Future<List<File>> getAllFilesInDirectory(String dirPath) async {
-    final dir = Directory(dirPath);
-    if (!await dir.exists()) return [];
+    final Directory dir = Directory(dirPath);
+    if (!await dir.exists()) return <File>[];
 
-    final files = <File>[];
-    await for (final entity in dir.list(recursive: true)) {
+    final List<File> files = <File>[];
+    await for (final FileSystemEntity entity in dir.list(recursive: true)) {
       if (entity is File) {
         files.add(entity);
       }
@@ -169,27 +174,29 @@ class FileStorageService {
   /// Очистка неиспользуемых файлов
   Future<int> cleanUnusedFiles(Set<String> validPaths) async {
     try {
-      final mediaDir = await _getMediaDirectory();
-      final allFiles = await getAllFilesInDirectory(mediaDir.path);
+      final Directory mediaDir = await _getMediaDirectory();
+      final List<File> allFiles = await getAllFilesInDirectory(mediaDir.path);
 
       int deletedCount = 0;
-      for (final file in allFiles) {
+      for (final File file in allFiles) {
         if (!validPaths.contains(file.path)) {
           await file.delete();
           deletedCount++;
         }
       }
 
-      final thumbnailsDir = await _getThumbnailsDirectory();
-      final thumbFiles = await getAllFilesInDirectory(thumbnailsDir.path);
+      final Directory thumbnailsDir = await _getThumbnailsDirectory();
+      final List<File> thumbFiles = await getAllFilesInDirectory(
+        thumbnailsDir.path,
+      );
 
       // Удаляем миниатюры, у которых нет оригиналов
-      for (final file in thumbFiles) {
-        final originalName = file.path
+      for (final File file in thumbFiles) {
+        final String originalName = file.path
             .replaceAll('thumb_', '')
             .replaceAll('.jpg', '');
-        bool hasOriginal = validPaths.any(
-          (path) => path.contains(originalName),
+        final bool hasOriginal = validPaths.any(
+          (String path) => path.contains(originalName),
         );
         if (!hasOriginal) {
           await file.delete();
@@ -207,8 +214,8 @@ class FileStorageService {
   /// Получить полный путь к директории
   Future<String?> getDirectoryPath(String subDirectory) async {
     try {
-      final mediaDir = await _getMediaDirectory();
-      final dir = Directory(path.join(mediaDir.path, subDirectory));
+      final Directory mediaDir = await _getMediaDirectory();
+      final Directory dir = Directory(path.join(mediaDir.path, subDirectory));
       if (await dir.exists()) {
         return dir.path;
       }
@@ -224,13 +231,15 @@ class FileStorageService {
     required String newSubDirectory,
   }) async {
     try {
-      final sourceFile = File(sourcePath);
+      final File sourceFile = File(sourcePath);
       if (!await sourceFile.exists()) {
         throw Exception('Исходный файл не найден: $sourcePath');
       }
 
-      final mediaDir = await _getMediaDirectory();
-      final newDir = Directory(path.join(mediaDir.path, newSubDirectory));
+      final Directory mediaDir = await _getMediaDirectory();
+      final Directory newDir = Directory(
+        path.join(mediaDir.path, newSubDirectory),
+      );
       if (!await newDir.exists()) {
         await newDir.create(recursive: true);
       }
@@ -242,8 +251,8 @@ class FileStorageService {
       if (await File(newPath).exists()) {
         final nameWithoutExt = path.basenameWithoutExtension(fileName);
         final extension = path.extension(fileName);
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        final uniqueName = '${nameWithoutExt}_$timestamp$extension';
+        final int timestamp = DateTime.now().millisecondsSinceEpoch;
+        final String uniqueName = '${nameWithoutExt}_$timestamp$extension';
         final finalPath = path.join(newDir.path, uniqueName);
         await sourceFile.copy(finalPath);
         await sourceFile.delete();
@@ -261,12 +270,12 @@ class FileStorageService {
   /// Получить информацию о файле
   Future<FileInfo?> getFileInfo(String filePath) async {
     try {
-      final file = File(filePath);
+      final File file = File(filePath);
       if (!await file.exists()) {
         return null;
       }
 
-      final stat = await file.stat();
+      final FileStat stat = await file.stat();
       return FileInfo(
         path: filePath,
         size: stat.size,
@@ -287,12 +296,12 @@ class FileStorageService {
     String? newFileName,
   }) async {
     try {
-      final sourceFile = File(sourcePath);
+      final File sourceFile = File(sourcePath);
       if (!await sourceFile.exists()) {
         throw Exception('Исходный файл не найден: $sourcePath');
       }
 
-      final destDir = Directory(destinationDirectory);
+      final Directory destDir = Directory(destinationDirectory);
       if (!await destDir.exists()) {
         await destDir.create(recursive: true);
       }
@@ -303,8 +312,8 @@ class FileStorageService {
       if (await File(destPath).exists()) {
         final nameWithoutExt = path.basenameWithoutExtension(fileName);
         final extension = path.extension(fileName);
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        final uniqueName = '${nameWithoutExt}_$timestamp$extension';
+        final int timestamp = DateTime.now().millisecondsSinceEpoch;
+        final String uniqueName = '${nameWithoutExt}_$timestamp$extension';
         final finalPath = path.join(destinationDirectory, uniqueName);
         await sourceFile.copy(finalPath);
         return finalPath;
@@ -320,9 +329,9 @@ class FileStorageService {
   /// Получить размер директории (в байтах)
   Future<int> getDirectorySize(String dirPath) async {
     try {
-      final files = await getAllFilesInDirectory(dirPath);
+      final List<File> files = await getAllFilesInDirectory(dirPath);
       int totalSize = 0;
-      for (final file in files) {
+      for (final File file in files) {
         totalSize += await file.length();
       }
       return totalSize;
@@ -335,12 +344,6 @@ class FileStorageService {
 
 /// Информация о файле
 class FileInfo {
-  final String path;
-  final int size;
-  final DateTime modified;
-  final DateTime accessed;
-  final bool isDirectory;
-
   const FileInfo({
     required this.path,
     required this.size,
@@ -348,6 +351,11 @@ class FileInfo {
     required this.accessed,
     required this.isDirectory,
   });
+  final String path;
+  final int size;
+  final DateTime modified;
+  final DateTime accessed;
+  final bool isDirectory;
 
   String get formattedSize {
     if (size < 1024) return '$size B';
