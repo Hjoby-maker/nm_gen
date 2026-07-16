@@ -33,6 +33,36 @@ class GetFullTreeUseCase {
       final allPersons = await personRepository.getAllPersons(treeId: treeId);
       final allFamilies = await familyRepository.getAllFamilies(treeId: treeId);
 
+      // 👇👇👇 ВСТАВЬТЕ СЮДА ВЕСЬ КОД ИЗ _diagnostic_snippet.dart 👇👇👇
+      print('--- ДИАГНОСТИКА: allPersons.length = ${allPersons.length} ---');
+      final idCounts = <String, int>{};
+      for (final p in allPersons) {
+        idCounts[p.id] = (idCounts[p.id] ?? 0) + 1;
+      }
+      idCounts.forEach((id, count) {
+        if (count > 1) {
+          print('⚠️ ДУБЛЬ PERSON.ID: $id встречается $count раз(а)');
+        }
+      });
+
+      print('--- ДИАГНОСТИКА: allFamilies (${allFamilies.length}) ---');
+      final personIds = allPersons.map((p) => p.id).toSet();
+      for (final f in allFamilies) {
+        print(
+          'family husband=${f.husbandId} wife=${f.wifeId} children=${f.childrenIds}',
+        );
+        for (final childId in f.childrenIds) {
+          if (!personIds.contains(childId)) {
+            print(
+              '⚠️ childId "$childId" из family НЕ совпадает ни с одним Person.id! '
+              'Похоже на несовпадение GEDCOM-xref и сгенерированного id.',
+            );
+          }
+        }
+      }
+      // 👆👆👆 КОНЕЦ ВСТАВЛЯЕМОГО БЛОКА 👆👆👆
+
+
       if (allPersons.isEmpty) {
         return Left(NotFoundFailure('В проекте нет людей для отображения'));
       }

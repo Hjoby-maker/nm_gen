@@ -63,8 +63,9 @@ class _TreeScreenState extends State<TreeScreen> {
     final connector = isLast ? '└── ' : '├── ';
     final childPrefix = isLast ? '    ' : '│   ';
 
+    final duplicateMark = node.isDuplicateReference ? ' [ссылка-дубль]' : '';
     print(
-      '$prefix$connector${node.person.displayName} (id: ${node.person.id})',
+      '$prefix$connector${node.person.displayName} (id: ${node.person.id})$duplicateMark',
     );
     print(
       '$childPrefix   children: ${node.children.length}, spouses: ${node.spouses.length}',
@@ -150,15 +151,22 @@ class _TreeScreenState extends State<TreeScreen> {
             print('  - Детей у корня: ${state.rootNode.children.length}');
             print('  - Супругов у корня: ${state.rootNode.spouses.length}');
 
-            // Подсчет всех людей в дереве
-            int totalPeople = 0;
+            // Подсчет всех людей в дереве.
+            // ⚠️ Раньше здесь просто инкрементировался счётчик на каждый
+            // визит узла - но один и тот же человек может законно
+            // встречаться в структуре несколько раз (например, он одному
+            // родителю ребёнок, а другому - супруг), и get_full_tree.dart
+            // в таких случаях возвращает "карточку-ссылку"
+            // (isDuplicateReference), а не разворачивает его заново.
+            // Считаем уникальные id, а не количество визитов узлов.
+            final Set<String> uniqueIds = {};
             void countPeople(TreeNode node) {
-              totalPeople++;
+              uniqueIds.add(node.person.id);
               for (final child in node.children) {
                 countPeople(child);
               }
               for (final spouse in node.spouses) {
-                totalPeople++;
+                uniqueIds.add(spouse.person.id);
                 for (final child in spouse.children) {
                   countPeople(child);
                 }
@@ -166,7 +174,8 @@ class _TreeScreenState extends State<TreeScreen> {
             }
 
             countPeople(state.rootNode);
-            print('  - Всего людей в дереве: $totalPeople');
+            uniqueIds.remove('virtual_root');
+            print('  - Всего уникальных людей в дереве: ${uniqueIds.length}');
             print('═══════════════════════════════════════════════════');
           }
         },
@@ -254,9 +263,21 @@ class _TreeScreenState extends State<TreeScreen> {
                   transformationController: _transformationController,
                   minScale: _minScale,
                   maxScale: _maxScale,
+                  // constrained: false отдаёт ребёнку его естественный
+                  // (потенциально огромный) размер, вместо того чтобы
+                  // насильно ужимать его под вьюпорт - именно этого не
+                  // хватало, чтобы дерево нормально панорамировалось и
+                  // масштабировалось целиком, а не "плыло".
+                  constrained: false,
+                  boundaryMargin: const EdgeInsets.all(400),
                   onInteractionUpdate: (details) {
                     setState(() {
-                      _currentScale = details.scale;
+                      // details.scale - это дельта текущего жеста, а не
+                      // абсолютный масштаб. Берём реальный масштаб из
+                      // самой матрицы трансформации, иначе бейдж процентов
+                      // и detailLevel постепенно расходятся с реальностью.
+                      _currentScale = _transformationController.value
+                          .getMaxScaleOnAxis();
                     });
                   },
                   child: TreeVisualizer(
@@ -385,9 +406,26 @@ class _TreeScreenState extends State<TreeScreen> {
   }
 
   void _updateScale(double scale) {
+    final double clampedScale = scale.clamp(_minScale, _maxScale);
+
+    // Раньше здесь стояло Matrix4.identity()..scale(scale) - это всегда
+    // масштабирует от левого верхнего угла (0,0). При уменьшении масштаба
+    // дерево визуально "уезжало" в угол и переставало заполнять экран.
+    // Масштабируем вместо этого относительно центра видимой области, чтобы
+    // дерево оставалось на месте и по центру после нажатия +/-.
+    final Size viewportSize = MediaQuery.of(context).size;
+    final Offset center = Offset(
+      viewportSize.width / 2,
+      viewportSize.height / 2,
+    );
+    final Matrix4 matrix = Matrix4.identity()
+      ..translate(center.dx, center.dy)
+      ..scale(clampedScale)
+      ..translate(-center.dx, -center.dy);
+
     setState(() {
-      _currentScale = scale;
-      _transformationController.value = Matrix4.identity()..scale(scale);
+      _currentScale = clampedScale;
+      _transformationController.value = matrix;
     });
   }
 

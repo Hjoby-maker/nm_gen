@@ -24,38 +24,40 @@ class TreeVisualizer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ⚠️ Раньше здесь и ниже по файлу контент оборачивался в
+    // SingleChildScrollView (в том числе несколько вложенных горизонтальных).
+    // Это конфликтовало с InteractiveViewer в tree_screen.dart: вложенные
+    // скроллы не дают InteractiveViewer правильно узнать реальный размер
+    // дерева, из-за чего при изменении масштаба раскладка "плыла" и
+    // переставала заполнять экран. Теперь InteractiveViewer (с
+    // constrained: false) сам панорамирует и масштабирует весь холст
+    // целиком, поэтому здесь просто отдаём ему контент его естественного
+    // размера, без собственных скроллов.
+
     // rootNode может быть служебным "виртуальным корнем"
     final Widget content;
     if (rootNode.person.id == 'virtual_root') {
       if (rootNode.children.length == 1) {
         content = _buildNode(context, rootNode.children.first, true);
       } else {
-        // Используем SingleChildScrollView для горизонтальной прокрутки корневых узлов
-        content = SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: rootNode.children
-                .map(
-                  (node) => Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: _buildNode(context, node, true),
-                  ),
-                )
-                .toList(),
-          ),
+        content = Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: rootNode.children
+              .map(
+                (node) => Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: _buildNode(context, node, true),
+                ),
+              )
+              .toList(),
         );
       }
     } else {
       content = _buildNode(context, rootNode, true);
     }
 
-    return SingleChildScrollView(
-      child: Center(
-        child: Padding(padding: const EdgeInsets.all(32.0), child: content),
-      ),
-    );
+    return Padding(padding: const EdgeInsets.all(32.0), child: content);
   }
 
   /// Рекурсивное построение дерева
@@ -122,13 +124,10 @@ class TreeVisualizer extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         // Горизонтальный ряд родителей с явным коннектором брака между ними
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: _buildParentsWithConnectors(allParents),
-          ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: _buildParentsWithConnectors(allParents),
         ),
 
         // Общие дети
@@ -228,18 +227,16 @@ class TreeVisualizer extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // ✅ Горизонтальная прокрутка для детей одного поколения
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: children.map((child) {
-              return Padding(
-                padding: EdgeInsets.symmetric(horizontal: isNested ? 4 : 8),
-                child: _buildChildNode(context, child),
-              );
-            }).toList(),
-          ),
+        // Ряд детей одного поколения (панорамирование обеспечивает
+        // родительский InteractiveViewer, своя прокрутка тут не нужна)
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: children.map((child) {
+            return Padding(
+              padding: EdgeInsets.symmetric(horizontal: isNested ? 4 : 8),
+              child: _buildChildNode(context, child),
+            );
+          }).toList(),
         ),
         // ✅ Рекурсивно показываем внуков (без горизонтальных ограничений)
         if (children.any((c) => c.children.isNotEmpty))
