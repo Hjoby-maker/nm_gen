@@ -17,6 +17,11 @@ void main() {
   late SyncPersonEventsUseCase syncUseCase;
   late UpdatePersonUseCase useCase;
 
+  setUpAll(() {
+    registerFallbackValue(createTestEvent());
+    registerFallbackValue(createTestPerson());
+  });
+
   setUp(() {
     mockPersonRepository = MockPersonRepository();
     mockEventRepository = MockEventRepository();

@@ -16,9 +16,6 @@ import 'package:nm_gen/presentation/screens/tree_screen.dart';
 import 'package:nm_gen/presentation/widgets/person_avatar.dart';
 import 'package:nm_gen/presentation/widgets/person_form_dialog.dart';
 
-// lib/presentation/screens/persons_screen.dart
-// ... все импорты остаются без изменений
-
 class PersonsScreen extends StatefulWidget {
   const PersonsScreen({super.key, required this.treeId});
   final String treeId;
@@ -35,320 +32,408 @@ class _PersonsScreenState extends State<PersonsScreen> {
   @override
   void initState() {
     super.initState();
-    _personBloc = getIt<PersonBloc>();
-    _mediaBloc = getIt<MediaBloc>();
-
-    debugPrint('🔍 PersonsScreen: initState вызван');
-    debugPrint('🔍 PersonsScreen: treeId = ${widget.treeId}');
-    debugPrint('🔍 PersonsScreen: PersonBloc = $_personBloc');
-    debugPrint('🔍 PersonsScreen: MediaBloc = $_mediaBloc');
+    debugPrint('🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍');
+    debugPrint('🔍 PersonsScreen: initState НАЧАЛО');
+    debugPrint('🔍 PersonsScreen: mounted = $mounted');
+    debugPrint('🔍 PersonsScreen: widget.treeId = ${widget.treeId}');
+    
+    try {
+      _personBloc = getIt<PersonBloc>();
+      _mediaBloc = getIt<MediaBloc>();
+      debugPrint('✅ PersonsScreen: PersonBloc и MediaBloc получены');
+      debugPrint('🔍 PersonsScreen: PersonBloc = $_personBloc');
+      debugPrint('🔍 PersonsScreen: MediaBloc = $_mediaBloc');
+    } catch (e) {
+      debugPrint('❌ PersonsScreen: Ошибка получения BLoC: $e');
+      debugPrint('❌ StackTrace: ${StackTrace.current}');
+    }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      debugPrint('🔍 PersonsScreen: addPostFrameCallback вызван');
+      debugPrint('🔍 PersonsScreen: mounted = $mounted, _isInitialized = $_isInitialized');
       if (mounted && !_isInitialized) {
         _isInitialized = true;
-        debugPrint(
-          '🔍 PersonsScreen: Загружаем данные для treeId = ${widget.treeId}',
-        );
-        _personBloc.add(LoadPersonsEvent(treeId: widget.treeId));
+        debugPrint('🔍 PersonsScreen: Загружаем данные для treeId = ${widget.treeId}');
+        try {
+          _personBloc.add(LoadPersonsEvent(treeId: widget.treeId));
+          debugPrint('✅ PersonsScreen: LoadPersonsEvent отправлен');
+        } catch (e) {
+          debugPrint('❌ PersonsScreen: Ошибка отправки LoadPersonsEvent: $e');
+        }
+      } else {
+        debugPrint('⚠️ PersonsScreen: Пропускаем загрузку (mounted=$mounted, _isInitialized=$_isInitialized)');
       }
     });
+    debugPrint('🔍 PersonsScreen: initState ЗАВЕРШЕН');
+    debugPrint('🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍');
   }
 
   @override
   void didUpdateWidget(covariant PersonsScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     debugPrint('🔍 PersonsScreen: didUpdateWidget вызван');
-    debugPrint(
-      '🔍 PersonsScreen: старый treeId = ${oldWidget.treeId}, новый treeId = ${widget.treeId}',
-    );
+    debugPrint('🔍 PersonsScreen: старый treeId = ${oldWidget.treeId}, новый treeId = ${widget.treeId}');
 
     if (oldWidget.treeId != widget.treeId) {
       debugPrint('🔍 PersonsScreen: treeId изменился, перезагружаем данные');
-      _personBloc.add(LoadPersonsEvent(treeId: widget.treeId));
+      try {
+        _personBloc.add(LoadPersonsEvent(treeId: widget.treeId));
+        debugPrint('✅ PersonsScreen: LoadPersonsEvent отправлен при смене treeId');
+      } catch (e) {
+        debugPrint('❌ PersonsScreen: Ошибка отправки LoadPersonsEvent при смене treeId: $e');
+      }
     }
   }
 
   @override
+  void dispose() {
+    debugPrint('🔍 PersonsScreen: dispose вызван');
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    debugPrint('🔍 PersonsScreen: build вызван, treeId = ${widget.treeId}');
-
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider.value(value: _personBloc),
-        BlocProvider.value(value: _mediaBloc),
-      ],
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Персоны'),
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.search),
-              onPressed: () => _showSearchDialog(context),
-              tooltip: 'Поиск',
-            ),
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: () {
-                debugPrint('🔄 PersonsScreen: Ручное обновление');
-                _personBloc.add(LoadPersonsEvent(treeId: widget.treeId));
-              },
-              tooltip: 'Обновить',
-            ),
-            IconButton(
-              icon: const Icon(Icons.bug_report),
-              onPressed: () => _showDebugInfo(context),
-              tooltip: 'Отладка',
-            ),
-          ],
+    debugPrint('🔍 PersonsScreen: build НАЧАЛО');
+    debugPrint('🔍 PersonsScreen: treeId = ${widget.treeId}');
+    debugPrint('🔍 PersonsScreen: mounted = $mounted');
+    
+    try {
+      debugPrint('🔍 PersonsScreen: создаем MultiBlocProvider');
+      return MultiBlocProvider(
+        providers: [
+          BlocProvider.value(value: _personBloc),
+          BlocProvider.value(value: _mediaBloc),
+        ],
+        child: _buildScaffold(context),
+      );
+    } catch (e, stackTrace) {
+      debugPrint('❌ PersonsScreen: Критическая ошибка в build: $e');
+      debugPrint('❌ StackTrace: $stackTrace');
+      return Scaffold(
+        appBar: AppBar(title: const Text('Ошибка')),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('Ошибка загрузки: $e', textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  debugPrint('🔄 PersonsScreen: Перезагрузка после ошибки build');
+                  setState(() {});
+                },
+                child: const Text('Попробовать снова'),
+              ),
+            ],
+          ),
         ),
-        body: BlocConsumer<PersonBloc, PersonState>(
-          listener: (context, state) {
-            debugPrint('📊 PersonsScreen: Состояние изменилось: $state');
+      );
+    }
+  }
 
-            if (state is PersonOperationSuccess) {
-              debugPrint('✅ PersonsScreen: Операция успешна: ${state.message}');
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            } else if (state is PersonError) {
-              debugPrint('❌ PersonsScreen: Ошибка: ${state.message}');
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            }
-          },
-          builder: (context, state) {
-            debugPrint(
-              '🎨 PersonsScreen: Builder вызван, состояние: ${state.runtimeType}',
+  Widget _buildScaffold(BuildContext context) {
+    debugPrint('🔍 PersonsScreen: _buildScaffold вызван');
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Персоны'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () => _showSearchDialog(context),
+            tooltip: 'Поиск',
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              debugPrint('🔄 PersonsScreen: Ручное обновление');
+              try {
+                _personBloc.add(LoadPersonsEvent(treeId: widget.treeId));
+                debugPrint('✅ PersonsScreen: Ручное обновление отправлено');
+              } catch (e) {
+                debugPrint('❌ PersonsScreen: Ошибка ручного обновления: $e');
+              }
+            },
+            tooltip: 'Обновить',
+          ),
+          IconButton(
+            icon: const Icon(Icons.bug_report),
+            onPressed: () => _showDebugInfo(context),
+            tooltip: 'Отладка',
+          ),
+        ],
+      ),
+      body: _buildBody(context),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAddPersonDialog(context),
+        child: const Icon(Icons.person_add),
+        tooltip: 'Добавить человека',
+      ),
+    );
+  }
+
+  Widget _buildBody(BuildContext context) {
+    debugPrint('🔍 PersonsScreen: _buildBody вызван');
+    return BlocConsumer<PersonBloc, PersonState>(
+      listener: (context, state) {
+        debugPrint('📊 PersonsScreen: Состояние изменилось: ${state.runtimeType}');
+        debugPrint('📊 PersonsScreen: Состояние детали: $state');
+
+        if (state is PersonOperationSuccess) {
+          debugPrint('✅ PersonsScreen: Операция успешна: ${state.message}');
+          try {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.green,
+              ),
             );
+          } catch (e) {
+            debugPrint('❌ PersonsScreen: Ошибка показа SnackBar: $e');
+          }
+        } else if (state is PersonError) {
+          debugPrint('❌❌❌ PersonsScreen: ОШИБКА: ${state.message}');
+          try {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.red,
+              ),
+            );
+          } catch (e) {
+            debugPrint('❌ PersonsScreen: Ошибка показа SnackBar ошибки: $e');
+          }
+        }
+      },
+      builder: (context, state) {
+        debugPrint('🎨 PersonsScreen: Builder вызван, состояние: ${state.runtimeType}');
+        
+        try {
+          if (state is PersonLoading) {
+            debugPrint('⏳ PersonsScreen: Показываем загрузку');
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Загрузка данных...'),
+                ],
+              ),
+            );
+          }
 
-            if (state is PersonLoading) {
-              debugPrint('⏳ PersonsScreen: Показываем загрузку');
-              return const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('Загрузка данных...'),
-                  ],
-                ),
-              );
-            }
+          if (state is PersonError) {
+            debugPrint('❌ PersonsScreen: Показываем ошибку: ${state.message}');
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text(state.message, textAlign: TextAlign.center),
+                  const SizedBox(height: 8),
+                  Text(
+                    'TreeId: ${widget.treeId}',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      debugPrint('🔄 PersonsScreen: Повторная загрузка после ошибки');
+                      try {
+                        _personBloc.add(LoadPersonsEvent(treeId: widget.treeId));
+                      } catch (e) {
+                        debugPrint('❌ PersonsScreen: Ошибка повторной загрузки: $e');
+                      }
+                    },
+                    child: const Text('Повторить'),
+                  ),
+                ],
+              ),
+            );
+          }
 
-            if (state is PersonError) {
-              debugPrint(
-                '❌ PersonsScreen: Показываем ошибку: ${state.message}',
-              );
+          if (state is PersonsLoaded) {
+            debugPrint('📋 PersonsScreen: Загружено ${state.persons.length} персон');
+            debugPrint('📋 PersonsScreen: isSearching = ${state.isSearching}');
+            debugPrint('📋 PersonsScreen: searchQuery = ${state.searchQuery}');
+            debugPrint('📋 PersonsScreen: treeId из состояния = ${state.treeId}');
+
+            if (state.persons.isEmpty) {
+              debugPrint('📋 PersonsScreen: Список персон ПУСТ');
               return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(
-                      Icons.error_outline,
-                      size: 64,
-                      color: Colors.red,
-                    ),
+                    const Icon(Icons.people_outline, size: 64, color: Colors.grey),
                     const SizedBox(height: 16),
-                    Text(state.message, textAlign: TextAlign.center),
+                    Text(
+                      state.isSearching
+                          ? 'Ничего не найдено по запросу "${state.searchQuery}"'
+                          : 'Нет людей в базе данных',
+                      style: const TextStyle(fontSize: 18, color: Colors.grey),
+                    ),
                     const SizedBox(height: 8),
                     Text(
                       'TreeId: ${widget.treeId}',
                       style: const TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                     const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () {
-                        debugPrint(
-                          '🔄 PersonsScreen: Повторная загрузка после ошибки',
-                        );
-                        _personBloc.add(
-                          LoadPersonsEvent(treeId: widget.treeId),
-                        );
-                      },
-                      child: const Text('Повторить'),
-                    ),
+                    if (state.isSearching)
+                      ElevatedButton(
+                        onPressed: () {
+                          debugPrint('🔄 PersonsScreen: Очистка поиска');
+                          try {
+                            _personBloc.add(const ClearSearchEvent());
+                          } catch (e) {
+                            debugPrint('❌ PersonsScreen: Ошибка очистки поиска: $e');
+                          }
+                        },
+                        child: const Text('Очистить поиск'),
+                      )
+                    else
+                      ElevatedButton(
+                        onPressed: () => _showAddPersonDialog(context),
+                        child: const Text('Добавить человека'),
+                      ),
                   ],
                 ),
               );
             }
 
-            if (state is PersonsLoaded) {
-              debugPrint(
-                '📋 PersonsScreen: Загружено ${state.persons.length} персон',
-              );
-              debugPrint(
-                '📋 PersonsScreen: isSearching = ${state.isSearching}',
-              );
-              debugPrint(
-                '📋 PersonsScreen: searchQuery = ${state.searchQuery}',
-              );
-
-              if (state.persons.isEmpty) {
-                debugPrint('📋 PersonsScreen: Список персон пуст');
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.people_outline,
-                        size: 64,
-                        color: Colors.grey,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        state.isSearching
-                            ? 'Ничего не найдено по запросу "${state.searchQuery}"'
-                            : 'Нет людей в базе данных',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey,
+            debugPrint('📋 PersonsScreen: Отображаем список из ${state.persons.length} персон');
+            return Column(
+              children: [
+                if (state.isSearching)
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Результаты поиска: "${state.searchQuery}" (${state.persons.length})',
+                            style: const TextStyle(fontSize: 14),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'TreeId: ${widget.treeId}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      if (state.isSearching)
-                        ElevatedButton(
+                        TextButton(
                           onPressed: () {
-                            debugPrint('🔄 PersonsScreen: Очистка поиска');
-                            _personBloc.add(const ClearSearchEvent());
-                          },
-                          child: const Text('Очистить поиск'),
-                        )
-                      else
-                        ElevatedButton(
-                          onPressed: () => _showAddPersonDialog(context),
-                          child: const Text('Добавить человека'),
-                        ),
-                    ],
-                  ),
-                );
-              }
-
-              return Column(
-                children: [
-                  if (state.isSearching)
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Результаты поиска: "${state.searchQuery}" (${state.persons.length})',
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () {
+                            debugPrint('🔄 PersonsScreen: Очистка поиска через кнопку');
+                            try {
                               _personBloc.add(const ClearSearchEvent());
-                            },
-                            child: const Text('Очистить'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  Expanded(
-                    child: ListView.builder(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      itemCount: state.persons.length,
-                      itemBuilder: (context, index) {
-                        final person = state.persons[index];
-                        return Dismissible(
-                          key: Key(person.id),
-                          direction: DismissDirection.horizontal,
-                          background: _buildSwipeRightBackground(context),
-                          secondaryBackground: _buildSwipeLeftBackground(
-                            context,
-                          ),
-                          confirmDismiss: (direction) async {
-                            if (direction == DismissDirection.startToEnd) {
-                              return _confirmDeleteDialog(
-                                context,
-                                person.id,
-                                person.displayName,
-                              );
-                            } else if (direction ==
-                                DismissDirection.endToStart) {
-                              _showSwipeLeftActions(context, person);
-                              return false;
+                            } catch (e) {
+                              debugPrint('❌ PersonsScreen: Ошибка очистки поиска: $e');
                             }
-                            return false;
                           },
-                          onDismissed: (direction) {
-                            if (direction == DismissDirection.startToEnd) {
+                          child: const Text('Очистить'),
+                        ),
+                      ],
+                    ),
+                  ),
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    itemCount: state.persons.length,
+                    itemBuilder: (context, index) {
+                      final person = state.persons[index];
+                      debugPrint('👤 PersonsScreen: Отображение персоны #$index: ${person.displayName}');
+                      return Dismissible(
+                        key: Key(person.id),
+                        direction: DismissDirection.horizontal,
+                        background: _buildSwipeRightBackground(context),
+                        secondaryBackground: _buildSwipeLeftBackground(context),
+                        confirmDismiss: (direction) async {
+                          if (direction == DismissDirection.startToEnd) {
+                            return await _confirmDeleteDialog(
+                              context,
+                              person.id,
+                              person.displayName,
+                            );
+                          } else if (direction == DismissDirection.endToStart) {
+                            _showSwipeLeftActions(context, person);
+                            return false;
+                          }
+                          return false;
+                        },
+                        onDismissed: (direction) {
+                          if (direction == DismissDirection.startToEnd) {
+                            try {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text('Человек удален'),
                                   backgroundColor: Colors.green,
                                 ),
                               );
+                            } catch (e) {
+                              debugPrint('❌ PersonsScreen: Ошибка показа SnackBar удаления: $e');
                             }
-                          },
-                          child: Card(
-                            margin: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 4,
+                          }
+                        },
+                        child: Card(
+                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          child: ListTile(
+                            leading: PersonAvatar(person: person, radius: 25),
+                            title: Text(person.displayName),
+                            subtitle: Text(
+                              '${person.formattedAge} · ${person.occupation ?? 'Без профессии'}',
                             ),
-                            child: ListTile(
-                              leading: PersonAvatar(person: person, radius: 25),
-                              title: Text(person.displayName),
-                              subtitle: Text(
-                                '${person.formattedAge} · ${person.occupation ?? 'Без профессии'}',
-                              ),
-                              trailing: const Icon(
-                                Icons.chevron_right,
-                                color: Colors.grey,
-                              ),
-                              onTap: () {
-                                debugPrint(
-                                  '👤 PersonsScreen: Переход к персоне ${person.displayName} (${person.id})',
-                                );
+                            trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                            onTap: () {
+                              debugPrint('👤 PersonsScreen: Переход к персоне ${person.displayName} (${person.id})');
+                              try {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) =>
-                                        PersonDetailScreen(personId: person.id),
+                                    builder: (context) => PersonDetailScreen(personId: person.id),
                                   ),
                                 );
-                              },
-                            ),
+                              } catch (e) {
+                                debugPrint('❌ PersonsScreen: Ошибка навигации: $e');
+                              }
+                            },
                           ),
-                        );
-                      },
-                    ),
+                        ),
+                      );
+                    },
                   ),
-                ],
-              );
-            }
-
-            debugPrint(
-              '⚠️ PersonsScreen: Неизвестное состояние: ${state.runtimeType}',
+                ),
+              ],
             );
-            return const SizedBox.shrink();
-          },
-        ),
-        // Упрощенный FloatingActionButton - без Hero
-        floatingActionButton: FloatingActionButton(
-          onPressed: () => _showAddPersonDialog(context),
-          child: const Icon(Icons.person_add),
-          tooltip: 'Добавить человека',
-        ),
-      ),
+          }
+
+          debugPrint('⚠️⚠️⚠️ PersonsScreen: НЕИЗВЕСТНОЕ СОСТОЯНИЕ: ${state.runtimeType}');
+          debugPrint('⚠️ PersonsScreen: Состояние: $state');
+          return const SizedBox.shrink();
+        } catch (e, stackTrace) {
+          debugPrint('❌❌❌ PersonsScreen: КРИТИЧЕСКАЯ ОШИБКА В BUILDER: $e');
+          debugPrint('❌ StackTrace: $stackTrace');
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                const SizedBox(height: 16),
+                Text('Ошибка: $e', textAlign: TextAlign.center),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    debugPrint('🔄 PersonsScreen: Перезагрузка после критической ошибки');
+                    try {
+                      _personBloc.add(LoadPersonsEvent(treeId: widget.treeId));
+                    } catch (e) {
+                      debugPrint('❌ PersonsScreen: Ошибка перезагрузки: $e');
+                    }
+                  },
+                  child: const Text('Перезагрузить'),
+                ),
+              ],
+            ),
+          );
+        }
+      },
     );
   }
 
@@ -358,6 +443,7 @@ class _PersonsScreenState extends State<PersonsScreen> {
 
   void _showDebugInfo(BuildContext context) {
     final state = _personBloc.state;
+    debugPrint('🔍 PersonsScreen: _showDebugInfo вызван');
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -370,10 +456,7 @@ class _PersonsScreenState extends State<PersonsScreen> {
               _buildDebugRow('TreeId', widget.treeId),
               _buildDebugRow('Состояние', state.runtimeType.toString()),
               if (state is PersonsLoaded) ...[
-                _buildDebugRow(
-                  'Количество персон',
-                  state.persons.length.toString(),
-                ),
+                _buildDebugRow('Количество персон', state.persons.length.toString()),
                 _buildDebugRow('Поиск', state.isSearching ? 'Да' : 'Нет'),
                 _buildDebugRow('Запрос', state.searchQuery ?? 'нет'),
                 _buildDebugRow('TreeId из состояния', state.treeId ?? 'нет'),
@@ -391,6 +474,15 @@ class _PersonsScreenState extends State<PersonsScreen> {
                 'В консоли есть отладочные сообщения с 🔍',
                 style: TextStyle(fontSize: 12, color: Colors.grey),
               ),
+              const SizedBox(height: 8),
+              Text(
+                'mounted: $mounted',
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              Text(
+                'isInitialized: $_isInitialized',
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
             ],
           ),
         ),
@@ -402,8 +494,12 @@ class _PersonsScreenState extends State<PersonsScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              debugPrint('🔄 PersonsScreen: Принудительная перезагрузка');
-              _personBloc.add(LoadPersonsEvent(treeId: widget.treeId));
+              debugPrint('🔄 PersonsScreen: Принудительная перезагрузка из отладки');
+              try {
+                _personBloc.add(LoadPersonsEvent(treeId: widget.treeId));
+              } catch (e) {
+                debugPrint('❌ PersonsScreen: Ошибка принудительной перезагрузки: $e');
+              }
             },
             child: const Text('Перезагрузить'),
           ),
@@ -491,6 +587,7 @@ class _PersonsScreenState extends State<PersonsScreen> {
   }
 
   void _showSwipeLeftActions(BuildContext context, Person person) {
+    debugPrint('🔍 PersonsScreen: _showSwipeLeftActions для ${person.displayName}');
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -558,6 +655,7 @@ class _PersonsScreenState extends State<PersonsScreen> {
     String personId,
     String name,
   ) async {
+    debugPrint('🔍 PersonsScreen: _confirmDeleteDialog для $name');
     final result = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -570,7 +668,12 @@ class _PersonsScreenState extends State<PersonsScreen> {
           ),
           TextButton(
             onPressed: () {
-              _personBloc.add(DeletePersonEvent(personId));
+              debugPrint('🗑️ PersonsScreen: Удаление человека $name');
+              try {
+                _personBloc.add(DeletePersonEvent(personId));
+              } catch (e) {
+                debugPrint('❌ PersonsScreen: Ошибка удаления: $e');
+              }
               Navigator.pop(dialogContext, true);
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
@@ -591,6 +694,7 @@ class _PersonsScreenState extends State<PersonsScreen> {
     String personId,
     String personName,
   ) {
+    debugPrint('🔍 PersonsScreen: _navigateToFamily для $personName');
     final personBloc = context.read<PersonBloc>();
 
     Navigator.push(
@@ -608,6 +712,7 @@ class _PersonsScreenState extends State<PersonsScreen> {
   }
 
   void _navigateToTreeWithPerson(BuildContext context, String personId) {
+    debugPrint('🔍 PersonsScreen: _navigateToTreeWithPerson для $personId');
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -624,6 +729,7 @@ class _PersonsScreenState extends State<PersonsScreen> {
   // =========================================================================
 
   void _showSearchDialog(BuildContext context) {
+    debugPrint('🔍 PersonsScreen: _showSearchDialog вызван');
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -637,7 +743,11 @@ class _PersonsScreenState extends State<PersonsScreen> {
           onSubmitted: (query) {
             if (query.isNotEmpty) {
               debugPrint('🔍 PersonsScreen: Поиск по запросу "$query"');
-              _personBloc.add(SearchPersonsEvent(query, treeId: widget.treeId));
+              try {
+                _personBloc.add(SearchPersonsEvent(query, treeId: widget.treeId));
+              } catch (e) {
+                debugPrint('❌ PersonsScreen: Ошибка поиска: $e');
+              }
               Navigator.pop(dialogContext);
             }
           },
@@ -660,26 +770,30 @@ class _PersonsScreenState extends State<PersonsScreen> {
         treeId: widget.treeId,
         onSave: (person) {
           debugPrint('✅ PersonsScreen: Добавлен человек ${person.displayName}');
-          _personBloc.add(AddPersonEvent(person, treeId: widget.treeId));
+          try {
+            _personBloc.add(AddPersonEvent(person, treeId: widget.treeId));
+          } catch (e) {
+            debugPrint('❌ PersonsScreen: Ошибка добавления: $e');
+          }
         },
       ),
     );
   }
 
   void _showEditPersonDialog(BuildContext context, Person person) {
-    debugPrint(
-      '✏️ PersonsScreen: Открытие диалога редактирования ${person.displayName}',
-    );
+    debugPrint('✏️ PersonsScreen: Открытие диалога редактирования ${person.displayName}');
     showDialog(
       context: context,
       builder: (dialogContext) => PersonFormDialog(
         existingPerson: person,
         treeId: widget.treeId,
         onSave: (updatedPerson) {
-          debugPrint(
-            '✅ PersonsScreen: Обновлен человек ${updatedPerson.displayName}',
-          );
-          _personBloc.add(UpdatePersonEvent(updatedPerson));
+          debugPrint('✅ PersonsScreen: Обновлен человек ${updatedPerson.displayName}');
+          try {
+            _personBloc.add(UpdatePersonEvent(updatedPerson));
+          } catch (e) {
+            debugPrint('❌ PersonsScreen: Ошибка обновления: $e');
+          }
         },
       ),
     );

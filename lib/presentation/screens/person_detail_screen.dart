@@ -130,13 +130,16 @@ class _PersonDetailScreenState extends State<PersonDetailScreen>
                 controller: _tabController,
                 children: [_buildInfoTab(), _buildMediaTab()],
               ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: _person != null && _person!.id.isNotEmpty
-              ? () => _showAddEventDialog(context)
-              : null,
-          tooltip: 'Добавить событие',
-          child: const Icon(Icons.add),
-        ),
+        floatingActionButton: Hero(
+  tag: 'fab_detail_screen',
+  child: FloatingActionButton(
+    onPressed: _person != null && _person!.id.isNotEmpty
+        ? () => _showAddEventDialog(context)
+        : null,
+    tooltip: 'Добавить событие',
+    child: const Icon(Icons.add),
+  ),
+),
       ),
     );
   }

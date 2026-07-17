@@ -185,10 +185,12 @@ class _MediaSectionState extends State<MediaSection> {
   }
 
   void _showAddMediaSheet(BuildContext context) {
+    final mediaBloc = context.read<MediaBloc>();
     MediaPickerSheet.show(
       context: context,
       personId: widget.personId,
       eventId: widget.eventId,
+      mediaBloc: mediaBloc,
     );
   }
 

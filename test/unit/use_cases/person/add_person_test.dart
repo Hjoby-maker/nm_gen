@@ -4,6 +4,7 @@ import 'package:dartz/dartz.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:nm_gen/core/errors/failures.dart';
 import 'package:nm_gen/domain/entities/person.dart';
+import 'package:nm_gen/domain/entities/event.dart';
 import 'package:nm_gen/domain/repositories/person_repository.dart';
 import 'package:nm_gen/domain/repositories/event_repository.dart';
 import 'package:nm_gen/domain/use_cases/person/add_person.dart';
@@ -16,6 +17,12 @@ void main() {
   late MockEventRepository mockEventRepository;
   late SyncPersonEventsUseCase syncUseCase;
   late AddPersonUseCase useCase;
+
+  setUpAll(() {
+    // Регистрируем fallback значения для типов, которые используются в any()
+    registerFallbackValue(createTestEvent());
+    registerFallbackValue(createTestPerson());
+  });
 
   setUp(() {
     mockPersonRepository = MockPersonRepository();

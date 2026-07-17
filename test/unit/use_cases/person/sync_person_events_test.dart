@@ -14,6 +14,11 @@ void main() {
   late MockEventRepository mockEventRepository;
   late SyncPersonEventsUseCase useCase;
 
+  setUpAll(() {
+    registerFallbackValue(createTestEvent());
+    registerFallbackValue(createTestPerson());
+  });
+
   setUp(() {
     mockEventRepository = MockEventRepository();
     useCase = SyncPersonEventsUseCase(mockEventRepository);
@@ -34,6 +39,7 @@ void main() {
           treeId: person.treeId,
         ),
       ).thenAnswer((_) async => []);
+
       when(
         () => mockEventRepository.addEvent(any()),
       ).thenAnswer((_) async => createTestEvent());
@@ -61,6 +67,7 @@ void main() {
           treeId: person.treeId,
         ),
       ).thenAnswer((_) async => []);
+
       when(
         () => mockEventRepository.addEvent(any()),
       ).thenAnswer((_) async => createTestEvent());
@@ -94,6 +101,7 @@ void main() {
           treeId: person.treeId,
         ),
       ).thenAnswer((_) async => [existingEvent]);
+
       when(
         () => mockEventRepository.updateEvent(any()),
       ).thenAnswer((_) async => existingEvent);
@@ -108,7 +116,10 @@ void main() {
 
     test('удаляет событие рождения, если дата рождения удалена', () async {
       // Arrange
-      final person = createTestPerson(id: 'p1', birthDate: null);
+      final person = createTestPerson(
+        id: 'p1',
+        birthDate: null, // Дата рождения удалена
+      );
       final existingEvent = createTestEvent(
         id: 'e1',
         personId: person.id,
@@ -122,6 +133,7 @@ void main() {
           treeId: person.treeId,
         ),
       ).thenAnswer((_) async => [existingEvent]);
+
       when(
         () => mockEventRepository.deleteEvent(existingEvent.id),
       ).thenAnswer((_) async => {});
@@ -133,6 +145,29 @@ void main() {
       expect(result.isRight(), true);
       verify(() => mockEventRepository.deleteEvent(existingEvent.id)).called(1);
     });
+
+    test(
+      'не создает событие рождения, если нет даты рождения и нет существующего события',
+      () async {
+        // Arrange
+        final person = createTestPerson(id: 'p1', birthDate: null);
+
+        when(
+          () => mockEventRepository.getEventsByPersonId(
+            person.id,
+            treeId: person.treeId,
+          ),
+        ).thenAnswer((_) async => []);
+
+        // Act
+        final result = await useCase.execute(person);
+
+        // Assert
+        expect(result.isRight(), true);
+        verifyNever(() => mockEventRepository.addEvent(any()));
+        verifyNever(() => mockEventRepository.deleteEvent(any()));
+      },
+    );
 
     test('возвращает Left с ServerFailure при ошибке', () async {
       // Arrange

@@ -27,6 +27,7 @@ dependencies:
   
   # Database
   sqflite: ^2.3.3
+  sqlite3_flutter_libs: 0.6.0+eol
   file_selector: ^1.1.0
   path_provider: ^2.1.4
   sqflite_common_ffi: ^2.3.3+1
