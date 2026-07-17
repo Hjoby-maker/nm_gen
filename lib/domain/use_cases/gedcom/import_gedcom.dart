@@ -76,91 +76,27 @@ class ImportGedcomUseCase {
       }
 
       // ============================================================
-      // ДОБАВЛЯЕМ НЕДОСТАЮЩИЕ РОДИТЕЛЬСКИЕ СВЯЗИ
+      // ❌ УБРАНО: _createMissingParentLinks создавала "виртуальные семьи"
+      // для людей без родителей на основе совпадения ФАМИЛИИ - это
+      // ненадёжная эвристика: она путает кровных братьев/сестёр с жёнами,
+      // взявшими фамилию мужа при браке (например, невестка automatически
+      // объявлялась "сестрой" золовки). Плюс метод создавал по ОТДЕЛЬНОЙ
+      // Family-записи на каждого члена группы вместо одной, откуда и
+      // бралось кратное дублирование. Как результат - в дереве появлялись
+      // семьи без единого родителя (husbandId и wifeId оба null), что
+      // ломало определение "корневых" людей в get_full_tree.dart.
+      //
+      // Если понадобится показывать в UI группы братьев/сестёр - это
+      // отдельная задача, требующая либо явных данных из GEDCOM (тег
+      // FAMC у обоих должен указывать на одну семью), либо отдельной
+      // сущности, не переиспользующей Family.
+      // await _createMissingParentLinks(data, idMap, treeId);
       // ============================================================
-      await _createMissingParentLinks(data, idMap, treeId);
 
       return Right(importedCount);
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }
-  }
-
-  /// Создает недостающие родительские связи для братьев и сестер
-  Future<void> _createMissingParentLinks(
-    GedcomData data,
-    Map<String, String> idMap,
-    String? treeId,
-  ) async {
-    // Находим семьи, где есть дети
-    final familiesWithChildren = data.families
-        .where((f) => f.childrenIds.isNotEmpty)
-        .toList();
-
-    // Собираем всех детей из семей
-    final Set<String> allChildrenIds = <String>{};
-    for (final family in familiesWithChildren) {
-      allChildrenIds.addAll(family.childrenIds);
-    }
-
-    // Находим людей, у которых есть братья/сестры, но нет семьи родителей
-    final List<String> peopleWithoutParents = <String>[];
-    for (final individual in data.individuals) {
-      // Проверяем, есть ли у этого человека семья, где он ребенок
-      final hasParentFamily = data.families.any(
-        (f) => f.childrenIds.contains(individual.id),
-      );
-
-      // Если человек не является ребенком ни в одной семье
-      // и у него есть братья/сестры (определяем по фамилии)
-      if (!hasParentFamily) {
-        // Ищем людей с такой же фамилией (предполагаем, что это братья/сестры)
-        final String surname = _extractSurname(individual.name);
-        if (surname.isNotEmpty) {
-          final siblings = data.individuals
-              .where(
-                (i) =>
-                    i.id != individual.id &&
-                    _extractSurname(i.name) == surname &&
-                    !data.families.any((f) => f.childrenIds.contains(i.id)),
-              )
-              .map((i) => i.id)
-              .toList();
-
-          if (siblings.isNotEmpty) {
-            // Создаем виртуальную родительскую семью
-            final parentFamily = Family(
-              id: DateTime.now().millisecondsSinceEpoch.toString(),
-              treeId: treeId ?? 'default',
-              husbandId: null,
-              wifeId: null,
-              childrenIds: [
-                individual.id,
-                ...siblings,
-              ].map((Object? id) => idMap[id]).whereType<String>().toList(),
-              marriageDate: null,
-              divorceDate: null,
-              marriagePlace: null,
-              notes:
-                  'Виртуальная семья для братьев/сестер (создана автоматически)',
-            );
-
-            if (parentFamily.childrenIds.isNotEmpty) {
-              await familyRepository.addFamily(parentFamily);
-            }
-          }
-        }
-      }
-    }
-  }
-
-  String _extractSurname(String fullName) {
-    // Извлекаем фамилию из формата "Имя /Фамилия/"
-    final RegExpMatch? match = RegExp(r'/([^/]+)/').firstMatch(fullName);
-    if (match != null && match.groupCount >= 1) {
-      return match.group(1)?.trim() ?? '';
-    }
-    return '';
   }
 
   DateTime? _parseDate(String date) {
