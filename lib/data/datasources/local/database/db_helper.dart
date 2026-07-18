@@ -26,7 +26,7 @@ class DatabaseHelper {
 
     return openDatabase(
       path,
-      version: 7,
+      version: 8,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -161,13 +161,14 @@ class DatabaseHelper {
         person_id TEXT,
         event_id TEXT,
         file_name TEXT NOT NULL,
-        local_path TEXT NOT NULL,
+        local_path TEXT,
         remote_url TEXT,
         mime_type TEXT NOT NULL,
         file_size INTEGER NOT NULL,
         description TEXT NOT NULL DEFAULT '',
         is_primary INTEGER NOT NULL DEFAULT 0,
         thumbnail_path TEXT,
+        source TEXT NOT NULL DEFAULT 'appStorage',
         created_at INTEGER NOT NULL,
         updated_at INTEGER,
         FOREIGN KEY (person_id) REFERENCES persons (id) ON DELETE CASCADE,
@@ -282,6 +283,89 @@ class DatabaseHelper {
         print('⚠️ Ошибка миграции media_attachments: $e');
       }
     }
+
+    // Миграция для версии 8 — вложения без копирования (ссылка на файл на
+    // устройстве / внешняя ссылка). Нужны 2 изменения схемы:
+    //   1. Новый столбец 'source' - откуда взято вложение
+    //      ('appStorage' | 'deviceReference' | 'externalLink').
+    //   2. local_path должен допускать NULL - у externalLink файла нет.
+    //      SQLite не даёт снять NOT NULL через ALTER TABLE напрямую,
+    //      поэтому для баз, где таблица уже была создана как NOT NULL,
+    //      делаем стандартное для SQLite пересоздание таблицы.
+    if (oldVersion < 8) {
+      try {
+        final tables = await db.rawQuery(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='media_attachments'",
+        );
+
+        if (tables.isEmpty) {
+          // Таблицы всё ещё нет (очень старая база, ветка oldVersion < 7
+          // выше её не создала по какой-то причине) - создаём сразу в
+          // актуальном виде.
+          await _createMediaAttachmentsTable(db);
+        } else {
+          await _migrateMediaAttachmentsToV8(db);
+        }
+      } catch (e) {
+        print('⚠️ Ошибка миграции media_attachments (source/nullable local_path): $e');
+      }
+    }
+  }
+
+  /// Приводит существующую таблицу media_attachments к схеме версии 8:
+  /// добавляет столбец 'source' (если его ещё нет) и снимает NOT NULL с
+  /// local_path (если оно ещё стоит), пересоздавая таблицу при
+  /// необходимости. Безопасно вызывать повторно - если всё уже в нужном
+  /// виде, просто ничего не делает.
+  Future<void> _migrateMediaAttachmentsToV8(Database db) async {
+    final List<Map<String, Object?>> columns = await db.rawQuery(
+      'PRAGMA table_info(media_attachments)',
+    );
+    final bool hasSource = columns.any((col) => col['name'] == 'source');
+    final Map<String, Object?> localPathCol = columns.firstWhere(
+      (col) => col['name'] == 'local_path',
+      orElse: () => const <String, Object?>{},
+    );
+    final bool localPathNotNull = (localPathCol['notnull'] as int? ?? 0) == 1;
+
+    if (hasSource && !localPathNotNull) {
+      // Уже всё как надо (например, повторный запуск миграции) - выходим.
+      return;
+    }
+
+    if (!localPathNotNull) {
+      // local_path уже nullable, не хватает только столбца source - это
+      // единственный случай, который можно решить простым ALTER TABLE
+      // без пересоздания таблицы.
+      await db.execute(
+        "ALTER TABLE media_attachments ADD COLUMN source TEXT NOT NULL DEFAULT 'appStorage'",
+      );
+      return;
+    }
+
+    // local_path всё ещё NOT NULL - нужно пересоздание таблицы (стандартный
+    // для SQLite паттерн: rename -> create new -> copy data -> drop old).
+    await db.execute(
+      'ALTER TABLE media_attachments RENAME TO media_attachments_old',
+    );
+
+    await _createMediaAttachmentsTable(db);
+
+    final String sourceSelectExpr = hasSource ? 'source' : "'appStorage'";
+    await db.execute('''
+      INSERT INTO media_attachments (
+        id, person_id, event_id, file_name, local_path, remote_url,
+        mime_type, file_size, description, is_primary, thumbnail_path,
+        source, created_at, updated_at
+      )
+      SELECT
+        id, person_id, event_id, file_name, local_path, remote_url,
+        mime_type, file_size, description, is_primary, thumbnail_path,
+        $sourceSelectExpr, created_at, updated_at
+      FROM media_attachments_old
+    ''');
+
+    await db.execute('DROP TABLE media_attachments_old');
   }
 
   /// Вспомогательный метод для работы с транзакциями
