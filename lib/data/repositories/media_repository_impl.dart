@@ -209,6 +209,116 @@ class MediaRepositoryImpl implements MediaRepository {
   }
 
   @override
+  Future<Either<Failure, MediaAttachment>> addDeviceFileReference({
+    required String filePath,
+    required String fileName,
+    required String mimeType,
+    required int fileSize,
+    required String description,
+    String? personId,
+    String? eventId,
+  }) async {
+    try {
+      if (description.trim().isEmpty) {
+        return Left(
+          const MediaValidationFailure(
+            'Описание не может быть пустым',
+            code: 'EMPTY_DESCRIPTION',
+          ),
+        );
+      }
+      if (filePath.trim().isEmpty) {
+        return Left(
+          const MediaValidationFailure(
+            'Не указан путь к файлу',
+            code: 'EMPTY_PATH',
+          ),
+        );
+      }
+
+      // ⚠️ НЕ копируем файл - только сохраняем ссылку на путь. Best-effort:
+      // файл может позже стать недоступен (перемещён/удалён пользователем,
+      // либо на Android слетело разрешение после перезапуска процесса) -
+      // это осознанно принятое поведение, а не забытая проверка. UI
+      // (MediaCard) должен аккуратно обработать отсутствие файла при показе.
+      final MediaAttachmentModel model = MediaAttachmentModel.createDeviceReference(
+        fileName: fileName,
+        filePath: filePath,
+        mimeType: mimeType,
+        fileSize: fileSize,
+        description: description,
+        personId: personId,
+        eventId: eventId,
+      );
+
+      await _dataSource.save(model);
+
+      return Right(model.toEntity());
+    } on MediaValidationFailure catch (e) {
+      return Left(e);
+    } catch (e) {
+      return Left(
+        MediaDatabaseFailure(
+          message: 'Ошибка прикрепления файла с устройства: $e',
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<Either<Failure, MediaAttachment>> addExternalLink({
+    required String url,
+    required String description,
+    String? title,
+    String? personId,
+    String? eventId,
+  }) async {
+    try {
+      if (description.trim().isEmpty) {
+        return Left(
+          const MediaValidationFailure(
+            'Описание не может быть пустым',
+            code: 'EMPTY_DESCRIPTION',
+          ),
+        );
+      }
+
+      final String trimmedUrl = url.trim();
+      final Uri? parsed = Uri.tryParse(trimmedUrl);
+      final bool isValid =
+          parsed != null &&
+          (parsed.isScheme('HTTP') || parsed.isScheme('HTTPS')) &&
+          parsed.host.isNotEmpty;
+      if (!isValid) {
+        return Left(
+          const MediaValidationFailure(
+            'Некорректная ссылка - укажите полный адрес, начиная с http:// или https://',
+            code: 'INVALID_URL',
+          ),
+        );
+      }
+
+      final MediaAttachmentModel model = MediaAttachmentModel.createExternalLink(
+        url: trimmedUrl,
+        description: description,
+        title: title,
+        personId: personId,
+        eventId: eventId,
+      );
+
+      await _dataSource.save(model);
+
+      return Right(model.toEntity());
+    } on MediaValidationFailure catch (e) {
+      return Left(e);
+    } catch (e) {
+      return Left(
+        MediaDatabaseFailure(message: 'Ошибка прикрепления ссылки: $e'),
+      );
+    }
+  }
+
+  @override
   Future<Either<Failure, MediaAttachment>> updateMediaDescription(
     String mediaId,
     String newDescription,
@@ -242,6 +352,7 @@ class MediaRepositoryImpl implements MediaRepository {
         description: newDescription.trim(),
         isPrimary: model.isPrimary,
         thumbnailPath: model.thumbnailPath,
+        source: model.source,
         createdAt: model.createdAt,
         updatedAt: DateTime.now().millisecondsSinceEpoch,
       );
@@ -297,6 +408,7 @@ class MediaRepositoryImpl implements MediaRepository {
         description: model.description,
         isPrimary: 1,
         thumbnailPath: model.thumbnailPath,
+        source: model.source,
         createdAt: model.createdAt,
         updatedAt: DateTime.now().millisecondsSinceEpoch,
       );
@@ -328,12 +440,17 @@ class MediaRepositoryImpl implements MediaRepository {
       // Удаляем из БД
       await _dataSource.deleteById(mediaId);
 
-      // Удаляем файл с диска
-      await _fileStorage.deleteFile(model.localPath);
+      // ⚠️ Файл с диска стираем ТОЛЬКО если приложение сам его туда
+      // скопировало (source == appStorage). Для deviceReference это чужой
+      // файл пользователя вне песочницы приложения - трогать его нельзя.
+      // Для externalLink localPath вообще null - стирать нечего.
+      if (model.source == 'appStorage' && model.localPath != null) {
+        await _fileStorage.deleteFile(model.localPath!);
 
-      // Удаляем миниатюру
-      if (model.thumbnailPath != null) {
-        await _fileStorage.deleteFile(model.thumbnailPath!);
+        // Удаляем миниатюру
+        if (model.thumbnailPath != null) {
+          await _fileStorage.deleteFile(model.thumbnailPath!);
+        }
       }
 
       return const Right(null);
@@ -438,10 +555,20 @@ class MediaRepositoryImpl implements MediaRepository {
           : 'event_$newEventId';
 
       if (oldDir != newDir) {
-        final newPath = await _fileStorage.moveFile(
-          sourcePath: model.localPath,
-          newSubDirectory: newDir,
-        );
+        // ⚠️ Физически перемещаем файл на диске ТОЛЬКО для appStorage
+        // (это единственный случай, когда файл вообще существует в
+        // песочнице приложения и когда мы им владеем). Для
+        // deviceReference файл лежит вне приложения и трогать его нельзя,
+        // для externalLink localPath вообще null - просто переносим
+        // "владельца" (person_id/event_id) в БД, без файловых операций.
+        String? newPath = model.localPath;
+        if (model.source == 'appStorage' && model.localPath != null) {
+          newPath = await _fileStorage.moveFile(
+            sourcePath: model.localPath!,
+            newSubDirectory: newDir,
+          );
+        }
+
         // Обновляем путь в модели
         final MediaAttachmentModel updatedModel = MediaAttachmentModel(
           id: model.id,
@@ -455,6 +582,7 @@ class MediaRepositoryImpl implements MediaRepository {
           description: model.description,
           isPrimary: 0, // Сбрасываем основной портрет при перемещении
           thumbnailPath: model.thumbnailPath,
+          source: model.source,
           createdAt: model.createdAt,
           updatedAt: DateTime.now().millisecondsSinceEpoch,
         );

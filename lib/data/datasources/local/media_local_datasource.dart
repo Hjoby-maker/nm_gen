@@ -247,9 +247,13 @@ class MediaLocalDataSourceImpl implements MediaLocalDataSource {
   Future<List<String>> getAllFilePaths() async {
     final db = await _getDatabase();
     final result = await db.query('media_attachments');
+    // ⚠️ local_path теперь может быть NULL (у externalLink файла нет
+    // вообще). Раньше здесь был жёсткий каст `as String`, который упал бы
+    // с ошибкой на первой же ссылке.
     return result
-        .map((map) => map['local_path'] as String)
-        .where((path) => path.isNotEmpty)
+        .map((map) => map['local_path'] as String?)
+        .where((path) => path != null && path.isNotEmpty)
+        .cast<String>()
         .toList();
   }
 

@@ -42,6 +42,30 @@ abstract class MediaRepository {
     bool generateThumbnail = true,
   });
 
+  /// Прикрепить файл, физически находящийся на устройстве вне приложения
+  /// (НЕ копируем содержимое - только запоминаем путь). Best-effort:
+  /// доступность файла в будущем не гарантируется (пользователь может
+  /// переместить/удалить оригинал; на Android разрешение может не
+  /// пережить перезапуск процесса, если не запрошен persistable доступ).
+  Future<Either<Failure, MediaAttachment>> addDeviceFileReference({
+    required String filePath,
+    required String fileName,
+    required String mimeType,
+    required int fileSize,
+    required String description,
+    String? personId,
+    String? eventId,
+  });
+
+  /// Прикрепить внешнюю ссылку (URL). Локального файла нет вообще.
+  Future<Either<Failure, MediaAttachment>> addExternalLink({
+    required String url,
+    required String description,
+    String? title,
+    String? personId,
+    String? eventId,
+  });
+
   /// Обновить описание медиа-файла
   Future<Either<Failure, MediaAttachment>> updateMediaDescription(
     String mediaId,

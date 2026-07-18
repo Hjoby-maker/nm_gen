@@ -2,6 +2,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:nm_gen/domain/entities/media_attachment.dart';
 import 'package:nm_gen/presentation/blocs/media/media_bloc.dart';
 import 'package:nm_gen/presentation/blocs/media/media_event.dart';
@@ -247,6 +248,27 @@ class _MediaSectionState extends State<MediaSection> {
                 style: TextStyle(color: Colors.grey.shade600),
               ),
               const SizedBox(height: 16),
+              // ✅ Кнопка "Открыть" - для внешней ссылки открывает браузер,
+              // для файла с устройства - пытается открыть его во внешнем
+              // приложении (best-effort, см. _openAttachment).
+              if (media.isExternalLink || media.isDeviceReference)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _openAttachment(context, media),
+                      icon: Icon(
+                        media.isExternalLink
+                            ? Icons.open_in_new
+                            : Icons.folder_open,
+                      ),
+                      label: Text(
+                        media.isExternalLink ? 'Открыть ссылку' : 'Открыть файл',
+                      ),
+                    ),
+                  ),
+                ),
               Row(
                 children: [
                   if (widget.personId != null && !media.isPrimary)
@@ -295,9 +317,54 @@ class _MediaSectionState extends State<MediaSection> {
   }
 
   Widget _buildPreview(MediaAttachment media) {
-    if (media.isImage) {
+    // ✅ Внешняя ссылка - локального файла нет вообще.
+    if (media.isExternalLink) {
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.link, size: 64, color: Colors.blue.shade400),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              media.remoteUrl ?? '',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.blue.shade700, fontSize: 13),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // ✅ Файл-ссылка с устройства, которого сейчас нет на диске.
+    final bool fileMissing =
+        media.localPath == null || !File(media.localPath!).existsSync();
+    if (media.isDeviceReference && fileMissing) {
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.link_off, size: 64, color: Colors.orange.shade400),
+          const SizedBox(height: 8),
+          Text(
+            'Файл недоступен',
+            style: TextStyle(color: Colors.orange.shade800),
+          ),
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              'Возможно, он был перемещён или удалён на устройстве',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (media.isImage && media.localPath != null) {
       return Image.file(
-        File(media.localPath),
+        File(media.localPath!),
         fit: BoxFit.contain,
         errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 64),
       );
@@ -320,6 +387,62 @@ class _MediaSectionState extends State<MediaSection> {
         ],
       );
     }
+  }
+
+  /// Открыть вложение: внешнюю ссылку - в браузере, файл с устройства -
+  /// во внешнем приложении по умолчанию для этого типа файла.
+  /// Best-effort: для файла с устройства нет гарантии, что он всё ещё
+  /// существует или что на платформе найдётся приложение, способное его
+  /// открыть - в этом случае просто показываем понятную ошибку.
+  Future<void> _openAttachment(BuildContext context, MediaAttachment media) async {
+    try {
+      if (media.isExternalLink) {
+        final Uri? uri = Uri.tryParse(media.remoteUrl ?? '');
+        if (uri == null) {
+          _showOpenError(context, 'Некорректная ссылка');
+          return;
+        }
+        final bool launched = await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+        if (!launched && context.mounted) {
+          _showOpenError(context, 'Не удалось открыть ссылку');
+        }
+        return;
+      }
+
+      // deviceReference
+      final String? path = media.localPath;
+      if (path == null || !File(path).existsSync()) {
+        if (context.mounted) {
+          _showOpenError(
+            context,
+            'Файл недоступен - возможно, он был перемещён или удалён на устройстве',
+          );
+        }
+        return;
+      }
+
+      final Uri fileUri = Uri.file(path);
+      final bool launched = await launchUrl(fileUri);
+      if (!launched && context.mounted) {
+        _showOpenError(
+          context,
+          'Не найдено приложение, способное открыть этот файл',
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        _showOpenError(context, 'Ошибка открытия: $e');
+      }
+    }
+  }
+
+  void _showOpenError(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.orange),
+    );
   }
 
   void _showEditDescriptionDialog(BuildContext context, MediaAttachment media) {

@@ -85,6 +85,64 @@ class AddMediaFile extends MediaEvent {
   ];
 }
 
+/// Прикрепить файл, физически находящийся на устройстве, БЕЗ копирования
+/// его в песочницу приложения (best-effort - доступность файла в будущем
+/// не гарантируется).
+class AddDeviceFileReference extends MediaEvent {
+  const AddDeviceFileReference({
+    required this.filePath,
+    required this.fileName,
+    required this.mimeType,
+    required this.fileSize,
+    required this.description,
+    this.personId,
+    this.eventId,
+  });
+  final String filePath;
+  final String fileName;
+  final String mimeType;
+  final int fileSize;
+  final String description;
+  final String? personId;
+  final String? eventId;
+
+  @override
+  List<Object?> get props => <Object?>[
+    filePath,
+    fileName,
+    mimeType,
+    fileSize,
+    description,
+    personId,
+    eventId,
+  ];
+}
+
+/// Прикрепить внешнюю ссылку (URL) - локального файла нет вообще.
+class AddExternalLink extends MediaEvent {
+  const AddExternalLink({
+    required this.url,
+    required this.description,
+    this.title,
+    this.personId,
+    this.eventId,
+  });
+  final String url;
+  final String description;
+  final String? title;
+  final String? personId;
+  final String? eventId;
+
+  @override
+  List<Object?> get props => <Object?>[
+    url,
+    description,
+    title,
+    personId,
+    eventId,
+  ];
+}
+
 /// Обновить описание медиа-файла
 class UpdateMediaDescription extends MediaEvent {
   const UpdateMediaDescription({

@@ -19,6 +19,8 @@ class MediaBloc extends Bloc<MediaEvent, MediaState> {
     on<LoadMediaForEvent>(_onLoadMediaForEvent);
     on<LoadPrimaryPortrait>(_onLoadPrimaryPortrait);
     on<AddMediaFile>(_onAddMediaFile);
+    on<AddDeviceFileReference>(_onAddDeviceFileReference);
+    on<AddExternalLink>(_onAddExternalLink);
     on<UpdateMediaDescription>(_onUpdateMediaDescription);
     on<SetAsPrimaryPortrait>(_onSetAsPrimaryPortrait);
     on<DeleteMediaFile>(_onDeleteMediaFile);
@@ -190,6 +192,98 @@ class MediaBloc extends Bloc<MediaEvent, MediaState> {
       );
     } catch (e) {
       emit(MediaError(message: 'Неизвестная ошибка при добавлении файла: $e'));
+    }
+  }
+
+  /// Обработчик прикрепления файла с устройства без копирования
+  Future<void> _onAddDeviceFileReference(
+    AddDeviceFileReference event,
+    Emitter<MediaState> emit,
+  ) async {
+    try {
+      emit(
+        const MediaLoadingWithProgress(
+          progress: 0.0,
+          message: 'Прикрепление файла...',
+        ),
+      );
+
+      final result = await _repository.addDeviceFileReference(
+        filePath: event.filePath,
+        fileName: event.fileName,
+        mimeType: event.mimeType,
+        fileSize: event.fileSize,
+        description: event.description,
+        personId: event.personId,
+        eventId: event.eventId,
+      );
+
+      await result.fold(
+        (failure) async {
+          emit(
+            MediaError(
+              message: _getErrorMessage(failure),
+              code: _getErrorCode(failure),
+              details: _getErrorDetails(failure),
+            ),
+          );
+        },
+        (media) async {
+          emit(MediaFileAdded(media));
+          if (event.personId != null) {
+            add(LoadMediaForPerson(personId: event.personId!));
+          } else if (event.eventId != null) {
+            add(LoadMediaForEvent(eventId: event.eventId!));
+          }
+        },
+      );
+    } catch (e) {
+      emit(MediaError(message: 'Неизвестная ошибка при прикреплении файла: $e'));
+    }
+  }
+
+  /// Обработчик прикрепления внешней ссылки
+  Future<void> _onAddExternalLink(
+    AddExternalLink event,
+    Emitter<MediaState> emit,
+  ) async {
+    try {
+      emit(
+        const MediaLoadingWithProgress(
+          progress: 0.0,
+          message: 'Добавление ссылки...',
+        ),
+      );
+
+      final result = await _repository.addExternalLink(
+        url: event.url,
+        description: event.description,
+        title: event.title,
+        personId: event.personId,
+        eventId: event.eventId,
+      );
+
+      await result.fold(
+        (failure) async {
+          emit(
+            MediaError(
+              message: _getErrorMessage(failure),
+              code: _getErrorCode(failure),
+              details: _getErrorDetails(failure),
+            ),
+          );
+        },
+        (media) async {
+          emit(MediaFileAdded(media));
+          if (event.personId != null) {
+            add(LoadMediaForPerson(personId: event.personId!));
+          } else if (event.eventId != null) {
+            add(LoadMediaForEvent(eventId: event.eventId!));
+          }
+        },
+      );
+    } catch (e) {
+      emit(MediaError(message: 'Неизвестная ошибка при добавлении ссылки: $e'));
     }
   }
 

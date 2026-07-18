@@ -47,6 +47,19 @@ class FileTypes {
   static const List<XTypeGroup> all = [images, videos, audios, documents];
 }
 
+/// Способ прикрепления вложения. См. AttachmentSource в доменной модели -
+/// это презентационный аналог того же выбора.
+enum _AttachMode {
+  /// Файл копируется в песочницу приложения (существующее поведение).
+  copy,
+
+  /// Ссылка на файл, физически лежащий на устройстве - НЕ копируем.
+  deviceReference,
+
+  /// Внешняя ссылка (URL).
+  link,
+}
+
 /// Нижний лист для выбора и добавления медиа-файлов
 class MediaPickerSheet extends StatefulWidget {
   final String? personId;
@@ -86,11 +99,17 @@ class MediaPickerSheet extends StatefulWidget {
 
 class _MediaPickerSheetState extends State<MediaPickerSheet> {
   final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _linkController = TextEditingController();
   bool _setAsPrimary = false;
   bool _isLoading = false;
   Uint8List? _selectedFileData;
   String? _selectedFileName;
   String? _selectedMimeType;
+
+  // Новое: режим прикрепления и данные для двух новых способов.
+  _AttachMode _mode = _AttachMode.copy;
+  String? _selectedDevicePath;
+  int? _selectedDeviceFileSize;
 
   // Получаем MediaBloc из параметров или из контекста
   MediaBloc get _mediaBloc => widget.mediaBloc ?? context.read<MediaBloc>();
@@ -98,6 +117,7 @@ class _MediaPickerSheetState extends State<MediaPickerSheet> {
   @override
   void dispose() {
     _descriptionController.dispose();
+    _linkController.dispose();
     super.dispose();
   }
 
@@ -120,12 +140,24 @@ class _MediaPickerSheetState extends State<MediaPickerSheet> {
             const SizedBox(height: 16),
             _buildPickerButtons(),
             const SizedBox(height: 16),
-            if (_selectedFileData != null) _buildPreview(),
-            if (_selectedFileData != null) const SizedBox(height: 16),
+            if (_mode == _AttachMode.link) _buildLinkField(),
+            if (_mode == _AttachMode.link) const SizedBox(height: 16),
+            if (_mode != _AttachMode.link && _selectedFileData != null)
+              _buildPreview(),
+            if (_mode != _AttachMode.link && _selectedFileData != null)
+              const SizedBox(height: 16),
+            if (_mode == _AttachMode.deviceReference &&
+                _selectedDevicePath != null)
+              _buildDeviceFilePreview(),
+            if (_mode == _AttachMode.deviceReference &&
+                _selectedDevicePath != null)
+              const SizedBox(height: 16),
             _buildDescriptionField(),
             const SizedBox(height: 12),
-            if (widget.personId != null) _buildPrimaryCheckbox(),
-            if (widget.personId != null) const SizedBox(height: 12),
+            if (widget.personId != null && _mode == _AttachMode.copy)
+              _buildPrimaryCheckbox(),
+            if (widget.personId != null && _mode == _AttachMode.copy)
+              const SizedBox(height: 12),
             _buildAddButton(),
           ],
         ),
@@ -152,32 +184,43 @@ class _MediaPickerSheetState extends State<MediaPickerSheet> {
   }
 
   Widget _buildPickerButtons() {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildPickerButton(
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _buildPickerButton(
             icon: Icons.photo_camera,
             label: 'Камера',
             onTap: () => _pickImage(ImageSource.camera),
           ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _buildPickerButton(
+          const SizedBox(width: 8),
+          _buildPickerButton(
             icon: Icons.photo_library,
             label: 'Галерея',
             onTap: () => _pickImage(ImageSource.gallery),
           ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _buildPickerButton(
+          const SizedBox(width: 8),
+          _buildPickerButton(
             icon: Icons.insert_drive_file,
-            label: 'Файлы',
+            label: 'Файл (копия)',
             onTap: _pickFile,
           ),
-        ),
-      ],
+          const SizedBox(width: 8),
+          // ✅ Новое: файл на телефоне БЕЗ копирования в приложение.
+          _buildPickerButton(
+            icon: Icons.smartphone,
+            label: 'На устройстве',
+            onTap: _pickDeviceFileReference,
+          ),
+          const SizedBox(width: 8),
+          // ✅ Новое: внешняя ссылка (URL).
+          _buildPickerButton(
+            icon: Icons.link,
+            label: 'Ссылка',
+            onTap: () => setState(() => _mode = _AttachMode.link),
+          ),
+        ],
+      ),
     );
   }
 
@@ -190,22 +233,94 @@ class _MediaPickerSheetState extends State<MediaPickerSheet> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        width: 84,
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
         decoration: BoxDecoration(
           color: Colors.grey[100],
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.grey[300]!),
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 32, color: Colors.blue[700]),
+            Icon(icon, size: 28, color: Colors.blue[700]),
             const SizedBox(height: 4),
             Text(
               label,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Поле ввода URL для режима "Ссылка".
+  Widget _buildLinkField() {
+    return TextField(
+      controller: _linkController,
+      decoration: const InputDecoration(
+        labelText: 'Ссылка *',
+        hintText: 'https://...',
+        border: OutlineInputBorder(),
+        prefixIcon: Icon(Icons.link),
+      ),
+      keyboardType: TextInputType.url,
+      autofillHints: const [AutofillHints.url],
+    );
+  }
+
+  /// Превью для файла на устройстве (режим deviceReference) - без данных
+  /// файла в памяти, только имя/путь/размер.
+  Widget _buildDeviceFilePreview() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.smartphone, size: 32, color: Colors.blue[700]),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _selectedFileName ?? 'Файл',
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _selectedDeviceFileSize != null
+                      ? FileHelper.formatFileSize(_selectedDeviceFileSize!)
+                      : '',
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                ),
+                Text(
+                  'Файл останется на устройстве, приложение его не копирует',
+                  style: TextStyle(color: Colors.grey[500], fontSize: 10),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.close, color: Colors.red),
+            onPressed: () {
+              setState(() {
+                _selectedDevicePath = null;
+                _selectedFileName = null;
+                _selectedMimeType = null;
+                _selectedDeviceFileSize = null;
+              });
+            },
+          ),
+        ],
       ),
     );
   }
@@ -321,7 +436,21 @@ class _MediaPickerSheetState extends State<MediaPickerSheet> {
   }
 
   Widget _buildAddButton() {
-    final isValid = _selectedFileData != null && _descriptionController.text.trim().isNotEmpty;
+    final bool isValid;
+    switch (_mode) {
+      case _AttachMode.copy:
+        isValid = _selectedFileData != null &&
+            _descriptionController.text.trim().isNotEmpty;
+        break;
+      case _AttachMode.deviceReference:
+        isValid = _selectedDevicePath != null &&
+            _descriptionController.text.trim().isNotEmpty;
+        break;
+      case _AttachMode.link:
+        isValid = _linkController.text.trim().isNotEmpty &&
+            _descriptionController.text.trim().isNotEmpty;
+        break;
+    }
 
     return SizedBox(
       width: double.infinity,
@@ -339,7 +468,10 @@ class _MediaPickerSheetState extends State<MediaPickerSheet> {
                 width: 20,
                 child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
               )
-            : const Text('Добавить файл', style: TextStyle(fontSize: 16)),
+            : Text(
+                _mode == _AttachMode.link ? 'Добавить ссылку' : 'Добавить файл',
+                style: const TextStyle(fontSize: 16),
+              ),
       ),
     );
   }
@@ -361,6 +493,9 @@ class _MediaPickerSheetState extends State<MediaPickerSheet> {
       if (picked != null) {
         final bytes = await picked.readAsBytes();
         setState(() {
+          _mode = _AttachMode.copy;
+          _selectedDevicePath = null;
+          _selectedDeviceFileSize = null;
           _selectedFileData = bytes;
           _selectedFileName = picked.name;
           _selectedMimeType = _getMimeTypeFromExtension(picked.path.split('.').last);
@@ -378,11 +513,39 @@ class _MediaPickerSheetState extends State<MediaPickerSheet> {
       if (file != null) {
         final bytes = await file.readAsBytes();
         setState(() {
+          _mode = _AttachMode.copy;
+          _selectedDevicePath = null;
+          _selectedDeviceFileSize = null;
           _selectedFileData = bytes;
           _selectedFileName = file.name;
           _selectedMimeType = file.mimeType ?? _getMimeTypeFromExtension(file.path.split('.').last);
         });
       }
+    } catch (e) {
+      _showError('Ошибка выбора файла: $e');
+    }
+  }
+
+  /// ✅ Новое: выбор файла на устройстве БЕЗ чтения его содержимого в
+  /// память и без копирования - запоминаем только путь. Это специально
+  /// не читает bytes (в отличие от _pickFile), чтобы избежать лишней
+  /// загрузки в память потенциально большого файла, который мы всё равно
+  /// не будем копировать.
+  Future<void> _pickDeviceFileReference() async {
+    try {
+      final XFile? file = await openFile(acceptedTypeGroups: FileTypes.all);
+      if (file == null) return;
+
+      final int size = await File(file.path).length();
+
+      setState(() {
+        _mode = _AttachMode.deviceReference;
+        _selectedFileData = null;
+        _selectedDevicePath = file.path;
+        _selectedFileName = file.name;
+        _selectedMimeType = file.mimeType ?? _getMimeTypeFromExtension(file.path.split('.').last);
+        _selectedDeviceFileSize = size;
+      });
     } catch (e) {
       _showError('Ошибка выбора файла: $e');
     }
@@ -432,30 +595,39 @@ class _MediaPickerSheetState extends State<MediaPickerSheet> {
   // ============================================================
 
   Future<void> _addMedia() async {
-    if (_selectedFileData == null) return;
-
     final description = _descriptionController.text.trim();
     if (description.isEmpty) {
       _showError('Пожалуйста, введите описание файла');
       return;
     }
 
+    if (widget.personId == null && widget.eventId == null) {
+      _showError('Не указан получатель файла');
+      return;
+    }
+
+    switch (_mode) {
+      case _AttachMode.copy:
+        await _addCopiedFile(description);
+        break;
+      case _AttachMode.deviceReference:
+        await _addDeviceReference(description);
+        break;
+      case _AttachMode.link:
+        await _addLink(description);
+        break;
+    }
+  }
+
+  Future<void> _addCopiedFile(String description) async {
+    if (_selectedFileData == null) return;
     if (_selectedFileData!.length > 50 * 1024 * 1024) {
       _showError('Файл слишком большой (макс. 50 МБ)');
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
-
+    setState(() => _isLoading = true);
     try {
-      if (widget.personId == null && widget.eventId == null) {
-        _showError('Не указан получатель файла');
-        return;
-      }
-
-      // Используем _mediaBloc вместо context.read<MediaBloc>()
       _mediaBloc.add(
         AddMediaFile(
           fileData: _selectedFileData!,
@@ -468,18 +640,65 @@ class _MediaPickerSheetState extends State<MediaPickerSheet> {
           generateThumbnail: true,
         ),
       );
-
-      if (mounted) {
-        Navigator.pop(context);
-      }
+      if (mounted) Navigator.pop(context);
     } catch (e) {
       _showError('Ошибка добавления файла: $e');
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _addDeviceReference(String description) async {
+    if (_selectedDevicePath == null) return;
+
+    setState(() => _isLoading = true);
+    try {
+      _mediaBloc.add(
+        AddDeviceFileReference(
+          filePath: _selectedDevicePath!,
+          fileName: _selectedFileName!,
+          mimeType: _selectedMimeType ?? 'application/octet-stream',
+          fileSize: _selectedDeviceFileSize ?? 0,
+          description: description,
+          personId: widget.personId,
+          eventId: widget.eventId,
+        ),
+      );
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      _showError('Ошибка прикрепления файла: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _addLink(String description) async {
+    final String url = _linkController.text.trim();
+    final Uri? parsed = Uri.tryParse(url);
+    final bool looksValid =
+        parsed != null &&
+        (parsed.isScheme('HTTP') || parsed.isScheme('HTTPS')) &&
+        parsed.host.isNotEmpty;
+    if (!looksValid) {
+      _showError('Укажите корректную ссылку, начиная с http:// или https://');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      _mediaBloc.add(
+        AddExternalLink(
+          url: url,
+          description: description,
+          personId: widget.personId,
+          eventId: widget.eventId,
+        ),
+      );
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      _showError('Ошибка добавления ссылки: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

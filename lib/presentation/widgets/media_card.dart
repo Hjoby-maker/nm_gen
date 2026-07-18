@@ -39,6 +39,9 @@ class MediaCard extends StatelessWidget {
             // Значок "Основной портрет"
             if (isPrimary) _buildPrimaryBadge(),
 
+            // ✅ Значок "файл на устройстве" (не скопирован приложением)
+            if (media.isDeviceReference) _buildSourceBadge(),
+
             // Кнопка удаления (только если есть onDelete)
             if (onDelete != null) _buildDeleteButton(context),
 
@@ -55,9 +58,22 @@ class MediaCard extends StatelessWidget {
   }
 
   Widget _buildThumbnail() {
+    // ✅ Внешняя ссылка: локального файла нет вообще, показываем иконку
+    // ссылки и хост, вместо попытки прочитать несуществующий File(null).
+    if (media.isExternalLink) {
+      return _buildLinkThumbnail();
+    }
+
     final bool hasThumbnail =
         media.thumbnailPath != null && File(media.thumbnailPath!).existsSync();
-    final bool hasFile = File(media.localPath).existsSync();
+    // ⚠️ localPath теперь может быть null в принципе (по модели), но для
+    // appStorage/deviceReference он всегда есть - на всякий случай
+    // проверяем и это, а не только физическое существование файла на
+    // диске (best-effort: файл-ссылка с телефона мог быть удалён/перемещён
+    // пользователем или недоступен после перезапуска на Android - тогда
+    // просто покажем заглушку вместо падения).
+    final bool hasFile =
+        media.localPath != null && File(media.localPath!).existsSync();
 
     // Если есть миниатюра
     if (hasThumbnail) {
@@ -73,7 +89,7 @@ class MediaCard extends StatelessWidget {
     // Если есть файл и это изображение
     if (hasFile && media.isImage) {
       return Image.file(
-        File(media.localPath),
+        File(media.localPath!),
         fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,
@@ -146,8 +162,74 @@ class MediaCard extends StatelessWidget {
       );
     }
 
+    // ✅ Файл-ссылка с устройства, который больше не найден на диске
+    // (перемещён/удалён пользователем, либо на Android слетело
+    // разрешение после перезапуска). Показываем это явно, а не как
+    // обычный документ - иначе непонятно, почему нет превью.
+    if (media.isDeviceReference && !hasFile) {
+      return _buildMissingFileState();
+    }
+
     // Для документов и других файлов
     return _buildFallbackIcon();
+  }
+
+  /// Иконка внешней ссылки + домен, вместо попытки показать несуществующий
+  /// локальный файл.
+  Widget _buildLinkThumbnail() {
+    String host = media.remoteUrl ?? '';
+    final Uri? uri = Uri.tryParse(media.remoteUrl ?? '');
+    if (uri != null && uri.host.isNotEmpty) host = uri.host;
+
+    return Container(
+      color: Colors.blue.shade50,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.link, size: 44, color: Colors.blue.shade400),
+            const SizedBox(height: 6),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                host,
+                style: TextStyle(fontSize: 11, color: Colors.blue.shade700),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Состояние для файла-ссылки с устройства, который сейчас недоступен.
+  Widget _buildMissingFileState() {
+    return Container(
+      color: Colors.orange.shade50,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.link_off,
+              size: 40,
+              color: Colors.orange.shade400,
+            ),
+            const SizedBox(height: 6),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                'Файл недоступен',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 11, color: Colors.orange.shade800),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildFallbackIcon() {
@@ -221,6 +303,23 @@ class MediaCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Небольшой значок в углу карточки, показывающий, что это ссылка на
+  /// файл на устройстве, а не копия, которой владеет приложение.
+  Widget _buildSourceBadge() {
+    return Positioned(
+      top: 8,
+      left: 8,
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.55),
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(Icons.smartphone, color: Colors.white, size: 14),
       ),
     );
   }
