@@ -168,6 +168,11 @@ class _PersonsScreenState extends State<PersonsScreen> {
       ),
       body: _buildBody(context),
       floatingActionButton: FloatingActionButton(
+        // heroTag: null отключает Hero-обёртку для этого FAB - иначе он
+        // сталкивается тегами с FAB на других экранах, которые остаются
+        // смонтированными (просто невидимыми) в стеке Navigator, когда
+        // поверх открывается любой другой route (в т.ч. диалог).
+        heroTag: null,
         onPressed: () => _showAddPersonDialog(context),
         child: const Icon(Icons.person_add),
         tooltip: 'Добавить человека',
@@ -381,15 +386,27 @@ class _PersonsScreenState extends State<PersonsScreen> {
                               '${person.formattedAge} · ${person.occupation ?? 'Без профессии'}',
                             ),
                             trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-                            onTap: () {
+                            onTap: () async {
                               debugPrint('👤 PersonsScreen: Переход к персоне ${person.displayName} (${person.id})');
                               try {
-                                Navigator.push(
+                                // ⚠️ PersonDetailScreen создаёт свой собственный
+                                // экземпляр PersonBloc через getIt<PersonBloc>(),
+                                // отдельный от _personBloc этого экрана - поэтому
+                                // изменения (аватар, редактирование полей) не
+                                // прилетают сюда сами по себе через общий bloc.
+                                // Простое и надёжное решение - перезагрузить
+                                // список при возврате, вне зависимости от того,
+                                // как именно зарегистрирован PersonBloc в DI.
+                                await Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => PersonDetailScreen(personId: person.id),
                                   ),
                                 );
+                                if (mounted) {
+                                  debugPrint('🔄 PersonsScreen: Обновление списка после возврата с экрана деталей');
+                                  _personBloc.add(LoadPersonsEvent(treeId: widget.treeId));
+                                }
                               } catch (e) {
                                 debugPrint('❌ PersonsScreen: Ошибка навигации: $e');
                               }

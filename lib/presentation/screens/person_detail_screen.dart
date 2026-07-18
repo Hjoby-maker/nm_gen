@@ -1,15 +1,21 @@
 // lib/presentation/screens/person_detail_screen.dart
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nm_gen/core/enums/gender.dart';
+import 'package:nm_gen/core/utils/file_helper.dart';
+import 'package:nm_gen/core/utils/image_picker_service.dart';
 import 'package:nm_gen/di/injector.dart';
 import 'package:nm_gen/domain/entities/event.dart';
+import 'package:nm_gen/domain/entities/media_attachment.dart';
 import 'package:nm_gen/domain/entities/person.dart';
 import 'package:nm_gen/presentation/blocs/event/event_bloc.dart';
 import 'package:nm_gen/presentation/blocs/event/event_event.dart';
 import 'package:nm_gen/presentation/blocs/event/event_state.dart';
 import 'package:nm_gen/presentation/blocs/media/media_bloc.dart';
 import 'package:nm_gen/presentation/blocs/media/media_event.dart';
+import 'package:nm_gen/presentation/blocs/media/media_state.dart';
 import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
 import 'package:nm_gen/presentation/blocs/person/person_event.dart';
 import 'package:nm_gen/presentation/blocs/person/person_state.dart';
@@ -38,6 +44,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen>
   late final PersonBloc _personBloc;
   late final EventBloc _eventBloc;
   late final MediaBloc _mediaBloc;
+  final ImagePickerService _imagePickerService = ImagePickerService();
 
   @override
   void initState() {
@@ -94,52 +101,91 @@ class _PersonDetailScreenState extends State<PersonDetailScreen>
         BlocProvider.value(value: _eventBloc),
         BlocProvider.value(value: _mediaBloc),
       ],
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(_person?.displayName ?? 'Загрузка...'),
-          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-          bottom: TabBar(
-            controller: _tabController,
-            tabs: [
-              Tab(icon: Icon(Icons.info), text: 'Информация'),
-              Tab(icon: Icon(Icons.folder), text: 'Файлы'),
+      child: BlocListener<MediaBloc, MediaState>(
+        // ⚠️ PersonAvatar рисует фото из person.photoPath, а не из
+        // MediaBloc (и не может из него читать напрямую - тот же виджет
+        // используется в списках для разных людей одновременно, а у
+        // MediaBloc только одно текущее состояние на весь bloc). Поэтому
+        // здесь, как только основной портрет успешно сохранён или
+        // назначен, синхронизируем photoPath на самом Person - именно
+        // это поле PersonAvatar показывает везде в приложении.
+        listener: (context, state) {
+          MediaAttachment? updatedPortrait;
+          if (state is MediaFileAdded && state.media.isPrimary) {
+            updatedPortrait = state.media;
+          } else if (state is MediaUpdated && state.media.isPrimary) {
+            updatedPortrait = state.media;
+          }
+
+          if (updatedPortrait != null &&
+              updatedPortrait.personId == widget.personId &&
+              _person != null) {
+            final Person updatedPerson = _person!.copyWith(
+              photoPath: updatedPortrait.localPath,
+            );
+            _personBloc.add(UpdatePersonEvent(updatedPerson));
+            setState(() {
+              _person = updatedPerson;
+            });
+          }
+        },
+          child: Scaffold(
+          appBar: AppBar(
+            title: Text(_person?.displayName ?? 'Загрузка...'),
+            backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+            bottom: TabBar(
+              controller: _tabController,
+              tabs: [
+                Tab(icon: Icon(Icons.info), text: 'Информация'),
+                Tab(icon: Icon(Icons.folder), text: 'Файлы'),
+              ],
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.edit),
+                onPressed: _person != null && _person!.id.isNotEmpty
+                    ? () => _showEditPersonDialog(context)
+                    : null,
+                tooltip: 'Редактировать',
+              ),
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline),
+                onPressed: _person != null && _person!.id.isNotEmpty
+                    ? () => _showAddEventDialog(context)
+                    : null,
+                tooltip: 'Добавить событие',
+              ),
             ],
           ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.edit),
-              onPressed: _person != null && _person!.id.isNotEmpty
-                  ? () => _showEditPersonDialog(context)
-                  : null,
-              tooltip: 'Редактировать',
-            ),
-            IconButton(
-              icon: const Icon(Icons.add_circle_outline),
-              onPressed: _person != null && _person!.id.isNotEmpty
-                  ? () => _showAddEventDialog(context)
-                  : null,
-              tooltip: 'Добавить событие',
-            ),
-          ],
+          body: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _person == null || _person!.id.isEmpty
+              ? _buildNotFoundView()
+              : TabBarView(
+                  controller: _tabController,
+                  children: [_buildInfoTab(), _buildMediaTab()],
+                ),
+          floatingActionButton: FloatingActionButton(
+            // ⚠️ Раньше здесь был Hero(tag: 'fab_detail_screen', child:
+            // FloatingActionButton(...)) - но FloatingActionButton САМ уже
+            // оборачивает себя в Hero, поэтому получался Hero внутри Hero.
+            // Замена на heroTag: 'fab_detail_screen' решала это, но
+            // ломалась снова, если где-то в стеке навигатора (например,
+            // на PersonsScreen под этим экраном) оказывался ДРУГОЙ FAB без
+            // уникального тега - Flutter ищет дубли тегов по всему
+            // Navigator Overlay, а не только в текущем экране. heroTag:
+            // null полностью отключает Hero-обёртку для этой кнопки -
+            // никакой анимации перелёта нам тут и не нужно, а коллизий
+            // тегов с любым другим экраном/диалогом больше в принципе не
+            // может быть.
+            heroTag: null,
+            onPressed: _person != null && _person!.id.isNotEmpty
+                ? () => _showAddEventDialog(context)
+                : null,
+            tooltip: 'Добавить событие',
+            child: const Icon(Icons.add),
         ),
-        body: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _person == null || _person!.id.isEmpty
-            ? _buildNotFoundView()
-            : TabBarView(
-                controller: _tabController,
-                children: [_buildInfoTab(), _buildMediaTab()],
-              ),
-        floatingActionButton: Hero(
-  tag: 'fab_detail_screen',
-  child: FloatingActionButton(
-    onPressed: _person != null && _person!.id.isNotEmpty
-        ? () => _showAddEventDialog(context)
-        : null,
-    tooltip: 'Добавить событие',
-    child: const Icon(Icons.add),
-  ),
-),
+        ),
       ),
     );
   }
@@ -210,7 +256,31 @@ class _PersonDetailScreenState extends State<PersonDetailScreen>
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            PersonAvatar(person: person, radius: 50),
+            GestureDetector(
+              onTap: () => _pickAndSetAvatar(context),
+              child: Stack(
+                children: [
+                  PersonAvatar(person: person, radius: 50),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: const Icon(
+                        Icons.camera_alt,
+                        size: 14,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
@@ -304,7 +374,14 @@ class _PersonDetailScreenState extends State<PersonDetailScreen>
                   ],
                   if (person.birthPlace != null) ...[
                     const SizedBox(height: 4),
-                    Wrap(
+                    // ⚠️ Раньше здесь был Wrap(...) - но внутри был Expanded,
+                    // а Expanded требует прямого предка Row/Column/Flex,
+                    // Wrap для этого не подходит ("Incorrect use of
+                    // ParentDataWidget"). По смыслу это одна строка
+                    // "иконка + текст", а не переносимый поток элементов,
+                    // поэтому меняем на Row.
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Icon(
                           Icons.location_on,
@@ -709,6 +786,56 @@ class _PersonDetailScreenState extends State<PersonDetailScreen>
       ),
     );
     return result ?? false;
+  }
+
+  /// Выбор фото (камера/галерея) и сохранение его как основного портрета
+  /// человека. Реально сохраняется на диск через FileStorageService (внутри
+  /// MediaRepository.addMedia -> FileStorageService.saveFile), путь и
+  /// метаданные пишутся в MediaAttachment с setAsPrimary: true.
+  Future<void> _pickAndSetAvatar(BuildContext context) async {
+    if (_person == null || _person!.id.isEmpty) return;
+
+    // showDeleteOption: false - удаление текущего портрета уже доступно
+    // на вкладке "Файлы" (кнопка удаления на карточке медиа с пометкой
+    // "Основной"), так что здесь не нужно решать неоднозначность между
+    // "отмена" и "удалить" (оба варианта ImagePickerService.pickImage
+    // возвращают null).
+    final File? picked = await _imagePickerService.pickImage(
+      context,
+      showDeleteOption: false,
+    );
+
+    if (picked == null || !mounted) return; // пользователь отменил выбор
+
+    try {
+      final Uint8List bytes = await picked.readAsBytes();
+      final String fileName = picked.path.split(Platform.pathSeparator).last;
+      final String mimeType = FileHelper.getMimeTypeFromExtension(fileName);
+
+      _mediaBloc.add(
+        AddMediaFile(
+          fileData: bytes,
+          fileName: fileName,
+          mimeType: mimeType,
+          description: 'Портрет',
+          personId: widget.personId,
+          setAsPrimary: true,
+          generateThumbnail: true,
+        ),
+      );
+      // MediaSection (вкладка "Файлы") уже подписан на этот же MediaBloc
+      // через BlocConsumer и сам покажет SnackBar об успехе/ошибке и
+      // обновит список - здесь дублировать не нужно.
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка загрузки фото: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _showEditPersonDialog(BuildContext context) {
