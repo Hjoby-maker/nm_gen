@@ -82,9 +82,10 @@ class MediaAttachmentModel {
     String? id,
   }) {
     assert(
-      (personId != null && eventId == null) ||
-          (personId == null && eventId != null),
-      'Файл должен быть привязан либо к Person, либо к Event',
+      personId != null || eventId != null,
+      'Файл должен быть привязан хотя бы к одному из: Person, Event '
+      '(разрешено быть привязанным сразу к обоим - например, файл, '
+      'прикреплённый через форму события, виден и в файлах человека)',
     );
 
     final int now = DateTime.now().millisecondsSinceEpoch;
@@ -120,9 +121,10 @@ class MediaAttachmentModel {
     String? id,
   }) {
     assert(
-      (personId != null && eventId == null) ||
-          (personId == null && eventId != null),
-      'Файл должен быть привязан либо к Person, либо к Event',
+      personId != null || eventId != null,
+      'Файл должен быть привязан хотя бы к одному из: Person, Event '
+      '(разрешено быть привязанным сразу к обоим - например, файл, '
+      'прикреплённый через форму события, виден и в файлах человека)',
     );
 
     final int now = DateTime.now().millisecondsSinceEpoch;
@@ -155,9 +157,10 @@ class MediaAttachmentModel {
     String? id,
   }) {
     assert(
-      (personId != null && eventId == null) ||
-          (personId == null && eventId != null),
-      'Файл должен быть привязан либо к Person, либо к Event',
+      personId != null || eventId != null,
+      'Файл должен быть привязан хотя бы к одному из: Person, Event '
+      '(разрешено быть привязанным сразу к обоим - например, файл, '
+      'прикреплённый через форму события, виден и в файлах человека)',
     );
 
     final int now = DateTime.now().millisecondsSinceEpoch;

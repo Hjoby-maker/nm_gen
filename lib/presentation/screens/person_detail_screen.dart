@@ -616,6 +616,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen>
       builder: (dialogContext) => EventFormDialog(
         personId: widget.personId,
         treeId: _treeId ?? 'default',
+        mediaBloc: _mediaBloc,
         onSave: (event) {
           _eventBloc.add(AddEventEvent(event));
         },
@@ -630,6 +631,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen>
         existingEvent: event,
         personId: widget.personId,
         treeId: _treeId ?? 'default',
+        mediaBloc: _mediaBloc,
         onSave: (updatedEvent) {
           _eventBloc.add(UpdateEventEvent(updatedEvent));
         },

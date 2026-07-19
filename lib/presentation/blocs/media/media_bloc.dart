@@ -21,6 +21,7 @@ class MediaBloc extends Bloc<MediaEvent, MediaState> {
     on<AddMediaFile>(_onAddMediaFile);
     on<AddDeviceFileReference>(_onAddDeviceFileReference);
     on<AddExternalLink>(_onAddExternalLink);
+    on<LinkMediaToEvent>(_onLinkMediaToEvent);
     on<UpdateMediaDescription>(_onUpdateMediaDescription);
     on<SetAsPrimaryPortrait>(_onSetAsPrimaryPortrait);
     on<DeleteMediaFile>(_onDeleteMediaFile);
@@ -284,6 +285,50 @@ class MediaBloc extends Bloc<MediaEvent, MediaState> {
       );
     } catch (e) {
       emit(MediaError(message: 'Неизвестная ошибка при добавлении ссылки: $e'));
+    }
+  }
+
+  /// Обработчик привязки/отвязки существующего файла к событию
+  Future<void> _onLinkMediaToEvent(
+    LinkMediaToEvent event,
+    Emitter<MediaState> emit,
+  ) async {
+    try {
+      final result = await _repository.linkMediaToEvent(
+        mediaId: event.mediaId,
+        eventId: event.eventId,
+      );
+
+      await result.fold(
+        (failure) async {
+          emit(
+            MediaError(
+              message: _getErrorMessage(failure),
+              code: _getErrorCode(failure),
+              details: _getErrorDetails(failure),
+            ),
+          );
+        },
+        (media) async {
+          emit(
+            MediaOperationSuccess(
+              event.eventId != null
+                  ? 'Файл связан с событием'
+                  : 'Файл отвязан от события',
+            ),
+          );
+          // Перезагружаем список, откуда пришёл запрос - обычно это
+          // список файлов человека (файл никуда физически не переехал,
+          // просто у него изменился event_id).
+          if (media.personId != null) {
+            add(LoadMediaForPerson(personId: media.personId!));
+          } else if (media.eventId != null) {
+            add(LoadMediaForEvent(eventId: media.eventId!));
+          }
+        },
+      );
+    } catch (e) {
+      emit(MediaError(message: 'Неизвестная ошибка при связывании с событием: $e'));
     }
   }
 

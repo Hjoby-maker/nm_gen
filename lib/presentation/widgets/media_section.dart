@@ -3,7 +3,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:nm_gen/domain/entities/event.dart';
 import 'package:nm_gen/domain/entities/media_attachment.dart';
+import 'package:nm_gen/presentation/blocs/event/event_bloc.dart';
+import 'package:nm_gen/presentation/blocs/event/event_event.dart';
+import 'package:nm_gen/presentation/blocs/event/event_state.dart';
 import 'package:nm_gen/presentation/blocs/media/media_bloc.dart';
 import 'package:nm_gen/presentation/blocs/media/media_event.dart';
 import 'package:nm_gen/presentation/blocs/media/media_state.dart';
@@ -269,6 +273,25 @@ class _MediaSectionState extends State<MediaSection> {
                     ),
                   ),
                 ),
+              // ✅ "Связать с событием" - только для файлов, у которых есть
+              // personId (файл с личной вкладки "Файлы"). Файлы, созданные
+              // напрямую в форме события, уже привязаны к нему.
+              if (widget.personId != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _showLinkToEventPicker(context, media),
+                      icon: const Icon(Icons.event_note),
+                      label: Text(
+                        media.eventId != null
+                            ? 'Изменить привязку к событию'
+                            : 'Связать с событием',
+                      ),
+                    ),
+                  ),
+                ),
               Row(
                 children: [
                   if (widget.personId != null && !media.isPrimary)
@@ -444,6 +467,118 @@ class _MediaSectionState extends State<MediaSection> {
       SnackBar(content: Text(message), backgroundColor: Colors.orange),
     );
   }
+
+  /// Показывает список событий человека и позволяет выбрать, к какому из
+  /// них привязать файл (или отвязать, если уже привязан).
+  void _showLinkToEventPicker(BuildContext context, MediaAttachment media) {
+    final EventBloc eventBloc = context.read<EventBloc>();
+    // Событий может быть ещё не загружено (если пользователь не открывал
+    // вкладку "События") - подгружаем на всякий случай, BlocBuilder ниже
+    // сам обновится, когда придёт EventsLoaded.
+    if (widget.personId != null) {
+      eventBloc.add(LoadPersonEventsEvent(widget.personId!));
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) => DraggableScrollableSheet(
+        initialChildSize: 0.5,
+        minChildSize: 0.3,
+        maxChildSize: 0.85,
+        expand: false,
+        builder: (sheetContext, scrollController) {
+          return BlocBuilder<EventBloc, EventState>(
+            bloc: eventBloc,
+            builder: (context, state) {
+              if (state is EventLoading) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (state is! EventsLoaded) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Text('Не удалось загрузить список событий'),
+                  ),
+                );
+              }
+
+              final List<Event> events = state.events;
+
+              return ListView(
+                controller: scrollController,
+                padding: const EdgeInsets.all(16),
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Text(
+                    'Связать с событием',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 12),
+                  if (media.eventId != null)
+                    ListTile(
+                      leading: const Icon(Icons.link_off, color: Colors.red),
+                      title: const Text('Отвязать от события'),
+                      onTap: () {
+                        _mediaBloc.add(
+                          LinkMediaToEvent(mediaId: media.id, eventId: null),
+                        );
+                        Navigator.pop(sheetContext);
+                      },
+                    ),
+                  if (events.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(
+                        child: Text(
+                          'У этого человека пока нет событий',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ),
+                    )
+                  else
+                    ...events.map((Event evt) {
+                      final bool isCurrent = evt.id == media.eventId;
+                      return ListTile(
+                        leading: Icon(
+                          Icons.event,
+                          color: isCurrent ? Colors.green : Colors.grey.shade700,
+                        ),
+                        title: Text(evt.title),
+                        trailing: isCurrent
+                            ? const Icon(Icons.check_circle, color: Colors.green)
+                            : null,
+                        onTap: () {
+                          _mediaBloc.add(
+                            LinkMediaToEvent(mediaId: media.id, eventId: evt.id),
+                          );
+                          Navigator.pop(sheetContext);
+                        },
+                      );
+                    }),
+                ],
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  MediaBloc get _mediaBloc => context.read<MediaBloc>();
 
   void _showEditDescriptionDialog(BuildContext context, MediaAttachment media) {
     final controller = TextEditingController(text: media.description);

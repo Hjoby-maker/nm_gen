@@ -1,5 +1,57 @@
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:file_selector/file_selector.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:nm_gen/core/utils/file_helper.dart';
 import 'package:nm_gen/domain/entities/event.dart';
+import 'package:nm_gen/presentation/blocs/media/media_bloc.dart';
+import 'package:nm_gen/presentation/blocs/media/media_event.dart';
+
+enum _PendingAttachmentType { copy, deviceReference, link }
+
+/// Вложение, выбранное пользователем ДО того, как событие сохранено (у
+/// события ещё нет id). Реально прикрепляется к MediaBloc уже после
+/// успешного сохранения события, когда его id гарантированно существует.
+class _PendingAttachment {
+  _PendingAttachment.copy({
+    required this.fileName,
+    required this.mimeType,
+    required Uint8List data,
+  }) : type = _PendingAttachmentType.copy,
+       fileData = data,
+       filePath = null,
+       fileSize = data.length,
+       url = null;
+
+  _PendingAttachment.deviceReference({
+    required this.fileName,
+    required this.mimeType,
+    required String path,
+    required int size,
+  }) : type = _PendingAttachmentType.deviceReference,
+       filePath = path,
+       fileData = null,
+       fileSize = size,
+       url = null;
+
+  _PendingAttachment.link({required String linkUrl})
+    : type = _PendingAttachmentType.link,
+      url = linkUrl,
+      fileName = linkUrl,
+      mimeType = 'text/uri-list',
+      fileData = null,
+      filePath = null,
+      fileSize = 0;
+
+  final _PendingAttachmentType type;
+  final String fileName;
+  final String mimeType;
+  final Uint8List? fileData;
+  final String? filePath;
+  final int fileSize;
+  final String? url;
+}
 
 class EventFormDialog extends StatefulWidget {
   const EventFormDialog({
@@ -8,12 +60,19 @@ class EventFormDialog extends StatefulWidget {
     required this.personId,
     required this.treeId,
     required this.onSave,
+    required this.mediaBloc,
   });
 
   final Event? existingEvent;
   final String personId;
   final String treeId;
   final Function(Event) onSave;
+
+  /// Передаётся явно, а не через context.read<MediaBloc>() внутри диалога -
+  /// showDialog по умолчанию использует useRootNavigator: true, и Provider
+  /// из локального дерева экрана не гарантированно доступен в контексте
+  /// диалога (та же причина, по которой раньше ловили Hero-конфликты).
+  final MediaBloc mediaBloc;
 
   @override
   State<EventFormDialog> createState() => _EventFormDialogState();
@@ -27,6 +86,7 @@ class _EventFormDialogState extends State<EventFormDialog> {
   late EventType _selectedType;
   DateTime? _startDate;
   DateTime? _endDate;
+  final List<_PendingAttachment> _pendingAttachments = [];
 
   bool get isEditing => widget.existingEvent != null;
 
@@ -132,6 +192,8 @@ class _EventFormDialogState extends State<EventFormDialog> {
               ),
               maxLines: 2,
             ),
+            const SizedBox(height: 12),
+            _buildAttachmentsSection(),
           ],
         ),
       ),
@@ -146,6 +208,287 @@ class _EventFormDialogState extends State<EventFormDialog> {
         ),
       ],
     );
+  }
+
+  Widget _buildAttachmentsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text('Вложения', style: TextStyle(fontWeight: FontWeight.w600)),
+            const Spacer(),
+            TextButton.icon(
+              onPressed: _showAttachmentPicker,
+              icon: const Icon(Icons.attach_file, size: 18),
+              label: const Text('Добавить'),
+            ),
+          ],
+        ),
+        if (_pendingAttachments.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Text(
+              'Файлы будут прикреплены после сохранения события',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            ),
+          )
+        else
+          ..._pendingAttachments.asMap().entries.map((entry) {
+            final int index = entry.key;
+            final _PendingAttachment att = entry.value;
+            return ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(_iconForAttachment(att.type)),
+              title: Text(
+                att.fileName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: Text(
+                switch (att.type) {
+                  _PendingAttachmentType.copy => 'Будет скопирован в приложение',
+                  _PendingAttachmentType.deviceReference => 'Останется на устройстве',
+                  _PendingAttachmentType.link => 'Внешняя ссылка',
+                },
+                style: const TextStyle(fontSize: 11),
+              ),
+              trailing: IconButton(
+                icon: const Icon(Icons.close, size: 18),
+                onPressed: () => setState(() => _pendingAttachments.removeAt(index)),
+              ),
+            );
+          }),
+      ],
+    );
+  }
+
+  IconData _iconForAttachment(_PendingAttachmentType type) {
+    switch (type) {
+      case _PendingAttachmentType.copy:
+        return Icons.insert_drive_file;
+      case _PendingAttachmentType.deviceReference:
+        return Icons.smartphone;
+      case _PendingAttachmentType.link:
+        return Icons.link;
+    }
+  }
+
+  void _showAttachmentPicker() {
+    showModalBottomSheet(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera),
+              title: const Text('Камера'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Галерея'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.insert_drive_file),
+              title: const Text('Файл (копия в приложение)'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _pickFileCopy();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.smartphone),
+              title: const Text('Файл на устройстве (без копирования)'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _pickDeviceFile();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.link),
+              title: const Text('Ссылка'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _pickLink();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? picked = await ImagePicker().pickImage(
+        source: source,
+        maxWidth: 4096,
+        maxHeight: 4096,
+        imageQuality: 90,
+      );
+      if (picked == null) return;
+      final Uint8List bytes = await picked.readAsBytes();
+      setState(() {
+        _pendingAttachments.add(
+          _PendingAttachment.copy(
+            fileName: picked.name,
+            mimeType: FileHelper.getMimeTypeFromExtension(picked.name),
+            data: bytes,
+          ),
+        );
+      });
+    } catch (e) {
+      _showAttachmentError('Ошибка выбора изображения: $e');
+    }
+  }
+
+  Future<void> _pickFileCopy() async {
+    try {
+      final XFile? file = await openFile();
+      if (file == null) return;
+      final Uint8List bytes = await file.readAsBytes();
+      setState(() {
+        _pendingAttachments.add(
+          _PendingAttachment.copy(
+            fileName: file.name,
+            mimeType: file.mimeType ?? FileHelper.getMimeTypeFromExtension(file.name),
+            data: bytes,
+          ),
+        );
+      });
+    } catch (e) {
+      _showAttachmentError('Ошибка выбора файла: $e');
+    }
+  }
+
+  Future<void> _pickDeviceFile() async {
+    try {
+      final XFile? file = await openFile();
+      if (file == null) return;
+      final int size = await File(file.path).length();
+      setState(() {
+        _pendingAttachments.add(
+          _PendingAttachment.deviceReference(
+            fileName: file.name,
+            mimeType: file.mimeType ?? FileHelper.getMimeTypeFromExtension(file.name),
+            path: file.path,
+            size: size,
+          ),
+        );
+      });
+    } catch (e) {
+      _showAttachmentError('Ошибка выбора файла: $e');
+    }
+  }
+
+  Future<void> _pickLink() async {
+    final TextEditingController linkController = TextEditingController();
+    final String? url = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Добавить ссылку'),
+        content: TextField(
+          controller: linkController,
+          decoration: const InputDecoration(
+            labelText: 'Ссылка *',
+            hintText: 'https://...',
+            border: OutlineInputBorder(),
+          ),
+          keyboardType: TextInputType.url,
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Отмена'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, linkController.text.trim()),
+            child: const Text('Добавить'),
+          ),
+        ],
+      ),
+    );
+
+    if (url == null || url.isEmpty) return;
+
+    final Uri? parsed = Uri.tryParse(url);
+    final bool isValid =
+        parsed != null &&
+        (parsed.isScheme('HTTP') || parsed.isScheme('HTTPS')) &&
+        parsed.host.isNotEmpty;
+    if (!isValid) {
+      _showAttachmentError('Некорректная ссылка - укажите адрес, начиная с http:// или https://');
+      return;
+    }
+
+    setState(() {
+      _pendingAttachments.add(_PendingAttachment.link(linkUrl: url));
+    });
+  }
+
+  void _showAttachmentError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.orange),
+    );
+  }
+
+  /// Реально прикрепляет все отложенные вложения к событию. Вызывается
+  /// ПОСЛЕ того, как событие сохранено (id уже гарантированно существует
+  /// в БД) - иначе вставка media-строки с несуществующим event_id по
+  /// смыслу некорректна, даже если сама SQLite сейчас не проверяет
+  /// внешние ключи строго.
+  void _attachPendingFiles(String eventId) {
+    for (final _PendingAttachment att in _pendingAttachments) {
+      switch (att.type) {
+        case _PendingAttachmentType.copy:
+          widget.mediaBloc.add(
+            AddMediaFile(
+              fileData: att.fileData!,
+              fileName: att.fileName,
+              mimeType: att.mimeType,
+              description: att.fileName,
+              personId: widget.personId,
+              eventId: eventId,
+              generateThumbnail: true,
+            ),
+          );
+          break;
+        case _PendingAttachmentType.deviceReference:
+          widget.mediaBloc.add(
+            AddDeviceFileReference(
+              filePath: att.filePath!,
+              fileName: att.fileName,
+              mimeType: att.mimeType,
+              fileSize: att.fileSize,
+              description: att.fileName,
+              personId: widget.personId,
+              eventId: eventId,
+            ),
+          );
+          break;
+        case _PendingAttachmentType.link:
+          widget.mediaBloc.add(
+            AddExternalLink(
+              url: att.url!,
+              description: att.url!,
+              personId: widget.personId,
+              eventId: eventId,
+            ),
+          );
+          break;
+      }
+    }
   }
 
   Widget _buildDatePicker({
@@ -232,6 +575,15 @@ class _EventFormDialogState extends State<EventFormDialog> {
     );
 
     widget.onSave(event);
+
+    // event.id уже известен (сгенерирован выше, ДО вызова onSave) - поэтому
+    // можно сразу прикрепить отложенные вложения, не дожидаясь отдельного
+    // подтверждения от EventBloc. Соответствует уже принятому в проекте
+    // стилю "fire-and-forget" (сам onSave тоже не awaited).
+    if (_pendingAttachments.isNotEmpty) {
+      _attachPendingFiles(event.id);
+    }
+
     Navigator.pop(context);
   }
 }

@@ -319,6 +319,65 @@ class MediaRepositoryImpl implements MediaRepository {
   }
 
   @override
+  Future<Either<Failure, MediaAttachment>> linkMediaToEvent({
+    required String mediaId,
+    required String? eventId,
+  }) async {
+    try {
+      final MediaAttachmentModel? model = await _dataSource.getById(mediaId);
+      if (model == null) {
+        return Left(
+          MediaNotFoundFailure(mediaId, message: 'Медиа-файл не найден'),
+        );
+      }
+
+      // ⚠️ Файл должен остаться привязан хотя бы к чему-то одному. Если у
+      // него personId уже null (например, файл изначально был создан
+      // напрямую под событие) и мы пытаемся отвязать его от события
+      // (eventId: null) - он "потеряется" без единого владельца. Такое
+      // отвязывание запрещаем.
+      if (eventId == null && model.personId == null) {
+        return Left(
+          const MediaValidationFailure(
+            'Нельзя отвязать файл от события - у него нет владельца-человека, '
+            'файл останется ничей',
+            code: 'ORPHAN_ATTACHMENT',
+          ),
+        );
+      }
+
+      final MediaAttachmentModel updatedModel = MediaAttachmentModel(
+        id: model.id,
+        personId: model.personId,
+        eventId: eventId,
+        fileName: model.fileName,
+        localPath: model.localPath,
+        remoteUrl: model.remoteUrl,
+        mimeType: model.mimeType,
+        fileSize: model.fileSize,
+        description: model.description,
+        isPrimary: model.isPrimary,
+        thumbnailPath: model.thumbnailPath,
+        source: model.source,
+        createdAt: model.createdAt,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      );
+
+      await _dataSource.update(updatedModel);
+
+      return Right(updatedModel.toEntity());
+    } on MediaNotFoundFailure catch (e) {
+      return Left(e);
+    } on MediaValidationFailure catch (e) {
+      return Left(e);
+    } catch (e) {
+      return Left(
+        MediaDatabaseFailure(message: 'Ошибка привязки файла к событию: $e'),
+      );
+    }
+  }
+
+  @override
   Future<Either<Failure, MediaAttachment>> updateMediaDescription(
     String mediaId,
     String newDescription,

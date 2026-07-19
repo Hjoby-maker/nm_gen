@@ -143,6 +143,18 @@ class AddExternalLink extends MediaEvent {
   ];
 }
 
+/// Связать существующий медиа-файл с событием (или отвязать, если
+/// eventId: null). Файл не перемещается - если у него уже был personId,
+/// он им и останется.
+class LinkMediaToEvent extends MediaEvent {
+  const LinkMediaToEvent({required this.mediaId, required this.eventId});
+  final String mediaId;
+  final String? eventId;
+
+  @override
+  List<Object?> get props => <Object?>[mediaId, eventId];
+}
+
 /// Обновить описание медиа-файла
 class UpdateMediaDescription extends MediaEvent {
   const UpdateMediaDescription({

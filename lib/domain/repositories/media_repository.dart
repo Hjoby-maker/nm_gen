@@ -66,6 +66,17 @@ abstract class MediaRepository {
     String? eventId,
   });
 
+  /// Связать уже существующий медиа-файл (обычно принадлежащий человеку)
+  /// с событием, или отвязать (передав eventId: null). Файл при этом НЕ
+  /// перемещается - если у него уже был personId, он им и останется,
+  /// просто дополнительно (или уже не) привязывается к событию. Это то,
+  /// что нужно для сценария "прикрепил файл к человеку -> потом связал
+  /// его с конкретным событием из списка".
+  Future<Either<Failure, MediaAttachment>> linkMediaToEvent({
+    required String mediaId,
+    required String? eventId,
+  });
+
   /// Обновить описание медиа-файла
   Future<Either<Failure, MediaAttachment>> updateMediaDescription(
     String mediaId,
