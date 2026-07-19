@@ -31,6 +31,14 @@ class MediaSection extends StatefulWidget {
 }
 
 class _MediaSectionState extends State<MediaSection> {
+  // ✅ Кэш последнего известного списка файлов ЭТОЙ секции. MediaBloc общий
+  // на весь экран - через него проходят и не относящиеся к списку файлов
+  // состояния (успех операции, статистика и т.д.). Раньше _buildContent
+  // для любого "непрофильного" состояния возвращал SizedBox.shrink()
+  // (пустоту) - теперь в таких случаях показываем последний известный
+  // список вместо пустого экрана.
+  List<MediaAttachment>? _cachedMediaList;
+
   @override
   void initState() {
     super.initState();
@@ -41,7 +49,6 @@ class _MediaSectionState extends State<MediaSection> {
     final bloc = context.read<MediaBloc>();
     if (widget.personId != null) {
       bloc.add(LoadMediaForPerson(personId: widget.personId!));
-      bloc.add(LoadPrimaryPortrait(widget.personId!));
     } else if (widget.eventId != null) {
       bloc.add(LoadMediaForEvent(eventId: widget.eventId!));
     }
@@ -51,6 +58,9 @@ class _MediaSectionState extends State<MediaSection> {
   Widget build(BuildContext context) {
     return BlocConsumer<MediaBloc, MediaState>(
       listener: (context, state) {
+        if (state is MediaLoaded) {
+          _cachedMediaList = state.mediaList;
+        }
         if (state is MediaError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(state.message), backgroundColor: Colors.red),
@@ -106,6 +116,12 @@ class _MediaSectionState extends State<MediaSection> {
 
   Widget _buildContent(BuildContext context, MediaState state) {
     if (state is MediaLoading || state is MediaLoadingWithProgress) {
+      // Если уже есть закэшированный список - продолжаем его показывать
+      // вместо того, чтобы схлопывать в спиннер на пустом месте при каждой
+      // фоновой перезагрузке (после добавления/удаления файла и т.п.).
+      if (_cachedMediaList != null && _cachedMediaList!.isNotEmpty) {
+        return _buildGrid(context, _cachedMediaList!);
+      }
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(16),
@@ -134,33 +150,53 @@ class _MediaSectionState extends State<MediaSection> {
       if (state.mediaList.isEmpty) {
         return _buildEmptyState(context);
       }
-
-      return GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 1,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
-        ),
-        itemCount: state.mediaList.length,
-        itemBuilder: (context, index) {
-          final media = state.mediaList[index];
-          return MediaCard(
-            media: media,
-            isPrimary: widget.showPrimaryBadge && media.isPrimary,
-            onTap: () => _showMediaDetails(context, media),
-            onDelete: () => _confirmDelete(context, media.id),
-            onSetPrimary: widget.personId != null
-                ? () => _setPrimaryPortrait(context, media.id)
-                : null,
-          );
-        },
-      );
+      return _buildGrid(context, state.mediaList);
     }
 
-    return const SizedBox.shrink();
+    // ✅ Любое другое состояние MediaBloc (PrimaryPortraitLoaded,
+    // MediaFileAdded, MediaUpdated, MediaDeleted, MediaOperationSuccess,
+    // MediaInitial и т.д.) не имеет отношения к списку файлов ЭТОЙ секции -
+    // это НЕ повод показывать пустоту. Показываем последний известный
+    // список, если он есть.
+    if (_cachedMediaList != null) {
+      if (_cachedMediaList!.isEmpty) {
+        return _buildEmptyState(context);
+      }
+      return _buildGrid(context, _cachedMediaList!);
+    }
+
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: CircularProgressIndicator(),
+      ),
+    );
+  }
+
+  Widget _buildGrid(BuildContext context, List<MediaAttachment> mediaList) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 1,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+      ),
+      itemCount: mediaList.length,
+      itemBuilder: (context, index) {
+        final media = mediaList[index];
+        return MediaCard(
+          media: media,
+          isPrimary: widget.showPrimaryBadge && media.isPrimary,
+          onTap: () => _showMediaDetails(context, media),
+          onDelete: () => _confirmDelete(context, media.id),
+          onSetPrimary: widget.personId != null
+              ? () => _setPrimaryPortrait(context, media.id)
+              : null,
+        );
+      },
+    );
   }
 
   Widget _buildEmptyState(BuildContext context) {

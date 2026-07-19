@@ -86,8 +86,16 @@ class _PersonDetailScreenState extends State<PersonDetailScreen>
       });
 
       _eventBloc.add(LoadPersonEventsEvent(widget.personId, treeId: _treeId));
+      // ⚠️ Раньше здесь ещё был _mediaBloc.add(LoadPrimaryPortrait(...)).
+      // Он больше не нужен: PersonAvatar показывает фото из person.photoPath
+      // (см. BlocListener ниже), а не напрямую из состояния MediaBloc. Но
+      // этот вызов ВСЁ РАВНО обрабатывался - MediaBloc обрабатывает события
+      // строго последовательно, и он шёл СРАЗУ ПОСЛЕ LoadMediaForPerson,
+      // затирая MediaLoaded финальным состоянием PrimaryPortraitLoaded.
+      // Вкладка "Файлы" (MediaSection) слушает тот же самый MediaBloc и не
+      // знала, что делать с PrimaryPortraitLoaded - поэтому список файлов
+      // пропадал сразу после загрузки экрана. Именно это и было багом.
       _mediaBloc.add(LoadMediaForPerson(personId: widget.personId));
-      _mediaBloc.add(LoadPrimaryPortrait(widget.personId));
     } else {
       setState(() => _isLoading = false);
     }
