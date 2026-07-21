@@ -1,3 +1,4 @@
+// lib/domain/use_cases/person/sync_person_events.dart
 import 'package:dartz/dartz.dart';
 import 'package:nm_gen/core/errors/failures.dart';
 import 'package:nm_gen/domain/entities/event.dart';
@@ -62,15 +63,30 @@ class SyncPersonEventsUseCase {
 
       if (birthEvent.id.isEmpty) {
         // Создаем новое событие
-        await _eventRepository.addEvent(updatedEvent);
+        try {
+          await _eventRepository.addEvent(updatedEvent);
+        } catch (e) {
+          // Если ошибка, просто логируем и продолжаем
+          print('⚠️ Ошибка создания события рождения: $e');
+        }
       } else {
         // Обновляем существующее
-        await _eventRepository.updateEvent(updatedEvent);
+        try {
+          await _eventRepository.updateEvent(updatedEvent);
+        } catch (e) {
+          // Если ошибка, просто логируем и продолжаем
+          print('⚠️ Ошибка обновления события рождения: $e');
+        }
       }
     } else {
       // Если даты рождения нет — удаляем событие
       if (birthEvent.id.isNotEmpty) {
-        await _eventRepository.deleteEvent(birthEvent.id);
+        try {
+          await _eventRepository.deleteEvent(birthEvent.id);
+        } catch (e) {
+          // Если ошибка, просто логируем и продолжаем
+          print('⚠️ Ошибка удаления события рождения: $e');
+        }
       }
     }
   }
@@ -105,15 +121,30 @@ class SyncPersonEventsUseCase {
 
       if (deathEvent.id.isEmpty) {
         // Создаем новое событие
-        await _eventRepository.addEvent(updatedEvent);
+        try {
+          await _eventRepository.addEvent(updatedEvent);
+        } catch (e) {
+          // Если ошибка, просто логируем и продолжаем
+          print('⚠️ Ошибка создания события смерти: $e');
+        }
       } else {
         // Обновляем существующее
-        await _eventRepository.updateEvent(updatedEvent);
+        try {
+          await _eventRepository.updateEvent(updatedEvent);
+        } catch (e) {
+          // Если ошибка, просто логируем и продолжаем
+          print('⚠️ Ошибка обновления события смерти: $e');
+        }
       }
     } else {
       // Если даты смерти нет — удаляем событие
       if (deathEvent.id.isNotEmpty) {
-        await _eventRepository.deleteEvent(deathEvent.id);
+        try {
+          await _eventRepository.deleteEvent(deathEvent.id);
+        } catch (e) {
+          // Если ошибка, просто логируем и продолжаем
+          print('⚠️ Ошибка удаления события смерти: $e');
+        }
       }
     }
   }

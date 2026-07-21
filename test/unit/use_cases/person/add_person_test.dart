@@ -19,7 +19,6 @@ void main() {
   late AddPersonUseCase useCase;
 
   setUpAll(() {
-    // Регистрируем fallback значения для типов, которые используются в any()
     registerFallbackValue(createTestEvent());
     registerFallbackValue(createTestPerson());
   });
@@ -30,7 +29,6 @@ void main() {
     syncUseCase = SyncPersonEventsUseCase(mockEventRepository);
     useCase = AddPersonUseCase(mockPersonRepository, syncUseCase);
 
-    // Мокаем для синхронизации событий
     when(
       () => mockEventRepository.getEventsByPersonId(
         any(),
@@ -38,7 +36,7 @@ void main() {
       ),
     ).thenAnswer((_) async => []);
     when(
-      () => mockEventRepository.addEvent(any()),
+      () => mockEventRepository.addEvent(any<Event>()),
     ).thenAnswer((_) async => createTestEvent());
   });
 
@@ -49,6 +47,7 @@ void main() {
         id: 'new_person',
         firstName: 'Алексей',
         lastName: 'Петров',
+        birthDate: DateTime(1980, 1, 1), // ← добавляем дату рождения
       );
       final savedPerson = Person(
         id: newPerson.id,
@@ -212,7 +211,11 @@ void main() {
 
     test('вызывает синхронизацию событий после сохранения человека', () async {
       // Arrange
-      final newPerson = createTestPerson(firstName: 'Тест', lastName: 'Тестов');
+      final newPerson = createTestPerson(
+        firstName: 'Тест',
+        lastName: 'Тестов',
+        birthDate: DateTime(1980, 1, 1), // ← добавляем дату рождения
+      );
       final savedPerson = Person(
         id: newPerson.id,
         treeId: newPerson.treeId,
@@ -239,10 +242,8 @@ void main() {
       // Act
       await useCase.execute(newPerson);
 
-      // Assert
-      verify(
-        () => mockEventRepository.addEvent(any()),
-      ).called(greaterThanOrEqualTo(1));
+      // Assert - теперь addEvent должен быть вызван (для рождения)
+      verify(() => mockEventRepository.addEvent(any<Event>())).called(1);
     });
 
     test('возвращает Left с ServerFailure при ошибке репозитория', () async {

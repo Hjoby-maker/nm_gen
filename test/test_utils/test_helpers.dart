@@ -1,9 +1,7 @@
 // test/test_utils/test_helpers.dart
 import 'package:nm_gen/core/enums/gender.dart';
-// Импортируем EventType из domain/entities/event.dart, где он определен
-// НЕ импортируем core/enums/event_type.dart, чтобы избежать конфликта
-import 'package:nm_gen/domain/entities/event.dart'; // ← Здесь есть EventType
 import 'package:nm_gen/domain/entities/person.dart';
+import 'package:nm_gen/domain/entities/event.dart';
 import 'package:nm_gen/domain/entities/family.dart';
 import 'package:dartz/dartz.dart';
 import 'package:nm_gen/core/errors/failures.dart';
@@ -16,7 +14,7 @@ Person createTestPerson({
   String lastName = 'Иванов',
   String? middleName = 'Петрович',
   Gender gender = Gender.male,
-  DateTime? birthDate,
+  DateTime? birthDate, // ← теперь может быть null
   DateTime? deathDate,
   String? birthPlace = 'Москва',
   String? deathPlace,
@@ -33,7 +31,7 @@ Person createTestPerson({
     lastName: lastName,
     middleName: middleName,
     gender: gender,
-    birthDate: birthDate ?? DateTime(1980, 1, 1),
+    birthDate: birthDate, // ← НЕ заменяем на значение по умолчанию
     deathDate: deathDate,
     birthPlace: birthPlace,
     deathPlace: deathPlace,
@@ -47,12 +45,11 @@ Person createTestPerson({
 }
 
 /// Создает тестовое событие
-/// Использует EventType из domain/entities/event.dart
 Event createTestEvent({
   String id = 'test_event_1',
   String personId = 'test_person_1',
   String treeId = 'tree_1',
-  EventType type = EventType.birth, // ← Теперь из domain/entities/event.dart
+  EventType type = EventType.birth,
   String title = 'Тестовое событие',
   DateTime? startDate,
   String? place,
@@ -96,18 +93,5 @@ Family createTestFamily({
     divorceDate: divorceDate,
     marriagePlace: marriagePlace,
     notes: notes,
-  );
-}
-
-/// Проверяет, что Either является Right с определенным значением
-bool isRightWith<T>(Either<Failure, T> either, T value) {
-  return either.fold((failure) => false, (data) => data == value);
-}
-
-/// Проверяет, что Either является Left с определенным типом ошибки
-bool isLeftWith<T>(Either<Failure, T> either, Type failureType) {
-  return either.fold(
-    (failure) => failure.runtimeType == failureType,
-    (data) => false,
   );
 }

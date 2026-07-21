@@ -41,7 +41,7 @@ void main() {
       ).thenAnswer((_) async => []);
 
       when(
-        () => mockEventRepository.addEvent(any()),
+        () => mockEventRepository.addEvent(any<Event>()),
       ).thenAnswer((_) async => createTestEvent());
 
       // Act
@@ -49,7 +49,7 @@ void main() {
 
       // Assert
       expect(result.isRight(), true);
-      verify(() => mockEventRepository.addEvent(any())).called(1);
+      verify(() => mockEventRepository.addEvent(any<Event>())).called(1);
     });
 
     test('создает событие смерти, если есть дата смерти', () async {
@@ -69,7 +69,7 @@ void main() {
       ).thenAnswer((_) async => []);
 
       when(
-        () => mockEventRepository.addEvent(any()),
+        () => mockEventRepository.addEvent(any<Event>()),
       ).thenAnswer((_) async => createTestEvent());
 
       // Act
@@ -78,7 +78,7 @@ void main() {
       // Assert
       expect(result.isRight(), true);
       verify(
-        () => mockEventRepository.addEvent(any()),
+        () => mockEventRepository.addEvent(any<Event>()),
       ).called(2); // birth + death
     });
 
@@ -103,7 +103,7 @@ void main() {
       ).thenAnswer((_) async => [existingEvent]);
 
       when(
-        () => mockEventRepository.updateEvent(any()),
+        () => mockEventRepository.updateEvent(any<Event>()),
       ).thenAnswer((_) async => existingEvent);
 
       // Act
@@ -111,7 +111,7 @@ void main() {
 
       // Assert
       expect(result.isRight(), true);
-      verify(() => mockEventRepository.updateEvent(any())).called(1);
+      verify(() => mockEventRepository.updateEvent(any<Event>())).called(1);
     });
 
     test('удаляет событие рождения, если дата рождения удалена', () async {
@@ -134,16 +134,22 @@ void main() {
         ),
       ).thenAnswer((_) async => [existingEvent]);
 
+      // Мокаем deleteEvent - он должен быть вызван
       when(
         () => mockEventRepository.deleteEvent(existingEvent.id),
-      ).thenAnswer((_) async => {});
+      ).thenAnswer((_) async => Future<void>.value());
 
       // Act
       final result = await useCase.execute(person);
 
       // Assert
       expect(result.isRight(), true);
+      // Проверяем, что deleteEvent был вызван
       verify(() => mockEventRepository.deleteEvent(existingEvent.id)).called(1);
+      // Проверяем, что updateEvent НЕ был вызван
+      verifyNever(() => mockEventRepository.updateEvent(any<Event>()));
+      // Проверяем, что addEvent НЕ был вызван
+      verifyNever(() => mockEventRepository.addEvent(any<Event>()));
     });
 
     test(
@@ -164,8 +170,9 @@ void main() {
 
         // Assert
         expect(result.isRight(), true);
-        verifyNever(() => mockEventRepository.addEvent(any()));
+        verifyNever(() => mockEventRepository.addEvent(any<Event>()));
         verifyNever(() => mockEventRepository.deleteEvent(any()));
+        verifyNever(() => mockEventRepository.updateEvent(any<Event>()));
       },
     );
 

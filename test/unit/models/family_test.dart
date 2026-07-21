@@ -46,7 +46,7 @@ void main() {
         expect(family.notes, notes);
       });
 
-      test('Family.create создает семью с опциональными полями', () {
+      test('создает семью с опциональными полями', () {
         // Act
         final family = Family(
           id: 'family_1',
@@ -186,7 +186,7 @@ void main() {
       });
 
       group('parentIds', () {
-        test('возвращает список ID родителей', () {
+        test('возвращает список ID родителей (только не-null значения)', () {
           // Arrange
           final family = Family(
             id: 'f1',
@@ -199,20 +199,39 @@ void main() {
           expect(family.parentIds, ['husband1', 'wife1']);
         });
 
-        test('возвращает список без null значений', () {
-          // Arrange
-          final family = Family(
-            id: 'f1',
-            treeId: 't1',
-            husbandId: 'husband1',
-            wifeId: null,
-          );
+        test(
+          'возвращает список только с husbandId, если wifeId отсутствует',
+          () {
+            // Arrange
+            final family = Family(
+              id: 'f1',
+              treeId: 't1',
+              husbandId: 'husband1',
+              wifeId: null,
+            );
 
-          // Assert
-          expect(family.parentIds, ['husband1', null]);
-        });
+            // Assert
+            expect(family.parentIds, ['husband1']);
+          },
+        );
 
-        test('возвращает пустой список если нет родителей', () {
+        test(
+          'возвращает список только с wifeId, если husbandId отсутствует',
+          () {
+            // Arrange
+            final family = Family(
+              id: 'f1',
+              treeId: 't1',
+              husbandId: null,
+              wifeId: 'wife1',
+            );
+
+            // Assert
+            expect(family.parentIds, ['wife1']);
+          },
+        );
+
+        test('возвращает пустой список, если нет родителей', () {
           // Arrange
           final family = Family(
             id: 'f1',
@@ -222,7 +241,7 @@ void main() {
           );
 
           // Assert
-          expect(family.parentIds, [null, null]);
+          expect(family.parentIds, []);
         });
       });
     });

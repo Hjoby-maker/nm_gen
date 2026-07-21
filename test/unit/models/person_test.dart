@@ -421,7 +421,7 @@ void main() {
           );
 
           // Assert
-          expect(person.mediaCount, 4); // 3 photoUrls + 1 photoPath
+          expect(person.mediaCount, 4);
         });
 
         test('mediaTypes возвращает типы медиа', () {
@@ -457,6 +457,9 @@ void main() {
           birthPlace: 'Москва',
           occupation: 'Инженер',
         );
+        final newUpdatedAt = DateTime.now().add(
+          const Duration(milliseconds: 100),
+        );
 
         // Act
         final updated = original.copyWith(
@@ -466,22 +469,21 @@ void main() {
           birthDate: DateTime(1990, 2, 2),
           birthPlace: 'Санкт-Петербург',
           occupation: 'Врач',
+          updatedAt: newUpdatedAt,
         );
 
         // Assert
-        expect(updated.id, original.id); // id не изменился
-        expect(updated.treeId, original.treeId); // treeId не изменился
+        expect(updated.id, original.id);
+        expect(updated.treeId, original.treeId);
         expect(updated.firstName, 'Петр');
         expect(updated.lastName, 'Петров');
         expect(updated.middleName, 'Иванович');
         expect(updated.birthDate, DateTime(1990, 2, 2));
         expect(updated.birthPlace, 'Санкт-Петербург');
         expect(updated.occupation, 'Врач');
-        expect(updated.createdAt, original.createdAt); // createdAt не изменился
-        expect(
-          updated.updatedAt,
-          isNot(original.updatedAt),
-        ); // updatedAt обновился
+        expect(updated.createdAt, original.createdAt);
+        expect(updated.updatedAt, newUpdatedAt);
+        expect(updated.updatedAt.isAfter(original.updatedAt), true);
       });
 
       test('copyWith сохраняет неизмененные поля', () {
@@ -501,6 +503,7 @@ void main() {
         expect(updated.gender, original.gender);
         expect(updated.birthDate, original.birthDate);
         expect(updated.createdAt, original.createdAt);
+        expect(updated.updatedAt, original.updatedAt);
       });
 
       test('copyWith обновляет updatedAt по умолчанию', () async {
@@ -512,7 +515,6 @@ void main() {
         );
         final oldUpdatedAt = original.updatedAt;
 
-        // Небольшая задержка, чтобы гарантировать изменение времени
         await Future.delayed(const Duration(milliseconds: 10));
 
         // Act
@@ -611,7 +613,7 @@ void main() {
         );
 
         // Assert
-        expect(person.props.length, 16); // Количество полей в props
+        expect(person.props.length, 16);
       });
     });
 

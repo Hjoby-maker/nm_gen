@@ -4,6 +4,7 @@ import 'package:dartz/dartz.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:nm_gen/core/errors/failures.dart';
 import 'package:nm_gen/domain/entities/person.dart';
+import 'package:nm_gen/domain/entities/event.dart';
 import 'package:nm_gen/domain/repositories/person_repository.dart';
 import 'package:nm_gen/domain/repositories/event_repository.dart';
 import 'package:nm_gen/domain/use_cases/person/update_person.dart';
@@ -35,7 +36,10 @@ void main() {
       ),
     ).thenAnswer((_) async => []);
     when(
-      () => mockEventRepository.updateEvent(any()),
+      () => mockEventRepository.updateEvent(any<Event>()),
+    ).thenAnswer((_) async => createTestEvent());
+    when(
+      () => mockEventRepository.addEvent(any<Event>()),
     ).thenAnswer((_) async => createTestEvent());
   });
 
@@ -46,6 +50,7 @@ void main() {
         id: 'p1',
         firstName: 'Иван',
         lastName: 'Иванов',
+        birthDate: DateTime(1980, 1, 1),
       );
       final updatedPerson = person.copyWith(
         firstName: 'Петр',
@@ -179,6 +184,21 @@ void main() {
         updatedAt: DateTime.now(),
       );
 
+      // Мокаем существующее событие рождения
+      final existingEvent = createTestEvent(
+        id: 'e1',
+        personId: person.id,
+        type: EventType.birth,
+        title: 'Рождение ${person.displayName}',
+      );
+
+      when(
+        () => mockEventRepository.getEventsByPersonId(
+          person.id,
+          treeId: person.treeId,
+        ),
+      ).thenAnswer((_) async => [existingEvent]);
+
       when(
         () => mockPersonRepository.updatePerson(any()),
       ).thenAnswer((_) async => updatedPerson);
@@ -189,10 +209,12 @@ void main() {
       // Assert
       verify(
         () => mockEventRepository.getEventsByPersonId(
-          any(),
-          treeId: any(named: 'treeId'),
+          person.id,
+          treeId: person.treeId,
         ),
       ).called(1);
+      // Проверяем, что updateEvent был вызван (для обновления события рождения)
+      verify(() => mockEventRepository.updateEvent(any<Event>())).called(1);
     });
 
     test('возвращает Left с ServerFailure при ошибке репозитория', () async {

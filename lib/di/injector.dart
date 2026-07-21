@@ -41,6 +41,13 @@ import 'package:nm_gen/presentation/blocs/media/media_bloc.dart';
 import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
 import 'package:nm_gen/presentation/blocs/project/project_bloc.dart';
 import 'package:nm_gen/presentation/blocs/tree/tree_bloc.dart';
+// Импорты Use Cases для Event ← ДОБАВЛЯЕМ
+import 'package:nm_gen/domain/use_cases/event/add_event.dart';
+import 'package:nm_gen/domain/use_cases/event/get_events_by_person.dart';
+import 'package:nm_gen/domain/use_cases/event/get_all_events.dart';
+import 'package:nm_gen/domain/use_cases/event/update_event.dart';
+import 'package:nm_gen/domain/use_cases/event/delete_event.dart';
+import 'package:nm_gen/domain/use_cases/event/delete_all_person_events.dart';
 import 'injector.config.dart';
 
 final getIt = GetIt.instance;
@@ -261,6 +268,33 @@ void registerUseCasesAndBlocs() {
   // registerFactoryIfNotRegistered<DeleteMediaUseCase>(
   //   () => DeleteMediaUseCase(mediaRepo),
   // );
+
+  // ============================================================
+  // РЕГИСТРАЦИЯ USE CASES ДЛЯ EVENT
+  // ============================================================
+  registerFactoryIfNotRegistered<AddEventUseCase>(
+    () => AddEventUseCase(getIt<EventRepository>()),
+  );
+
+  registerFactoryIfNotRegistered<GetEventsByPersonUseCase>(
+    () => GetEventsByPersonUseCase(getIt<EventRepository>()),
+  );
+
+  registerFactoryIfNotRegistered<GetAllEventsUseCase>(
+    () => GetAllEventsUseCase(getIt<EventRepository>()),
+  );
+
+  registerFactoryIfNotRegistered<UpdateEventUseCase>(
+    () => UpdateEventUseCase(getIt<EventRepository>()),
+  );
+
+  registerFactoryIfNotRegistered<DeleteEventUseCase>(
+    () => DeleteEventUseCase(getIt<EventRepository>()),
+  );
+
+  registerFactoryIfNotRegistered<DeleteAllPersonEventsUseCase>(
+    () => DeleteAllPersonEventsUseCase(getIt<EventRepository>()),
+  );
 
   // ============================================================
   // 13. РЕГИСТРАЦИЯ BLOC

@@ -1,13 +1,33 @@
+// lib/presentation/blocs/event/event_bloc.dart
 import 'package:bloc/bloc.dart';
-import 'package:equatable/equatable.dart';
 import 'package:nm_gen/di/injector.dart';
-import 'package:nm_gen/domain/entities/event.dart';
-import 'package:nm_gen/domain/repositories/event_repository.dart';
+import 'package:nm_gen/domain/use_cases/event/add_event.dart';
+import 'package:nm_gen/domain/use_cases/event/get_events_by_person.dart';
+import 'package:nm_gen/domain/use_cases/event/get_all_events.dart';
+import 'package:nm_gen/domain/use_cases/event/update_event.dart';
+import 'package:nm_gen/domain/use_cases/event/delete_event.dart';
+import 'package:nm_gen/domain/use_cases/event/delete_all_person_events.dart';
 import 'package:nm_gen/presentation/blocs/event/event_event.dart';
 import 'package:nm_gen/presentation/blocs/event/event_state.dart';
 
 class EventBloc extends Bloc<EventEvent, EventState> {
-  EventBloc() : super(EventInitial()) {
+  EventBloc({
+    AddEventUseCase? addEventUseCase,
+    GetEventsByPersonUseCase? getEventsByPersonUseCase,
+    GetAllEventsUseCase? getAllEventsUseCase,
+    UpdateEventUseCase? updateEventUseCase,
+    DeleteEventUseCase? deleteEventUseCase,
+    DeleteAllPersonEventsUseCase? deleteAllPersonEventsUseCase,
+  }) : super(EventInitial()) {
+    _addEventUseCase = addEventUseCase ?? getIt<AddEventUseCase>();
+    _getEventsByPersonUseCase =
+        getEventsByPersonUseCase ?? getIt<GetEventsByPersonUseCase>();
+    _getAllEventsUseCase = getAllEventsUseCase ?? getIt<GetAllEventsUseCase>();
+    _updateEventUseCase = updateEventUseCase ?? getIt<UpdateEventUseCase>();
+    _deleteEventUseCase = deleteEventUseCase ?? getIt<DeleteEventUseCase>();
+    _deleteAllPersonEventsUseCase =
+        deleteAllPersonEventsUseCase ?? getIt<DeleteAllPersonEventsUseCase>();
+
     on<LoadPersonEventsEvent>(_onLoadPersonEvents);
     on<LoadAllEventsEvent>(_onLoadAllEvents);
     on<AddEventEvent>(_onAddEvent);
@@ -15,22 +35,27 @@ class EventBloc extends Bloc<EventEvent, EventState> {
     on<DeleteEventEvent>(_onDeleteEvent);
     on<DeleteAllPersonEventsEvent>(_onDeleteAllPersonEvents);
   }
-  final EventRepository _repository = getIt<EventRepository>();
+
+  late final AddEventUseCase _addEventUseCase;
+  late final GetEventsByPersonUseCase _getEventsByPersonUseCase;
+  late final GetAllEventsUseCase _getAllEventsUseCase;
+  late final UpdateEventUseCase _updateEventUseCase;
+  late final DeleteEventUseCase _deleteEventUseCase;
+  late final DeleteAllPersonEventsUseCase _deleteAllPersonEventsUseCase;
 
   Future<void> _onLoadPersonEvents(
     LoadPersonEventsEvent event,
     Emitter<EventState> emit,
   ) async {
     emit(EventLoading());
-    try {
-      final events = await _repository.getEventsByPersonId(
-        event.personId,
-        treeId: event.treeId,
-      );
-      emit(EventsLoaded(events: events, treeId: event.treeId));
-    } catch (e) {
-      emit(EventError('Ошибка загрузки событий: ${e.toString()}'));
-    }
+    final result = await _getEventsByPersonUseCase.execute(
+      event.personId,
+      treeId: event.treeId,
+    );
+    result.fold(
+      (failure) => emit(EventError(failure.message)),
+      (events) => emit(EventsLoaded(events: events, treeId: event.treeId)),
+    );
   }
 
   Future<void> _onLoadAllEvents(
@@ -38,78 +63,75 @@ class EventBloc extends Bloc<EventEvent, EventState> {
     Emitter<EventState> emit,
   ) async {
     emit(EventLoading());
-    try {
-      final events = await _repository.getAllEvents(treeId: event.treeId);
-      emit(EventsLoaded(events: events, treeId: event.treeId));
-    } catch (e) {
-      emit(EventError('Ошибка загрузки событий: ${e.toString()}'));
-    }
+    final result = await _getAllEventsUseCase.execute(treeId: event.treeId);
+    result.fold(
+      (failure) => emit(EventError(failure.message)),
+      (events) => emit(EventsLoaded(events: events, treeId: event.treeId)),
+    );
   }
 
   Future<void> _onAddEvent(
     AddEventEvent event,
     Emitter<EventState> emit,
   ) async {
-    try {
-      await _repository.addEvent(event.event);
+    emit(EventLoading());
+    final result = await _addEventUseCase.execute(event.event);
+    result.fold((failure) => emit(EventError(failure.message)), (savedEvent) {
       emit(const EventOperationSuccess('Событие добавлено'));
       add(
-        LoadPersonEventsEvent(event.event.personId, treeId: event.event.treeId),
+        LoadPersonEventsEvent(savedEvent.personId, treeId: savedEvent.treeId),
       );
-    } catch (e) {
-      emit(EventError('Ошибка добавления события: ${e.toString()}'));
-    }
+    });
   }
 
   Future<void> _onUpdateEvent(
     UpdateEventEvent event,
     Emitter<EventState> emit,
   ) async {
-    try {
-      await _repository.updateEvent(event.event);
+    emit(EventLoading());
+    final result = await _updateEventUseCase.execute(event.event);
+    result.fold((failure) => emit(EventError(failure.message)), (updatedEvent) {
       emit(const EventOperationSuccess('Событие обновлено'));
       add(
-        LoadPersonEventsEvent(event.event.personId, treeId: event.event.treeId),
+        LoadPersonEventsEvent(
+          updatedEvent.personId,
+          treeId: updatedEvent.treeId,
+        ),
       );
-    } catch (e) {
-      emit(EventError('Ошибка обновления события: ${e.toString()}'));
-    }
+    });
   }
 
   Future<void> _onDeleteEvent(
     DeleteEventEvent event,
     Emitter<EventState> emit,
   ) async {
-    try {
-      final eventToDelete = await _repository.getEvent(event.eventId);
-      if (eventToDelete != null) {
-        await _repository.deleteEvent(event.eventId);
-        emit(const EventOperationSuccess('Событие удалено'));
+    emit(EventLoading());
+    final result = await _deleteEventUseCase.execute(event.eventId);
+    result.fold((failure) => emit(EventError(failure.message)), (deletedEvent) {
+      emit(const EventOperationSuccess('Событие удалено'));
+      if (deletedEvent != null) {
         add(
           LoadPersonEventsEvent(
-            eventToDelete.personId,
-            treeId: eventToDelete.treeId,
+            deletedEvent.personId,
+            treeId: deletedEvent.treeId,
           ),
         );
       }
-    } catch (e) {
-      emit(EventError('Ошибка удаления события: ${e.toString()}'));
-    }
+    });
   }
 
   Future<void> _onDeleteAllPersonEvents(
     DeleteAllPersonEventsEvent event,
     Emitter<EventState> emit,
   ) async {
-    try {
-      await _repository.deleteEventsByPersonId(
-        event.personId,
-        treeId: event.treeId,
-      );
+    emit(EventLoading());
+    final result = await _deleteAllPersonEventsUseCase.execute(
+      event.personId,
+      treeId: event.treeId,
+    );
+    result.fold((failure) => emit(EventError(failure.message)), (_) {
       emit(const EventOperationSuccess('Все события удалены'));
       add(LoadPersonEventsEvent(event.personId, treeId: event.treeId));
-    } catch (e) {
-      emit(EventError('Ошибка удаления событий: ${e.toString()}'));
-    }
+    });
   }
 }
