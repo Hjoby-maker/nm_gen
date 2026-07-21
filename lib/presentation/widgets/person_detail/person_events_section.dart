@@ -38,7 +38,10 @@ class PersonEventsSection extends StatelessWidget {
       listener: (context, state) {
         if (state is EventOperationSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.green),
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: Colors.green,
+            ),
           );
           eventBloc.add(LoadPersonEventsEvent(personId, treeId: treeId));
         } else if (state is EventError) {
@@ -97,7 +100,10 @@ class PersonEventsSection extends StatelessWidget {
             children: [
               const Icon(Icons.event_note, size: 48, color: Colors.grey),
               const SizedBox(height: 8),
-              Text('Нет событий', style: TextStyle(color: Colors.grey.shade600)),
+              Text(
+                'Нет событий',
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
             ],
           ),
         ),
@@ -129,6 +135,7 @@ class PersonEventsSection extends StatelessWidget {
               event: event,
               onEdit: () => _showEditEventDialog(context, event),
               onDelete: () => _confirmDeleteEvent(context, event.id),
+              mediaBloc: mediaBloc,
             ),
           ),
         );
@@ -145,7 +152,10 @@ class PersonEventsSection extends StatelessWidget {
             const Icon(Icons.error_outline, color: Colors.red),
             const SizedBox(width: 8),
             Expanded(
-              child: Text(message, style: TextStyle(color: Colors.red.shade700)),
+              child: Text(
+                message,
+                style: TextStyle(color: Colors.red.shade700),
+              ),
             ),
             TextButton(
               onPressed: () {

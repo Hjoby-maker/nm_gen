@@ -21,23 +21,20 @@ class MediaSection extends StatefulWidget {
     this.personId,
     this.eventId,
     this.showPrimaryBadge = true,
+    required this.mediaBloc,
   });
   final String? personId;
   final String? eventId;
   final bool showPrimaryBadge;
+  final MediaBloc mediaBloc;
 
   @override
   State<MediaSection> createState() => _MediaSectionState();
 }
 
 class _MediaSectionState extends State<MediaSection> {
-  // ✅ Кэш последнего известного списка файлов ЭТОЙ секции. MediaBloc общий
-  // на весь экран - через него проходят и не относящиеся к списку файлов
-  // состояния (успех операции, статистика и т.д.). Раньше _buildContent
-  // для любого "непрофильного" состояния возвращал SizedBox.shrink()
-  // (пустоту) - теперь в таких случаях показываем последний известный
-  // список вместо пустого экрана.
   List<MediaAttachment>? _cachedMediaList;
+  bool _isInitialLoad = true;
 
   @override
   void initState() {
@@ -46,22 +43,24 @@ class _MediaSectionState extends State<MediaSection> {
   }
 
   void _loadMedia() {
-    final bloc = context.read<MediaBloc>();
     if (widget.personId != null) {
-      bloc.add(LoadMediaForPerson(personId: widget.personId!));
+      widget.mediaBloc.add(LoadMediaForPerson(personId: widget.personId!));
     } else if (widget.eventId != null) {
-      bloc.add(LoadMediaForEvent(eventId: widget.eventId!));
+      widget.mediaBloc.add(LoadMediaForEvent(eventId: widget.eventId!));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<MediaBloc, MediaState>(
+      bloc: widget.mediaBloc,
       listener: (context, state) {
         if (state is MediaLoaded) {
           _cachedMediaList = state.mediaList;
+          _isInitialLoad = false;
         }
         if (state is MediaError) {
+          _isInitialLoad = false;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(state.message), backgroundColor: Colors.red),
           );
@@ -73,8 +72,14 @@ class _MediaSectionState extends State<MediaSection> {
               backgroundColor: Colors.green,
             ),
           );
-          _loadMedia();
+          // Обновляем список только если это не операция привязки к событию
+          // (она не меняет список файлов, только метаданные)
+          if (state.message != 'Медиа привязано к событию' &&
+              state.message != 'Медиа отвязано от события') {
+            _loadMedia();
+          }
         }
+        // Для этих состояний всегда перезагружаем список
         if (state is MediaFileAdded ||
             state is MediaDeleted ||
             state is MediaUpdated) {
@@ -85,10 +90,8 @@ class _MediaSectionState extends State<MediaSection> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Заголовок с кнопкой добавления
             _buildHeader(context),
             const SizedBox(height: 8),
-            // Содержимое
             _buildContent(context, state),
           ],
         );
@@ -115,19 +118,22 @@ class _MediaSectionState extends State<MediaSection> {
   }
 
   Widget _buildContent(BuildContext context, MediaState state) {
+    // Показываем кэш во время загрузки, если он есть
     if (state is MediaLoading || state is MediaLoadingWithProgress) {
-      // Если уже есть закэшированный список - продолжаем его показывать
-      // вместо того, чтобы схлопывать в спиннер на пустом месте при каждой
-      // фоновой перезагрузке (после добавления/удаления файла и т.п.).
       if (_cachedMediaList != null && _cachedMediaList!.isNotEmpty) {
         return _buildGrid(context, _cachedMediaList!);
       }
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: CircularProgressIndicator(),
-        ),
-      );
+      // Показываем индикатор только при первой загрузке
+      if (_isInitialLoad) {
+        return const Center(
+          child: Padding(
+            padding: EdgeInsets.all(16),
+            child: CircularProgressIndicator(),
+          ),
+        );
+      }
+      // Если это фоновая загрузка и кэша нет - показываем пустоту
+      return _buildEmptyState(context);
     }
 
     if (state is MediaError) {
@@ -153,11 +159,7 @@ class _MediaSectionState extends State<MediaSection> {
       return _buildGrid(context, state.mediaList);
     }
 
-    // ✅ Любое другое состояние MediaBloc (PrimaryPortraitLoaded,
-    // MediaFileAdded, MediaUpdated, MediaDeleted, MediaOperationSuccess,
-    // MediaInitial и т.д.) не имеет отношения к списку файлов ЭТОЙ секции -
-    // это НЕ повод показывать пустоту. Показываем последний известный
-    // список, если он есть.
+    // Любое другое состояние - показываем кэш если есть
     if (_cachedMediaList != null) {
       if (_cachedMediaList!.isEmpty) {
         return _buildEmptyState(context);
@@ -226,12 +228,11 @@ class _MediaSectionState extends State<MediaSection> {
   }
 
   void _showAddMediaSheet(BuildContext context) {
-    final mediaBloc = context.read<MediaBloc>();
     MediaPickerSheet.show(
       context: context,
       personId: widget.personId,
       eventId: widget.eventId,
-      mediaBloc: mediaBloc,
+      mediaBloc: widget.mediaBloc,
     );
   }
 
@@ -263,10 +264,8 @@ class _MediaSectionState extends State<MediaSection> {
                 ),
               ),
               const SizedBox(height: 16),
-              // Превью
               Expanded(child: Center(child: _buildPreview(media))),
               const SizedBox(height: 16),
-              // Информация
               Text(
                 media.description,
                 style: const TextStyle(
@@ -288,9 +287,6 @@ class _MediaSectionState extends State<MediaSection> {
                 style: TextStyle(color: Colors.grey.shade600),
               ),
               const SizedBox(height: 16),
-              // ✅ Кнопка "Открыть" - для внешней ссылки открывает браузер,
-              // для файла с устройства - пытается открыть его во внешнем
-              // приложении (best-effort, см. _openAttachment).
               if (media.isExternalLink || media.isDeviceReference)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
@@ -304,14 +300,13 @@ class _MediaSectionState extends State<MediaSection> {
                             : Icons.folder_open,
                       ),
                       label: Text(
-                        media.isExternalLink ? 'Открыть ссылку' : 'Открыть файл',
+                        media.isExternalLink
+                            ? 'Открыть ссылку'
+                            : 'Открыть файл',
                       ),
                     ),
                   ),
                 ),
-              // ✅ "Связать с событием" - только для файлов, у которых есть
-              // personId (файл с личной вкладки "Файлы"). Файлы, созданные
-              // напрямую в форме события, уже привязаны к нему.
               if (widget.personId != null)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
@@ -376,7 +371,6 @@ class _MediaSectionState extends State<MediaSection> {
   }
 
   Widget _buildPreview(MediaAttachment media) {
-    // ✅ Внешняя ссылка - локального файла нет вообще.
     if (media.isExternalLink) {
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -395,7 +389,6 @@ class _MediaSectionState extends State<MediaSection> {
       );
     }
 
-    // ✅ Файл-ссылка с устройства, которого сейчас нет на диске.
     final bool fileMissing =
         media.localPath == null || !File(media.localPath!).existsSync();
     if (media.isDeviceReference && fileMissing) {
@@ -448,12 +441,10 @@ class _MediaSectionState extends State<MediaSection> {
     }
   }
 
-  /// Открыть вложение: внешнюю ссылку - в браузере, файл с устройства -
-  /// во внешнем приложении по умолчанию для этого типа файла.
-  /// Best-effort: для файла с устройства нет гарантии, что он всё ещё
-  /// существует или что на платформе найдётся приложение, способное его
-  /// открыть - в этом случае просто показываем понятную ошибку.
-  Future<void> _openAttachment(BuildContext context, MediaAttachment media) async {
+  Future<void> _openAttachment(
+    BuildContext context,
+    MediaAttachment media,
+  ) async {
     try {
       if (media.isExternalLink) {
         final Uri? uri = Uri.tryParse(media.remoteUrl ?? '');
@@ -471,7 +462,6 @@ class _MediaSectionState extends State<MediaSection> {
         return;
       }
 
-      // deviceReference
       final String? path = media.localPath;
       if (path == null || !File(path).existsSync()) {
         if (context.mounted) {
@@ -504,13 +494,8 @@ class _MediaSectionState extends State<MediaSection> {
     );
   }
 
-  /// Показывает список событий человека и позволяет выбрать, к какому из
-  /// них привязать файл (или отвязать, если уже привязан).
   void _showLinkToEventPicker(BuildContext context, MediaAttachment media) {
     final EventBloc eventBloc = context.read<EventBloc>();
-    // Событий может быть ещё не загружено (если пользователь не открывал
-    // вкладку "События") - подгружаем на всякий случай, BlocBuilder ниже
-    // сам обновится, когда придёт EventsLoaded.
     if (widget.personId != null) {
       eventBloc.add(LoadPersonEventsEvent(widget.personId!));
     }
@@ -569,7 +554,7 @@ class _MediaSectionState extends State<MediaSection> {
                       leading: const Icon(Icons.link_off, color: Colors.red),
                       title: const Text('Отвязать от события'),
                       onTap: () {
-                        _mediaBloc.add(
+                        widget.mediaBloc.add(
                           LinkMediaToEvent(mediaId: media.id, eventId: null),
                         );
                         Navigator.pop(sheetContext);
@@ -591,15 +576,23 @@ class _MediaSectionState extends State<MediaSection> {
                       return ListTile(
                         leading: Icon(
                           Icons.event,
-                          color: isCurrent ? Colors.green : Colors.grey.shade700,
+                          color: isCurrent
+                              ? Colors.green
+                              : Colors.grey.shade700,
                         ),
                         title: Text(evt.title),
                         trailing: isCurrent
-                            ? const Icon(Icons.check_circle, color: Colors.green)
+                            ? const Icon(
+                                Icons.check_circle,
+                                color: Colors.green,
+                              )
                             : null,
                         onTap: () {
-                          _mediaBloc.add(
-                            LinkMediaToEvent(mediaId: media.id, eventId: evt.id),
+                          widget.mediaBloc.add(
+                            LinkMediaToEvent(
+                              mediaId: media.id,
+                              eventId: evt.id,
+                            ),
                           );
                           Navigator.pop(sheetContext);
                         },
@@ -613,8 +606,6 @@ class _MediaSectionState extends State<MediaSection> {
       ),
     );
   }
-
-  MediaBloc get _mediaBloc => context.read<MediaBloc>();
 
   void _showEditDescriptionDialog(BuildContext context, MediaAttachment media) {
     final controller = TextEditingController(text: media.description);
@@ -638,7 +629,7 @@ class _MediaSectionState extends State<MediaSection> {
           ElevatedButton(
             onPressed: () {
               if (controller.text.trim().isNotEmpty) {
-                context.read<MediaBloc>().add(
+                widget.mediaBloc.add(
                   UpdateMediaDescription(
                     mediaId: media.id,
                     newDescription: controller.text.trim(),
@@ -656,7 +647,7 @@ class _MediaSectionState extends State<MediaSection> {
 
   void _setPrimaryPortrait(BuildContext context, String mediaId) {
     if (widget.personId != null) {
-      context.read<MediaBloc>().add(
+      widget.mediaBloc.add(
         SetAsPrimaryPortrait(mediaId: mediaId, personId: widget.personId!),
       );
     }
@@ -675,7 +666,7 @@ class _MediaSectionState extends State<MediaSection> {
           ),
           TextButton(
             onPressed: () {
-              context.read<MediaBloc>().add(DeleteMediaFile(mediaId));
+              widget.mediaBloc.add(DeleteMediaFile(mediaId));
               Navigator.pop(context);
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),

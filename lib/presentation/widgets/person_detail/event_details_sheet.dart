@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:nm_gen/core/utils/date_formatters.dart';
 import 'package:nm_gen/domain/entities/event.dart';
 import 'package:nm_gen/presentation/widgets/media_section.dart';
+import 'package:nm_gen/presentation/blocs/media/media_bloc.dart';
 
 /// Показывает шторку с полными деталями события: тип, даты, место,
 /// описание, заметки и прикреплённые файлы (MediaSection(eventId: ...)).
@@ -17,6 +18,7 @@ void showEventDetailsSheet(
   required Event event,
   required VoidCallback onEdit,
   required VoidCallback onDelete,
+  required MediaBloc mediaBloc,
 }) {
   showModalBottomSheet(
     context: context,
@@ -47,6 +49,12 @@ void showEventDetailsSheet(
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
+            ),
+            const Divider(height: 24),
+            MediaSection(
+              eventId: event.id,
+              showPrimaryBadge: false,
+              mediaBloc: mediaBloc, // Передаем явно
             ),
             const SizedBox(height: 16),
             Row(
@@ -95,7 +103,11 @@ void showEventDetailsSheet(
             if (event.startDate != null || event.endDate != null) ...[
               Row(
                 children: [
-                  const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
+                  const Icon(
+                    Icons.calendar_today,
+                    size: 16,
+                    color: Colors.grey,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     formatDateRange(event.startDate, event.endDate),
@@ -133,7 +145,11 @@ void showEventDetailsSheet(
               ),
             ],
             const Divider(height: 24),
-            MediaSection(eventId: event.id, showPrimaryBadge: false),
+            MediaSection(
+              eventId: event.id,
+              showPrimaryBadge: false,
+              mediaBloc: mediaBloc,
+            ),
             const SizedBox(height: 16),
           ],
         ),

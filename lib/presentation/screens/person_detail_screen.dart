@@ -186,7 +186,11 @@ class _PersonDetailScreenState extends State<PersonDetailScreen>
   Widget _buildMediaTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      child: MediaSection(personId: widget.personId, showPrimaryBadge: true),
+      child: MediaSection(
+        personId: widget.personId,
+        showPrimaryBadge: true,
+        mediaBloc: _mediaBloc,
+      ),
     );
   }
 

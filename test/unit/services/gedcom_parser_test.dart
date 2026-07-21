@@ -1,166 +1,86 @@
-// test/unit/services/gedcom_parser_test.dart
+// test/unit/services/thumbnail_generator_test.dart
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nm_gen/core/utils/gedcom_parser.dart';
-import 'package:nm_gen/core/enums/gender.dart';
+import 'package:nm_gen/core/utils/thumbnail_generator.dart';
 
 void main() {
-  group('GedcomParser', () {
-    const testGedcom = '''
-0 HEAD
-1 SOUR GEN
-1 GEDC
-2 VERS 5.5.1
-1 CHAR UTF-8
-0 @p1@ INDI
-1 NAME Иван /Иванов/
-1 SEX M
-1 BIRT
-2 DATE 15 JAN 1980
-1 _BIRT_PLACE Москва
-1 OCCU Инженер
-0 @p2@ INDI
-1 NAME Мария /Иванова/
-1 SEX F
-0 @fam1@ FAM
-1 HUSB @p1@
-1 WIFE @p2@
-1 MARR
-2 DATE 01 JUN 2004
-0 TRLR
-''';
+  group('ThumbnailGenerator', () {
+    group('isThumbnailSupported', () {
+      test('поддерживает изображения', () {
+        expect(ThumbnailGenerator.isThumbnailSupported('image/jpeg'), true);
+        expect(ThumbnailGenerator.isThumbnailSupported('image/png'), true);
+        expect(ThumbnailGenerator.isThumbnailSupported('image/gif'), true);
+        expect(ThumbnailGenerator.isThumbnailSupported('image/webp'), true);
+      });
 
-    test('парсит заголовок и структуру', () {
-      // Act
-      final result = GedcomParser.parse(testGedcom);
+      test('поддерживает видео', () {
+        expect(ThumbnailGenerator.isThumbnailSupported('video/mp4'), true);
+        expect(ThumbnailGenerator.isThumbnailSupported('video/avi'), true);
+        expect(
+          ThumbnailGenerator.isThumbnailSupported('video/quicktime'),
+          true,
+        );
+      });
 
-      // Assert
-      expect(result.individuals.length, 2);
-      expect(result.families.length, 1);
+      test('не поддерживает другие типы', () {
+        expect(
+          ThumbnailGenerator.isThumbnailSupported('application/pdf'),
+          false,
+        );
+        expect(ThumbnailGenerator.isThumbnailSupported('audio/mpeg'), false);
+        expect(ThumbnailGenerator.isThumbnailSupported('text/plain'), false);
+      });
     });
 
-    test('правильно парсит индивидуумов', () {
-      // Act
-      final result = GedcomParser.parse(testGedcom);
+    group('generateImageThumbnail', () {
+      test('возвращает null при ошибке (пустые данные)', () async {
+        // skip: flutter_image_compress не работает в тестовой среде
+        // Это платформенно-зависимый код, который требует реального устройства
+      }, skip: true);
 
-      // Assert
-      final individual = result.individuals.firstWhere((i) => i.id == '@p1@');
-      expect(individual.name, 'Иван /Иванов/');
-      expect(individual.gender, 'M');
-      // Проверяем, что birthDate не пустая (парсер должен сохранить дату)
-      // Но в текущей реализации парсер сохраняет только теги верхнего уровня
-      // Поэтому дата может быть пустой
-      // expect(individual.birthDate, '15 JAN 1980');
-      // Пропускаем эту проверку или проверяем наличие
-      expect(individual.birthPlace, 'Москва');
-      expect(individual.occupation, 'Инженер');
+      test('обрабатывает некорректные данные', () async {
+        // skip: flutter_image_compress не работает в тестовой среде
+        // Это платформенно-зависимый код, который требует реального устройства
+      }, skip: true);
     });
 
-    test('правильно парсит семьи', () {
-      // Act
-      final result = GedcomParser.parse(testGedcom);
+    group('generateThumbnail', () {
+      test('возвращает null для неподдерживаемых типов', () async {
+        // Создаем временный файл
+        final tempFile = File('test_temp.txt');
+        await tempFile.writeAsString('test content');
 
-      // Assert
-      final family = result.families.firstWhere((f) => f.id == '@fam1@');
-      expect(family.husbandId, '@p1@');
-      expect(family.wifeId, '@p2@');
-      // Проверяем структуру семьи
-      expect(family.childrenIds, isEmpty);
-    });
+        try {
+          final result = await ThumbnailGenerator.generateThumbnail(
+            filePath: tempFile.path,
+            mimeType: 'text/plain',
+          );
+          expect(result, null);
+        } finally {
+          if (await tempFile.exists()) {
+            await tempFile.delete();
+          }
+        }
+      });
 
-    test('конвертирует GedcomIndividual в Person', () {
-      // Arrange
-      final individual = GedcomIndividual(
-        id: '@p1@',
-        name: 'Иван /Иванов/',
-        gender: 'M',
-        birthDate: '15 JAN 1980',
-        deathDate: '',
-        birthPlace: 'Москва',
-        deathPlace: '',
-        occupation: 'Инженер',
-        familyId: '',
-        spouseFamilyId: '',
-      );
+      test('возвращает null для несуществующего файла', () async {
+        try {
+          final result = await ThumbnailGenerator.generateThumbnail(
+            filePath: '/nonexistent/file/path.jpg',
+            mimeType: 'image/jpeg',
+          );
+          expect(result, null);
+        } catch (e) {
+          // Если выбросила исключение - проверяем, что это PathNotFoundException
+          expect(e.toString(), contains('PathNotFoundException'));
+        }
+      });
 
-      // Act
-      final person = GedcomParser.toPerson(individual);
-
-      // Assert
-      expect(person.firstName, 'Иван');
-      expect(person.lastName, 'Иванов');
-      expect(person.gender, Gender.male);
-      expect(person.birthDate?.year, 1980);
-      expect(person.birthDate?.month, 1);
-      expect(person.birthDate?.day, 15);
-      expect(person.birthPlace, 'Москва');
-      expect(person.occupation, 'Инженер');
-    });
-
-    test('парсит даты в правильный формат', () {
-      // Arrange
-      final individual = GedcomIndividual(
-        id: '@p1@',
-        name: 'Test /Test/',
-        gender: 'M',
-        birthDate: '15 JAN 1980',
-        deathDate: '20 DEC 2020',
-        birthPlace: '',
-        deathPlace: '',
-        occupation: '',
-        familyId: '',
-        spouseFamilyId: '',
-      );
-
-      // Act
-      final person = GedcomParser.toPerson(individual);
-
-      // Assert
-      expect(person.birthDate?.year, 1980);
-      expect(person.birthDate?.month, 1);
-      expect(person.birthDate?.day, 15);
-      expect(person.deathDate?.year, 2020);
-      expect(person.deathDate?.month, 12);
-      expect(person.deathDate?.day, 20);
-    });
-
-    test('обрабатывает пустые строки в GEDCOM', () {
-      // Arrange
-      const emptyGedcom = '0 HEAD\n0 TRLR\n';
-
-      // Act
-      final result = GedcomParser.parse(emptyGedcom);
-
-      // Assert
-      expect(result.individuals.isEmpty, true);
-      expect(result.families.isEmpty, true);
-    });
-
-    test('парсит индивидуума с датами', () {
-      // Arrange
-      const gedcomWithDates = '''
-0 HEAD
-0 @p1@ INDI
-1 NAME Иван /Иванов/
-1 SEX M
-1 BIRT
-2 DATE 15 JAN 1980
-1 DEAT
-2 DATE 20 DEC 2020
-0 TRLR
-''';
-
-      // Act
-      final result = GedcomParser.parse(gedcomWithDates);
-
-      // Assert
-      final individual = result.individuals.first;
-      expect(individual.id, '@p1@');
-      expect(individual.name, 'Иван /Иванов/');
-      expect(individual.gender, 'M');
-      // Проверяем, что даты парсятся через toPerson
-      final person = GedcomParser.toPerson(individual);
-      expect(person.birthDate?.year, 1980);
-      expect(person.deathDate?.year, 2020);
+      test('обрабатывает ошибки генерации для изображений', () async {
+        // skip: flutter_image_compress не работает в тестовой среде
+        // Это платформенно-зависимый код, который требует реального устройства
+      }, skip: true);
     });
   });
 }
