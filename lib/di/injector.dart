@@ -41,7 +41,7 @@ import 'package:nm_gen/presentation/blocs/media/media_bloc.dart';
 import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
 import 'package:nm_gen/presentation/blocs/project/project_bloc.dart';
 import 'package:nm_gen/presentation/blocs/tree/tree_bloc.dart';
-// Импорты Use Cases для Event ← ДОБАВЛЯЕМ
+// Импорты Use Cases для Event
 import 'package:nm_gen/domain/use_cases/event/add_event.dart';
 import 'package:nm_gen/domain/use_cases/event/get_events_by_person.dart';
 import 'package:nm_gen/domain/use_cases/event/get_all_events.dart';
@@ -52,12 +52,24 @@ import 'injector.config.dart';
 
 final getIt = GetIt.instance;
 
+// ============================================================
+// ФЛАГ ДЛЯ ПРЕДОТВРАЩЕНИЯ ПОВТОРНОЙ ИНИЦИАЛИЗАЦИИ
+// ============================================================
+bool _isInitialized = false;
+
 @InjectableInit(
   initializerName: r'$initGetIt',
   preferRelativeImports: true,
   asExtension: true,
 )
-void configureDependencies() => getIt.$initGetIt();
+void configureDependencies() {
+  if (_isInitialized) {
+    print('⚠️ GetIt уже инициализирован, пропускаем');
+    return;
+  }
+  getIt.$initGetIt();
+  _isInitialized = true;
+}
 
 /// Вспомогательная функция для безопасной регистрации LazySingleton
 void registerLazySingletonIfNotRegistered<T extends Object>(
@@ -85,6 +97,11 @@ void registerFactoryIfNotRegistered<T extends Object>(
 
 /// Ручная регистрация Use Cases и BLoC
 void registerUseCasesAndBlocs() {
+  if (_isInitialized) {
+    print('⚠️ Use Cases и BLoC уже зарегистрированы, пропускаем');
+    return;
+  }
+
   // ============================================================
   // 1. РЕГИСТРАЦИЯ DATA SOURCES
   // ============================================================
@@ -166,6 +183,7 @@ void registerUseCasesAndBlocs() {
   final PersonRepository personRepo = getIt<PersonRepository>();
   final FamilyRepository familyRepo = getIt<FamilyRepository>();
   final MediaRepository mediaRepo = getIt<MediaRepository>();
+  final EventRepository eventRepo = getIt<EventRepository>();
 
   // ============================================================
   // 8. РЕГИСТРАЦИЯ USE CASES ДЛЯ PERSON
@@ -255,45 +273,30 @@ void registerUseCasesAndBlocs() {
   );
 
   // ============================================================
-  // 12. РЕГИСТРАЦИЯ USE CASES ДЛЯ MEDIA
-  // ============================================================
-  // Здесь можно добавить use cases для медиа, если они понадобятся
-  // Например:
-  // registerFactoryIfNotRegistered<AddMediaUseCase>(
-  //   () => AddMediaUseCase(mediaRepo),
-  // );
-  // registerFactoryIfNotRegistered<GetMediaForPersonUseCase>(
-  //   () => GetMediaForPersonUseCase(mediaRepo),
-  // );
-  // registerFactoryIfNotRegistered<DeleteMediaUseCase>(
-  //   () => DeleteMediaUseCase(mediaRepo),
-  // );
-
-  // ============================================================
-  // РЕГИСТРАЦИЯ USE CASES ДЛЯ EVENT
+  // 12. РЕГИСТРАЦИЯ USE CASES ДЛЯ EVENT
   // ============================================================
   registerFactoryIfNotRegistered<AddEventUseCase>(
-    () => AddEventUseCase(getIt<EventRepository>()),
+    () => AddEventUseCase(eventRepo),
   );
 
   registerFactoryIfNotRegistered<GetEventsByPersonUseCase>(
-    () => GetEventsByPersonUseCase(getIt<EventRepository>()),
+    () => GetEventsByPersonUseCase(eventRepo),
   );
 
   registerFactoryIfNotRegistered<GetAllEventsUseCase>(
-    () => GetAllEventsUseCase(getIt<EventRepository>()),
+    () => GetAllEventsUseCase(eventRepo),
   );
 
   registerFactoryIfNotRegistered<UpdateEventUseCase>(
-    () => UpdateEventUseCase(getIt<EventRepository>()),
+    () => UpdateEventUseCase(eventRepo),
   );
 
   registerFactoryIfNotRegistered<DeleteEventUseCase>(
-    () => DeleteEventUseCase(getIt<EventRepository>()),
+    () => DeleteEventUseCase(eventRepo),
   );
 
   registerFactoryIfNotRegistered<DeleteAllPersonEventsUseCase>(
-    () => DeleteAllPersonEventsUseCase(getIt<EventRepository>()),
+    () => DeleteAllPersonEventsUseCase(eventRepo),
   );
 
   // ============================================================
@@ -310,6 +313,14 @@ void registerUseCasesAndBlocs() {
   final addChildToFamilyUseCase = getIt<AddChildToFamilyUseCase>();
   final removeChildFromFamilyUseCase = getIt<RemoveChildFromFamilyUseCase>();
   final getFamilyTreeUseCase = getIt<GetFamilyTreeUseCase>();
+
+  // Use Cases для Event
+  final addEventUseCase = getIt<AddEventUseCase>();
+  final getEventsByPersonUseCase = getIt<GetEventsByPersonUseCase>();
+  final getAllEventsUseCase = getIt<GetAllEventsUseCase>();
+  final updateEventUseCase = getIt<UpdateEventUseCase>();
+  final deleteEventUseCase = getIt<DeleteEventUseCase>();
+  final deleteAllPersonEventsUseCase = getIt<DeleteAllPersonEventsUseCase>();
 
   registerFactoryIfNotRegistered<PersonBloc>(
     () => PersonBloc(
@@ -338,17 +349,26 @@ void registerUseCasesAndBlocs() {
   );
 
   // ============================================================
-  // 14. РЕГИСТРАЦИЯ MEDIA BLOC
+  // 14. РЕГИСТРАЦИЯ EVENT BLOC
+  // ============================================================
+  registerFactoryIfNotRegistered<EventBloc>(
+    () => EventBloc(
+      addEventUseCase: addEventUseCase,
+      getEventsByPersonUseCase: getEventsByPersonUseCase,
+      getAllEventsUseCase: getAllEventsUseCase,
+      updateEventUseCase: updateEventUseCase,
+      deleteEventUseCase: deleteEventUseCase,
+      deleteAllPersonEventsUseCase: deleteAllPersonEventsUseCase,
+    ),
+  );
+
+  // ============================================================
+  // 15. РЕГИСТРАЦИЯ MEDIA BLOC
   // ============================================================
   registerFactoryIfNotRegistered<MediaBloc>(() => MediaBloc(mediaRepo));
 
   // ============================================================
-  // 15. РЕГИСТРАЦИЯ PROJECT BLOC
+  // 16. РЕГИСТРАЦИЯ PROJECT BLOC
   // ============================================================
   registerFactoryIfNotRegistered<ProjectBloc>(() => ProjectBloc());
-
-  // ============================================================
-  // 16. РЕГИСТРАЦИЯ EVENT BLOC
-  // ============================================================
-  registerFactoryIfNotRegistered<EventBloc>(() => EventBloc());
 }
