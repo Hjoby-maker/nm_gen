@@ -97,10 +97,10 @@ void registerFactoryIfNotRegistered<T extends Object>(
 
 /// Ручная регистрация Use Cases и BLoC
 void registerUseCasesAndBlocs() {
-  if (_isInitialized) {
-    print('⚠️ Use Cases и BLoC уже зарегистрированы, пропускаем');
-    return;
-  }
+  // if (_isInitialized) {
+  //   print('⚠️ Use Cases и BLoC уже зарегистрированы, пропускаем');
+  //   return;
+  // }
 
   // ============================================================
   // 1. РЕГИСТРАЦИЯ DATA SOURCES

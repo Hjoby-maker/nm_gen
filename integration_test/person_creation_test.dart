@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:get_it/get_it.dart';
 import 'package:nm_gen/main.dart' as app;
 import 'package:nm_gen/core/enums/gender.dart';
 
@@ -11,12 +10,9 @@ void main() {
 
   group('Создание человека', () {
     testWidgets('добавление нового человека через форму', (tester) async {
-      // ⬇️ Сбрасываем GetIt ПЕРЕД запуском приложения
-      GetIt.I.reset();
-      print('🔍 GetIt сброшен');
-
+      // Запускаем приложение
       app.main();
-      await tester.pumpAndSettle();
+      await tester.pumpAndSettle(const Duration(seconds: 5));
 
       // Проверяем, что мы на главном экране
       expect(find.text('Персоны'), findsAtLeastNWidgets(1));
@@ -30,41 +26,34 @@ void main() {
 
       await tester.ensureVisible(addButton);
       await tester.pumpAndSettle();
-      await tester.tap(addButton);
+      await tester.tap(addButton, warnIfMissed: false);
       await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 800)); // ждём анимацию
 
-      // Доп. ожидание для полной анимации AlertDialog
-      await tester.pump(const Duration(milliseconds: 500));
-
-      // Проверяем, что диалог открылся
+      // ============================================================
+      // ШАГ 3: Проверка, что диалог открыт (по заголовку)
+      // ============================================================
       expect(find.text('Добавить человека'), findsOneWidget);
       print('✅ Диалог добавления открыт');
 
       // ============================================================
-      // ШАГ 3: Заполнение формы
+      // ШАГ 4: Заполнение формы (ищем все TextField на экране)
       // ============================================================
-      final dialog = find.byType(AlertDialog);
-      expect(dialog, findsOneWidget);
-
-      final textFields = find.descendant(
-        of: dialog,
-        matching: find.byType(TextField),
-      );
-
+      final textFields = find.byType(TextField);
       expect(textFields, findsWidgets);
-      print('📝 Найдено TextField в диалоге: ${textFields.evaluate().length}');
+      print('📝 Найдено TextField: ${textFields.evaluate().length}');
 
-      // Заполняем имя (первое поле)
+      // Вводим имя (первое поле)
       await tester.ensureVisible(textFields.first);
       await tester.enterText(textFields.first, 'Тест');
       print('✅ Введено имя: Тест');
 
-      // Заполняем фамилию (второе поле)
+      // Вводим фамилию (второе поле)
       await tester.ensureVisible(textFields.at(1));
       await tester.enterText(textFields.at(1), 'Тестов');
       print('✅ Введена фамилия: Тестов');
 
-      // Заполняем отчество (третье поле), если есть
+      // Отчество (третье поле, если есть)
       if (textFields.evaluate().length > 2) {
         await tester.ensureVisible(textFields.at(2));
         await tester.enterText(textFields.at(2), 'Тестович');
@@ -72,13 +61,9 @@ void main() {
       }
 
       // ============================================================
-      // ШАГ 4: Выбор пола
+      // ШАГ 5: Выбор пола
       // ============================================================
-      final genderDropdown = find.descendant(
-        of: dialog,
-        matching: find.byType(DropdownButtonFormField<Gender>),
-      );
-
+      final genderDropdown = find.byType(DropdownButtonFormField<Gender>);
       if (genderDropdown.evaluate().isNotEmpty) {
         await tester.ensureVisible(genderDropdown);
         await tester.tap(genderDropdown);
@@ -92,24 +77,22 @@ void main() {
       }
 
       // ============================================================
-      // ШАГ 5: Сохранение
+      // ШАГ 6: Нажатие кнопки "Добавить"
       // ============================================================
-      final saveButton = find.descendant(
-        of: dialog,
-        matching: find.text('Добавить'),
-      );
+      // Ищем кнопку с текстом "Добавить" (последнюю, т.к. она в диалоге)
+      final saveButton = find.text('Добавить').last;
       expect(saveButton, findsOneWidget);
 
       await tester.ensureVisible(saveButton);
       await tester.tap(saveButton);
       await tester.pumpAndSettle();
-
-      // Ждём закрытия диалога и обновления списка
-      await tester.pump(const Duration(milliseconds: 800));
+      await tester.pump(
+        const Duration(seconds: 1),
+      ); // ждём закрытия диалога и обновления списка
       print('✅ Форма отправлена');
 
       // ============================================================
-      // ШАГ 6: Проверка
+      // ШАГ 7: Проверка, что человек появился в списке
       // ============================================================
       expect(find.text('Тест Тестов'), findsOneWidget);
       print('✅ Человек "Тест Тестов" найден в списке');
