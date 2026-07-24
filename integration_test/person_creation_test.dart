@@ -9,68 +9,117 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   group('Создание человека', () {
-    testWidgets('добавление нового человека через форму', (tester) async {
+    testWidgets('открытие диалога добавления человека', (tester) async {
+      // Запускаем приложение
       app.main();
       await tester.pumpAndSettle(const Duration(seconds: 5));
 
+      // Проверяем, что мы на экране "Персоны"
       expect(find.text('Персоны'), findsAtLeastNWidgets(1));
-      print('✅ Приложение запущено');
+      print('✅ Приложение запущено, экран "Персоны" загружен');
 
+      // Находим кнопку добавления (FAB)
       final addButton = find.byType(FloatingActionButton);
       expect(addButton, findsOneWidget);
+      print('✅ Кнопка добавления найдена');
 
+      // Нажимаем на кнопку
       await tester.ensureVisible(addButton);
       await tester.pumpAndSettle();
-      await tester.tap(addButton, warnIfMissed: false);
+      await tester.tap(addButton);
       await tester.pumpAndSettle();
-      await tester.pump(const Duration(seconds: 10));
 
-      expect(find.text('Добавить человека'), findsOneWidget);
-      print('✅ Диалог добавления открыт');
+      // Проверяем, что диалог с заголовком "Добавить человека" появился
+      expect(find.text('Добавить человека'), findsAtLeastNWidgets(1));
+      print('✅ Диалог добавления успешно открыт');
+      await tester.pumpAndSettle(const Duration(seconds: 5));
+      // (Опционально) можно проверить наличие хотя бы одного поля ввода,
+      // но для простоты теста мы этого не делаем.
+      // ============================================================
+      // НОВЫЙ КОД: ЗАПОЛНЕНИЕ ФОРМЫ
+      // ============================================================
 
-      // Ищем TextField с учётом того, что они могут быть offstage
-      final textFields = find.byType(TextField, skipOffstage: false);
-      expect(textFields, findsWidgets);
-      print('📝 Найдено TextField: ${textFields.evaluate().length}');
+      // Заполняем имя
+      final nameField = find.widgetWithText(TextField, 'Имя *');
+      await tester.enterText(nameField, 'Иван');
+      print('✅ Введено имя: Иван');
 
-      // Заполняем поля
-      await tester.ensureVisible(textFields.first);
-      await tester.enterText(textFields.first, 'Тест');
-      print('✅ Введено имя: Тест');
+      // Заполняем фамилию
+      final surnameField = find.widgetWithText(TextField, 'Фамилия *');
+      await tester.enterText(surnameField, 'Петров');
+      print('✅ Введена фамилия: Петров');
 
-      await tester.ensureVisible(textFields.at(1));
-      await tester.enterText(textFields.at(1), 'Тестов');
-      print('✅ Введена фамилия: Тестов');
-
-      if (textFields.evaluate().length > 2) {
-        await tester.ensureVisible(textFields.at(2));
-        await tester.enterText(textFields.at(2), 'Тестович');
-        print('✅ Введено отчество: Тестович');
+      // Заполняем отчество (если есть)
+      final middleNameField = find.widgetWithText(TextField, 'Отчество');
+      if (middleNameField.evaluate().isNotEmpty) {
+        await tester.enterText(middleNameField, 'Иванович');
+        print('✅ Введено отчество: Иванович');
       }
 
+      // Выбираем пол
       final genderDropdown = find.byType(DropdownButtonFormField<Gender>);
       if (genderDropdown.evaluate().isNotEmpty) {
-        await tester.ensureVisible(genderDropdown);
         await tester.tap(genderDropdown);
         await tester.pumpAndSettle();
 
         final maleOption = find.text('Мужской').last;
-        await tester.ensureVisible(maleOption);
         await tester.tap(maleOption);
         await tester.pumpAndSettle();
         print('✅ Выбран пол: Мужской');
       }
 
+      // 5. Дата рождения
+      final birthDateField = find.widgetWithText(TextField, 'Дата рождения');
+      if (birthDateField.evaluate().isNotEmpty) {
+        // Вводим дату с маской: 15.05.1990
+        await tester.enterText(birthDateField, '15051990');
+        // Маска автоматически преобразует в 15.05.1990
+        await tester.pumpAndSettle();
+        print('✅ Введена дата рождения: 15.05.1990');
+      }
+
+      // 6. Место рождения
+      final birthPlaceField = find.widgetWithText(TextField, 'Место рождения');
+      if (birthPlaceField.evaluate().isNotEmpty) {
+        await tester.enterText(birthPlaceField, 'Москва, Россия');
+        print('✅ Введено место рождения: Москва, Россия');
+      }
+
+      // 7. Профессия
+      final occupationField = find.widgetWithText(TextField, 'Профессия');
+      if (occupationField.evaluate().isNotEmpty) {
+        await tester.enterText(occupationField, 'Инженер-программист');
+        print('✅ Введена профессия: Инженер-программист');
+      }
+
+      // 8. Биография
+      final biographyField = find.widgetWithText(TextField, 'Биография');
+      if (biographyField.evaluate().isNotEmpty) {
+        await tester.enterText(
+          biographyField,
+          'Родился в Москве. Окончил МГТУ им. Баумана. Работает в IT-компании.',
+        );
+        print('✅ Введена биография');
+      }
+
+      // Ждём 3 секунды
+      await tester.pump(const Duration(seconds: 3));
+      print('⏳ Ожидание 3 секунды...');
+
+      // Сохраняем
       final saveButton = find.text('Добавить').last;
       expect(saveButton, findsOneWidget);
-
-      await tester.ensureVisible(saveButton);
       await tester.tap(saveButton);
       await tester.pumpAndSettle();
-      await tester.pump(const Duration(seconds: 2));
+      print('✅ Форма сохранена');
 
-      expect(find.text('Тест Тестов'), findsOneWidget);
-      print('✅ Человек "Тест Тестов" найден в списке');
+      // Проверяем, что человек появился в списке
+      expect(find.text('Иван Петров'), findsOneWidget);
+      print('✅ Человек "Иван Петров" найден в списке');
+
+      // ============================================================
+      // КОНЕЦ НОВОГО КОДА
+      // ============================================================
 
       print('🎉 ТЕСТ ПРОШЕЛ УСПЕШНО!');
     });

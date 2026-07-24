@@ -32,73 +32,53 @@ class _PersonsScreenState extends State<PersonsScreen> {
   @override
   void initState() {
     super.initState();
-    debugPrint('🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍');
-    debugPrint('🔍 PersonsScreen: initState НАЧАЛО');
-    debugPrint('🔍 PersonsScreen: mounted = $mounted');
-    debugPrint('🔍 PersonsScreen: widget.treeId = ${widget.treeId}');
-    
+
     try {
       _personBloc = getIt<PersonBloc>();
       _mediaBloc = getIt<MediaBloc>();
-      debugPrint('✅ PersonsScreen: PersonBloc и MediaBloc получены');
-      debugPrint('🔍 PersonsScreen: PersonBloc = $_personBloc');
-      debugPrint('🔍 PersonsScreen: MediaBloc = $_mediaBloc');
     } catch (e) {
       debugPrint('❌ PersonsScreen: Ошибка получения BLoC: $e');
       debugPrint('❌ StackTrace: ${StackTrace.current}');
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      debugPrint('🔍 PersonsScreen: addPostFrameCallback вызван');
-      debugPrint('🔍 PersonsScreen: mounted = $mounted, _isInitialized = $_isInitialized');
       if (mounted && !_isInitialized) {
         _isInitialized = true;
-        debugPrint('🔍 PersonsScreen: Загружаем данные для treeId = ${widget.treeId}');
         try {
           _personBloc.add(LoadPersonsEvent(treeId: widget.treeId));
-          debugPrint('✅ PersonsScreen: LoadPersonsEvent отправлен');
         } catch (e) {
           debugPrint('❌ PersonsScreen: Ошибка отправки LoadPersonsEvent: $e');
         }
       } else {
-        debugPrint('⚠️ PersonsScreen: Пропускаем загрузку (mounted=$mounted, _isInitialized=$_isInitialized)');
+        debugPrint(
+          '⚠️ PersonsScreen: Пропускаем загрузку (mounted=$mounted, _isInitialized=$_isInitialized)',
+        );
       }
     });
-    debugPrint('🔍 PersonsScreen: initState ЗАВЕРШЕН');
-    debugPrint('🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍');
   }
 
   @override
   void didUpdateWidget(covariant PersonsScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    debugPrint('🔍 PersonsScreen: didUpdateWidget вызван');
-    debugPrint('🔍 PersonsScreen: старый treeId = ${oldWidget.treeId}, новый treeId = ${widget.treeId}');
-
     if (oldWidget.treeId != widget.treeId) {
-      debugPrint('🔍 PersonsScreen: treeId изменился, перезагружаем данные');
       try {
         _personBloc.add(LoadPersonsEvent(treeId: widget.treeId));
-        debugPrint('✅ PersonsScreen: LoadPersonsEvent отправлен при смене treeId');
       } catch (e) {
-        debugPrint('❌ PersonsScreen: Ошибка отправки LoadPersonsEvent при смене treeId: $e');
+        debugPrint(
+          '❌ PersonsScreen: Ошибка отправки LoadPersonsEvent при смене treeId: $e',
+        );
       }
     }
   }
 
   @override
   void dispose() {
-    debugPrint('🔍 PersonsScreen: dispose вызван');
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('🔍 PersonsScreen: build НАЧАЛО');
-    debugPrint('🔍 PersonsScreen: treeId = ${widget.treeId}');
-    debugPrint('🔍 PersonsScreen: mounted = $mounted');
-    
     try {
-      debugPrint('🔍 PersonsScreen: создаем MultiBlocProvider');
       return MultiBlocProvider(
         providers: [
           BlocProvider.value(value: _personBloc),
@@ -121,7 +101,9 @@ class _PersonsScreenState extends State<PersonsScreen> {
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () {
-                  debugPrint('🔄 PersonsScreen: Перезагрузка после ошибки build');
+                  debugPrint(
+                    '🔄 PersonsScreen: Перезагрузка после ошибки build',
+                  );
                   setState(() {});
                 },
                 child: const Text('Попробовать снова'),
@@ -134,7 +116,6 @@ class _PersonsScreenState extends State<PersonsScreen> {
   }
 
   Widget _buildScaffold(BuildContext context) {
-    debugPrint('🔍 PersonsScreen: _buildScaffold вызван');
     return Scaffold(
       appBar: AppBar(
         title: const Text('Персоны'),
@@ -184,7 +165,9 @@ class _PersonsScreenState extends State<PersonsScreen> {
     debugPrint('🔍 PersonsScreen: _buildBody вызван');
     return BlocConsumer<PersonBloc, PersonState>(
       listener: (context, state) {
-        debugPrint('📊 PersonsScreen: Состояние изменилось: ${state.runtimeType}');
+        debugPrint(
+          '📊 PersonsScreen: Состояние изменилось: ${state.runtimeType}',
+        );
         debugPrint('📊 PersonsScreen: Состояние детали: $state');
 
         if (state is PersonOperationSuccess) {
@@ -204,7 +187,7 @@ class _PersonsScreenState extends State<PersonsScreen> {
           try {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(state.message),
+                content: Text(state.message + 'QWERTY4'),
                 backgroundColor: Colors.red,
               ),
             );
@@ -214,8 +197,10 @@ class _PersonsScreenState extends State<PersonsScreen> {
         }
       },
       builder: (context, state) {
-        debugPrint('🎨 PersonsScreen: Builder вызван, состояние: ${state.runtimeType}');
-        
+        debugPrint(
+          '🎨 PersonsScreen: Builder вызван, состояние: ${state.runtimeType}',
+        );
+
         try {
           if (state is PersonLoading) {
             debugPrint('⏳ PersonsScreen: Показываем загрузку');
@@ -248,11 +233,17 @@ class _PersonsScreenState extends State<PersonsScreen> {
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () {
-                      debugPrint('🔄 PersonsScreen: Повторная загрузка после ошибки');
+                      debugPrint(
+                        '🔄 PersonsScreen: Повторная загрузка после ошибки',
+                      );
                       try {
-                        _personBloc.add(LoadPersonsEvent(treeId: widget.treeId));
+                        _personBloc.add(
+                          LoadPersonsEvent(treeId: widget.treeId),
+                        );
                       } catch (e) {
-                        debugPrint('❌ PersonsScreen: Ошибка повторной загрузки: $e');
+                        debugPrint(
+                          '❌ PersonsScreen: Ошибка повторной загрузки: $e',
+                        );
                       }
                     },
                     child: const Text('Повторить'),
@@ -263,18 +254,17 @@ class _PersonsScreenState extends State<PersonsScreen> {
           }
 
           if (state is PersonsLoaded) {
-            debugPrint('📋 PersonsScreen: Загружено ${state.persons.length} персон');
-            debugPrint('📋 PersonsScreen: isSearching = ${state.isSearching}');
-            debugPrint('📋 PersonsScreen: searchQuery = ${state.searchQuery}');
-            debugPrint('📋 PersonsScreen: treeId из состояния = ${state.treeId}');
-
             if (state.persons.isEmpty) {
               debugPrint('📋 PersonsScreen: Список персон ПУСТ');
               return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.people_outline, size: 64, color: Colors.grey),
+                    const Icon(
+                      Icons.people_outline,
+                      size: 64,
+                      color: Colors.grey,
+                    ),
                     const SizedBox(height: 16),
                     Text(
                       state.isSearching
@@ -295,7 +285,9 @@ class _PersonsScreenState extends State<PersonsScreen> {
                           try {
                             _personBloc.add(const ClearSearchEvent());
                           } catch (e) {
-                            debugPrint('❌ PersonsScreen: Ошибка очистки поиска: $e');
+                            debugPrint(
+                              '❌ PersonsScreen: Ошибка очистки поиска: $e',
+                            );
                           }
                         },
                         child: const Text('Очистить поиск'),
@@ -310,7 +302,6 @@ class _PersonsScreenState extends State<PersonsScreen> {
               );
             }
 
-            debugPrint('📋 PersonsScreen: Отображаем список из ${state.persons.length} персон');
             return Column(
               children: [
                 if (state.isSearching)
@@ -326,11 +317,15 @@ class _PersonsScreenState extends State<PersonsScreen> {
                         ),
                         TextButton(
                           onPressed: () {
-                            debugPrint('🔄 PersonsScreen: Очистка поиска через кнопку');
+                            debugPrint(
+                              '🔄 PersonsScreen: Очистка поиска через кнопку',
+                            );
                             try {
                               _personBloc.add(const ClearSearchEvent());
                             } catch (e) {
-                              debugPrint('❌ PersonsScreen: Ошибка очистки поиска: $e');
+                              debugPrint(
+                                '❌ PersonsScreen: Ошибка очистки поиска: $e',
+                              );
                             }
                           },
                           child: const Text('Очистить'),
@@ -344,7 +339,9 @@ class _PersonsScreenState extends State<PersonsScreen> {
                     itemCount: state.persons.length,
                     itemBuilder: (context, index) {
                       final person = state.persons[index];
-                      debugPrint('👤 PersonsScreen: Отображение персоны #$index: ${person.displayName}');
+                      debugPrint(
+                        '👤 PersonsScreen: Отображение персоны #$index: ${person.displayName}',
+                      );
                       return Dismissible(
                         key: Key(person.id),
                         direction: DismissDirection.horizontal,
@@ -373,21 +370,31 @@ class _PersonsScreenState extends State<PersonsScreen> {
                                 ),
                               );
                             } catch (e) {
-                              debugPrint('❌ PersonsScreen: Ошибка показа SnackBar удаления: $e');
+                              debugPrint(
+                                '❌ PersonsScreen: Ошибка показа SnackBar удаления: $e',
+                              );
                             }
                           }
                         },
                         child: Card(
-                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
                           child: ListTile(
                             leading: PersonAvatar(person: person, radius: 25),
                             title: Text(person.displayName),
                             subtitle: Text(
                               '${person.formattedAge} · ${person.occupation ?? 'Без профессии'}',
                             ),
-                            trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                            trailing: const Icon(
+                              Icons.chevron_right,
+                              color: Colors.grey,
+                            ),
                             onTap: () async {
-                              debugPrint('👤 PersonsScreen: Переход к персоне ${person.displayName} (${person.id})');
+                              debugPrint(
+                                '👤 PersonsScreen: Переход к персоне ${person.displayName} (${person.id})',
+                              );
                               try {
                                 // ⚠️ PersonDetailScreen создаёт свой собственный
                                 // экземпляр PersonBloc через getIt<PersonBloc>(),
@@ -400,15 +407,22 @@ class _PersonsScreenState extends State<PersonsScreen> {
                                 await Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => PersonDetailScreen(personId: person.id),
+                                    builder: (context) =>
+                                        PersonDetailScreen(personId: person.id),
                                   ),
                                 );
                                 if (mounted) {
-                                  debugPrint('🔄 PersonsScreen: Обновление списка после возврата с экрана деталей');
-                                  _personBloc.add(LoadPersonsEvent(treeId: widget.treeId));
+                                  debugPrint(
+                                    '🔄 PersonsScreen: Обновление списка после возврата с экрана деталей',
+                                  );
+                                  _personBloc.add(
+                                    LoadPersonsEvent(treeId: widget.treeId),
+                                  );
                                 }
                               } catch (e) {
-                                debugPrint('❌ PersonsScreen: Ошибка навигации: $e');
+                                debugPrint(
+                                  '❌ PersonsScreen: Ошибка навигации: $e',
+                                );
                               }
                             },
                           ),
@@ -421,7 +435,9 @@ class _PersonsScreenState extends State<PersonsScreen> {
             );
           }
 
-          debugPrint('⚠️⚠️⚠️ PersonsScreen: НЕИЗВЕСТНОЕ СОСТОЯНИЕ: ${state.runtimeType}');
+          debugPrint(
+            '⚠️⚠️⚠️ PersonsScreen: НЕИЗВЕСТНОЕ СОСТОЯНИЕ: ${state.runtimeType}',
+          );
           debugPrint('⚠️ PersonsScreen: Состояние: $state');
           return const SizedBox.shrink();
         } catch (e, stackTrace) {
@@ -437,7 +453,9 @@ class _PersonsScreenState extends State<PersonsScreen> {
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () {
-                    debugPrint('🔄 PersonsScreen: Перезагрузка после критической ошибки');
+                    debugPrint(
+                      '🔄 PersonsScreen: Перезагрузка после критической ошибки',
+                    );
                     try {
                       _personBloc.add(LoadPersonsEvent(treeId: widget.treeId));
                     } catch (e) {
@@ -460,7 +478,6 @@ class _PersonsScreenState extends State<PersonsScreen> {
 
   void _showDebugInfo(BuildContext context) {
     final state = _personBloc.state;
-    debugPrint('🔍 PersonsScreen: _showDebugInfo вызван');
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -473,7 +490,10 @@ class _PersonsScreenState extends State<PersonsScreen> {
               _buildDebugRow('TreeId', widget.treeId),
               _buildDebugRow('Состояние', state.runtimeType.toString()),
               if (state is PersonsLoaded) ...[
-                _buildDebugRow('Количество персон', state.persons.length.toString()),
+                _buildDebugRow(
+                  'Количество персон',
+                  state.persons.length.toString(),
+                ),
                 _buildDebugRow('Поиск', state.isSearching ? 'Да' : 'Нет'),
                 _buildDebugRow('Запрос', state.searchQuery ?? 'нет'),
                 _buildDebugRow('TreeId из состояния', state.treeId ?? 'нет'),
@@ -511,11 +531,15 @@ class _PersonsScreenState extends State<PersonsScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              debugPrint('🔄 PersonsScreen: Принудительная перезагрузка из отладки');
+              debugPrint(
+                '🔄 PersonsScreen: Принудительная перезагрузка из отладки',
+              );
               try {
                 _personBloc.add(LoadPersonsEvent(treeId: widget.treeId));
               } catch (e) {
-                debugPrint('❌ PersonsScreen: Ошибка принудительной перезагрузки: $e');
+                debugPrint(
+                  '❌ PersonsScreen: Ошибка принудительной перезагрузки: $e',
+                );
               }
             },
             child: const Text('Перезагрузить'),
@@ -604,7 +628,9 @@ class _PersonsScreenState extends State<PersonsScreen> {
   }
 
   void _showSwipeLeftActions(BuildContext context, Person person) {
-    debugPrint('🔍 PersonsScreen: _showSwipeLeftActions для ${person.displayName}');
+    debugPrint(
+      '🔍 PersonsScreen: _showSwipeLeftActions для ${person.displayName}',
+    );
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -761,7 +787,9 @@ class _PersonsScreenState extends State<PersonsScreen> {
             if (query.isNotEmpty) {
               debugPrint('🔍 PersonsScreen: Поиск по запросу "$query"');
               try {
-                _personBloc.add(SearchPersonsEvent(query, treeId: widget.treeId));
+                _personBloc.add(
+                  SearchPersonsEvent(query, treeId: widget.treeId),
+                );
               } catch (e) {
                 debugPrint('❌ PersonsScreen: Ошибка поиска: $e');
               }
@@ -798,14 +826,18 @@ class _PersonsScreenState extends State<PersonsScreen> {
   }
 
   void _showEditPersonDialog(BuildContext context, Person person) {
-    debugPrint('✏️ PersonsScreen: Открытие диалога редактирования ${person.displayName}');
+    debugPrint(
+      '✏️ PersonsScreen: Открытие диалога редактирования ${person.displayName}',
+    );
     showDialog(
       context: context,
       builder: (dialogContext) => PersonFormDialog(
         existingPerson: person,
         treeId: widget.treeId,
         onSave: (updatedPerson) {
-          debugPrint('✅ PersonsScreen: Обновлен человек ${updatedPerson.displayName}');
+          debugPrint(
+            '✅ PersonsScreen: Обновлен человек ${updatedPerson.displayName}',
+          );
           try {
             _personBloc.add(UpdatePersonEvent(updatedPerson));
           } catch (e) {

@@ -1,7 +1,7 @@
 // lib/presentation/widgets/person_form_dialog.dart
 
 import 'dart:io';
-
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:nm_gen/core/enums/gender.dart';
 import 'package:nm_gen/core/utils/image_picker_service.dart';
@@ -32,11 +32,19 @@ class _PersonFormDialogState extends State<PersonFormDialog> {
   late final TextEditingController _birthPlaceController;
   late final TextEditingController _occupationController;
   late final TextEditingController _biographyController;
+  late final TextEditingController _birthDateController;
+  late final TextEditingController _deathDateController;
   late Gender _selectedGender;
   DateTime? _birthDate;
   DateTime? _deathDate;
-  String? _photoPath; // <-- ДОБАВЛЯЕМ
+  String? _photoPath;
   final ImagePickerService _imagePickerService = ImagePickerService();
+
+  // Состояние ошибок для полей дат
+  bool _birthDateHasError = false;
+  bool _deathDateHasError = false;
+  String? _birthDateErrorText;
+  String? _deathDateErrorText;
 
   bool get isEditing => widget.existingPerson != null;
 
@@ -59,7 +67,14 @@ class _PersonFormDialogState extends State<PersonFormDialog> {
     _selectedGender = person?.gender ?? Gender.male;
     _birthDate = person?.birthDate;
     _deathDate = person?.deathDate;
-    _photoPath = person?.photoPath; // <-- ДОБАВЛЯЕМ
+    _photoPath = person?.photoPath;
+
+    _birthDateController = TextEditingController(
+      text: _birthDate != null ? _formatDate(_birthDate!) : '',
+    );
+    _deathDateController = TextEditingController(
+      text: _deathDate != null ? _formatDate(_deathDate!) : '',
+    );
   }
 
   @override
@@ -70,19 +85,19 @@ class _PersonFormDialogState extends State<PersonFormDialog> {
     _birthPlaceController.dispose();
     _occupationController.dispose();
     _biographyController.dispose();
+    _birthDateController.dispose();
+    _deathDateController.dispose();
     super.dispose();
   }
 
   Future<void> _pickImage() async {
     final file = await _imagePickerService.pickImage(context);
     if (file != null) {
-      // Сохраняем фото в локальное хранилище приложения
       final String savedPath = await _saveImageToAppDirectory(file);
       setState(() {
         _photoPath = savedPath;
       });
     } else {
-      // Пользователь выбрал "Удалить фото"
       setState(() {
         _photoPath = null;
       });
@@ -96,14 +111,10 @@ class _PersonFormDialogState extends State<PersonFormDialog> {
           '${DateTime.now().millisecondsSinceEpoch}_${path.basename(imageFile.path)}';
       final File savedFile = File('${appDir.path}/photos/$fileName');
 
-      // Создаем директорию если её нет
       await savedFile.parent.create(recursive: true);
-
-      // Копируем файл
       await imageFile.copy(savedFile.path);
       return savedFile.path;
     } catch (e) {
-      // Если не удалось сохранить, возвращаем исходный путь
       return imageFile.path;
     }
   }
@@ -116,10 +127,8 @@ class _PersonFormDialogState extends State<PersonFormDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Фото
             _buildPhotoPicker(),
             const SizedBox(height: 8),
-            // Имя
             TextField(
               controller: _nameController,
               decoration: const InputDecoration(
@@ -128,7 +137,6 @@ class _PersonFormDialogState extends State<PersonFormDialog> {
               ),
             ),
             const SizedBox(height: 8),
-            // Фамилия
             TextField(
               controller: _surnameController,
               decoration: const InputDecoration(
@@ -137,7 +145,6 @@ class _PersonFormDialogState extends State<PersonFormDialog> {
               ),
             ),
             const SizedBox(height: 8),
-            // Отчество
             TextField(
               controller: _middleNameController,
               decoration: const InputDecoration(
@@ -146,7 +153,6 @@ class _PersonFormDialogState extends State<PersonFormDialog> {
               ),
             ),
             const SizedBox(height: 8),
-            // Пол
             DropdownButtonFormField<Gender>(
               value: _selectedGender,
               decoration: const InputDecoration(
@@ -164,23 +170,50 @@ class _PersonFormDialogState extends State<PersonFormDialog> {
               },
             ),
             const SizedBox(height: 8),
-            // Дата рождения
-            _buildDatePicker(
+            _buildDateTextField(
+              controller: _birthDateController,
               label: 'Дата рождения',
-              date: _birthDate,
-              onChanged: (DateTime? date) => setState(() => _birthDate = date),
-              onClear: () => setState(() => _birthDate = null),
+              hasError: _birthDateHasError,
+              errorText: _birthDateErrorText,
+              onDateChanged: (date) {
+                setState(() {
+                  _birthDate = date;
+                  _validateBirthDate();
+                });
+              },
+              onCalendarTap: () => _selectDate(context, (date) {
+                setState(() {
+                  _birthDate = date;
+                  _birthDateController.text = date != null
+                      ? _formatDate(date)
+                      : '';
+                  _validateBirthDate();
+                });
+              }, initialDate: _birthDate ?? DateTime.now()),
             ),
             const SizedBox(height: 4),
-            // Дата смерти
-            _buildDatePicker(
+            _buildDateTextField(
+              controller: _deathDateController,
               label: 'Дата смерти',
-              date: _deathDate,
-              onChanged: (DateTime? date) => setState(() => _deathDate = date),
-              onClear: () => setState(() => _deathDate = null),
+              hasError: _deathDateHasError,
+              errorText: _deathDateErrorText,
+              onDateChanged: (date) {
+                setState(() {
+                  _deathDate = date;
+                  _validateDeathDate();
+                });
+              },
+              onCalendarTap: () => _selectDate(context, (date) {
+                setState(() {
+                  _deathDate = date;
+                  _deathDateController.text = date != null
+                      ? _formatDate(date)
+                      : '';
+                  _validateDeathDate();
+                });
+              }, initialDate: _deathDate ?? DateTime.now()),
             ),
             const SizedBox(height: 8),
-            // Место рождения
             TextField(
               controller: _birthPlaceController,
               decoration: const InputDecoration(
@@ -189,7 +222,6 @@ class _PersonFormDialogState extends State<PersonFormDialog> {
               ),
             ),
             const SizedBox(height: 8),
-            // Профессия
             TextField(
               controller: _occupationController,
               decoration: const InputDecoration(
@@ -198,7 +230,6 @@ class _PersonFormDialogState extends State<PersonFormDialog> {
               ),
             ),
             const SizedBox(height: 8),
-            // Биография
             TextField(
               controller: _biographyController,
               decoration: const InputDecoration(
@@ -264,52 +295,168 @@ class _PersonFormDialogState extends State<PersonFormDialog> {
     );
   }
 
-  Widget _buildDatePicker({
+  Widget _buildDateTextField({
+    required TextEditingController controller,
     required String label,
-    required DateTime? date,
-    required Function(DateTime?) onChanged,
-    required VoidCallback onClear,
+    required bool hasError,
+    required String? errorText,
+    required Function(DateTime?) onDateChanged,
+    required VoidCallback onCalendarTap,
   }) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      title: Text(
-        date != null ? '$label: ${_formatDate(date)}' : '$label не указана',
-        style: TextStyle(
-          color: date != null ? Colors.black : Colors.grey.shade600,
+    return TextField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: 'ДД.ММ.ГГГГ',
+        border: const OutlineInputBorder(),
+        errorText: errorText,
+        suffixIcon: IconButton(
+          icon: const Icon(Icons.calendar_today),
+          onPressed: onCalendarTap,
+          tooltip: 'Выбрать из календаря',
         ),
       ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (date != null)
-            IconButton(
-              icon: const Icon(Icons.clear, size: 20),
-              onPressed: onClear,
-            ),
-          IconButton(
-            icon: const Icon(Icons.calendar_today),
-            onPressed: () => _selectDate(context, onChanged),
-          ),
-        ],
-      ),
+      onChanged: (value) {
+        // Применяем маску ввода: разрешаем только цифры и разделители
+        final filtered = _applyDateMask(value);
+        if (filtered != value) {
+          controller.value = TextEditingValue(
+            text: filtered,
+            selection: TextSelection.collapsed(offset: filtered.length),
+          );
+        }
+
+        final parsedDate = _parseDate(filtered);
+        onDateChanged(parsedDate);
+      },
+      keyboardType: TextInputType.datetime,
+      inputFormatters: [
+        // Ограничиваем длину 10 символов (ДД.ММ.ГГГГ)
+        LengthLimitingTextInputFormatter(10),
+      ],
     );
+  }
+
+  /// Применяет маску для ввода даты
+  String _applyDateMask(String value) {
+    // Удаляем все нецифровые символы
+    final digitsOnly = value.replaceAll(RegExp(r'[^0-9]'), '');
+
+    if (digitsOnly.isEmpty) return '';
+
+    final buffer = StringBuffer();
+    int digitIndex = 0;
+
+    // День (2 цифры)
+    for (int i = 0; i < 2 && digitIndex < digitsOnly.length; i++) {
+      buffer.write(digitsOnly[digitIndex]);
+      digitIndex++;
+    }
+    if (buffer.length == 2 && digitIndex < digitsOnly.length) {
+      buffer.write('.');
+    }
+
+    // Месяц (2 цифры)
+    for (int i = 0; i < 2 && digitIndex < digitsOnly.length; i++) {
+      buffer.write(digitsOnly[digitIndex]);
+      digitIndex++;
+    }
+    if (buffer.length >= 5 && digitIndex < digitsOnly.length) {
+      buffer.write('.');
+    }
+
+    // Год (4 цифры)
+    for (int i = 0; i < 4 && digitIndex < digitsOnly.length; i++) {
+      buffer.write(digitsOnly[digitIndex]);
+      digitIndex++;
+    }
+
+    return buffer.toString();
+  }
+
+  /// Валидация даты рождения
+  void _validateBirthDate() {
+    setState(() {
+      if (_birthDateController.text.isNotEmpty && _birthDate == null) {
+        _birthDateHasError = true;
+        _birthDateErrorText = 'Неверный формат даты';
+      } else if (_birthDate != null && _birthDate!.isAfter(DateTime.now())) {
+        _birthDateHasError = true;
+        _birthDateErrorText = 'Дата рождения не может быть в будущем';
+      } else if (_birthDate != null && _birthDate!.isBefore(DateTime(1800))) {
+        _birthDateHasError = true;
+        _birthDateErrorText = 'Год должен быть не раньше 1800';
+      } else if (_birthDate != null &&
+          _deathDate != null &&
+          _deathDate!.isBefore(_birthDate!)) {
+        _birthDateHasError = true;
+        _birthDateErrorText = 'Дата смерти не может быть раньше даты рождения';
+      } else {
+        _birthDateHasError = false;
+        _birthDateErrorText = null;
+      }
+    });
+  }
+
+  /// Валидация даты смерти
+  void _validateDeathDate() {
+    setState(() {
+      if (_deathDateController.text.isNotEmpty && _deathDate == null) {
+        _deathDateHasError = true;
+        _deathDateErrorText = 'Неверный формат даты';
+      } else if (_deathDate != null && _deathDate!.isAfter(DateTime.now())) {
+        _deathDateHasError = true;
+        _deathDateErrorText = 'Дата смерти не может быть в будущем';
+      } else if (_deathDate != null && _deathDate!.isBefore(DateTime(1800))) {
+        _deathDateHasError = true;
+        _deathDateErrorText = 'Год должен быть не раньше 1800';
+      } else if (_deathDate != null &&
+          _birthDate != null &&
+          _deathDate!.isBefore(_birthDate!)) {
+        _deathDateHasError = true;
+        _deathDateErrorText = 'Дата смерти не может быть раньше даты рождения';
+      } else {
+        _deathDateHasError = false;
+        _deathDateErrorText = null;
+      }
+    });
   }
 
   Future<void> _selectDate(
     BuildContext context,
-    Function(DateTime?) onChanged,
-  ) async {
+    Function(DateTime?) onChanged, {
+    required DateTime initialDate,
+  }) async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: initialDate,
       firstDate: DateTime(1800),
       lastDate: DateTime.now(),
     );
     if (picked != null) onChanged(picked);
   }
 
+  DateTime? _parseDate(String text) {
+    try {
+      final cleaned = text.replaceAll(RegExp(r'[./-]'), '.');
+      final parts = cleaned.split('.');
+      if (parts.length == 3) {
+        final day = int.parse(parts[0]);
+        final month = int.parse(parts[1]);
+        final year = int.parse(parts[2]);
+        final date = DateTime(year, month, day);
+        if (date.year == year && date.month == month && date.day == day) {
+          return date;
+        }
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   String _formatDate(DateTime date) {
-    return '${date.day}.${date.month}.${date.year}';
+    return '${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year}';
   }
 
   void _savePerson() {
@@ -324,6 +471,39 @@ class _PersonFormDialogState extends State<PersonFormDialog> {
         ),
       );
       return;
+    }
+
+    // Валидация дат перед сохранением
+    if (_birthDateController.text.isNotEmpty && _birthDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Неверный формат даты рождения'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    if (_deathDateController.text.isNotEmpty && _deathDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Неверный формат даты смерти'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    if (_birthDate != null && _deathDate != null) {
+      if (_deathDate!.isBefore(_birthDate!)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Дата смерти не может быть раньше даты рождения'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
     }
 
     final person = Person(
@@ -350,7 +530,7 @@ class _PersonFormDialogState extends State<PersonFormDialog> {
           ? _biographyController.text.trim()
           : null,
       photoUrls: const [],
-      photoPath: _photoPath, // <-- ДОБАВЛЯЕМ
+      photoPath: _photoPath,
       createdAt: widget.existingPerson?.createdAt ?? DateTime.now(),
       updatedAt: DateTime.now(),
     );

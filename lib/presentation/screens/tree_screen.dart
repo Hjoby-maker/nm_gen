@@ -136,7 +136,7 @@ class _TreeScreenState extends State<TreeScreen> {
           if (state is TreeError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(state.message),
+                content: Text(state.message + 'QWERRTYTT'),
                 backgroundColor: Colors.red,
               ),
             );

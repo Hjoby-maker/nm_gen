@@ -26,7 +26,24 @@ class GetFullTreeUseCase {
       final allFamilies = await familyRepository.getAllFamilies(treeId: treeId);
 
       if (allPersons.isEmpty) {
-        return Left(NotFoundFailure('В проекте нет людей для отображения'));
+        //return Left(NotFoundFailure('В проекте нет людей для отображения'));
+
+        final emptyRoot = TreeNode(
+          person: Person(
+            id: 'virtual_root',
+            treeId: treeId,
+            firstName: 'Все люди',
+            lastName: '',
+            gender: Gender.unknown,
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+          children: const [],
+          spouses: const [],
+          isRoot: true,
+          isCenter: false,
+        );
+        return Right(emptyRoot);
       }
 
       final personMap = {for (final p in allPersons) p.id: p};
