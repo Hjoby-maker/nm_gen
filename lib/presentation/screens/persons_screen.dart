@@ -1,7 +1,6 @@
 // lib/presentation/screens/persons_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:nm_gen/core/enums/gender.dart';
 import 'package:nm_gen/di/injector.dart';
 import 'package:nm_gen/domain/entities/person.dart';
 import 'package:nm_gen/presentation/blocs/family/family_bloc.dart';

@@ -116,12 +116,112 @@ void main() {
       // Проверяем, что человек появился в списке
       expect(find.text('Иван Петров'), findsOneWidget);
       print('✅ Человек "Иван Петров" найден в списке');
+      await tester.pump(const Duration(seconds: 3));
+      print('⏳ Ожидание 3 секунды...');
 
       // ============================================================
       // КОНЕЦ НОВОГО КОДА
       // ============================================================
 
       print('🎉 ТЕСТ ПРОШЕЛ УСПЕШНО!');
+    });
+  });
+
+  group('Редактирование человека', () {
+    testWidgets('редактирование созданного человека', (tester) async {
+      // ============================================================
+      // ШАГ 2: ОТКРЫВАЕМ РЕДАКТИРОВАНИЕ
+      // ============================================================
+      await tester.pump(const Duration(seconds: 3));
+      print('⏳ Старт шага 2');
+
+      // Находим карточку человека в списке (свайп влево для открытия меню)
+      final personTile = find.widgetWithText(ListTile, 'Иван Петров');
+      expect(personTile, findsOneWidget);
+      print('✅ Карточка человека найдена');
+
+      // Свайпаем влево для открытия меню редактирования
+      await tester.drag(
+        personTile,
+        const Offset(-300, 0), // Свайп влево
+      );
+      await tester.pumpAndSettle();
+
+      // Альтернативный способ: нажимаем на карточку для перехода на экран деталей
+      // await tester.tap(personCard);
+      // await tester.pumpAndSettle();
+
+      // Находим кнопку "Редактировать" в меню (после свайпа)
+      final editButton = find.text('Редактировать');
+      expect(editButton, findsOneWidget);
+      await tester.tap(editButton);
+      await tester.pumpAndSettle();
+      print('✅ Открыт диалог редактирования');
+
+      // ============================================================
+      // ШАГ 3: РЕДАКТИРУЕМ ДАННЫЕ
+      // ============================================================
+
+      // Проверяем, что диалог редактирования открыт
+      expect(find.text('Редактировать человека'), findsOneWidget);
+      print('✅ Диалог редактирования успешно открыт');
+
+      // Изменяем имя
+      final editNameField = find.widgetWithText(TextField, 'Имя *');
+      await tester.enterText(editNameField, 'Алексей');
+      print('✅ Имя изменено: Алексей');
+
+      // Изменяем дату рождения
+      final editBirthDateField = find.widgetWithText(
+        TextField,
+        'Дата рождения',
+      );
+      if (editBirthDateField.evaluate().isNotEmpty) {
+        // Сначала очищаем поле
+        await tester.enterText(editBirthDateField, '');
+        // Вводим новую дату
+        await tester.enterText(editBirthDateField, '20051985');
+        await tester.pumpAndSettle();
+        print('✅ Дата рождения изменена: 20.05.1985');
+      }
+
+      // Добавляем место рождения (если не было)
+      final editBirthPlaceField = find.widgetWithText(
+        TextField,
+        'Место рождения',
+      );
+      if (editBirthPlaceField.evaluate().isNotEmpty) {
+        await tester.enterText(editBirthPlaceField, 'Санкт-Петербург, Россия');
+        print('✅ Добавлено место рождения: Санкт-Петербург, Россия');
+      }
+
+      // Добавляем профессию
+      final editOccupationField = find.widgetWithText(TextField, 'Профессия');
+      if (editOccupationField.evaluate().isNotEmpty) {
+        await tester.enterText(editOccupationField, 'Программист');
+        print('✅ Добавлена профессия: Программист');
+      }
+
+      // Сохраняем изменения
+      final updateButton = find.text('Сохранить').last;
+      expect(updateButton, findsOneWidget);
+      await tester.tap(updateButton);
+      await tester.pumpAndSettle();
+      print('✅ Изменения сохранены');
+
+      // ============================================================
+      // ШАГ 4: ПРОВЕРЯЕМ, ЧТО ИЗМЕНЕНИЯ ПРИМЕНИЛИСЬ
+      // ============================================================
+
+      // Проверяем, что имя изменилось
+      expect(find.text('Алексей Петров'), findsOneWidget);
+      print('✅ Имя изменено на "Алексей Петров"');
+
+      // Проверяем, что старое имя больше не отображается
+      expect(find.text('Иван Петров'), findsNothing);
+      print('✅ Старое имя "Иван Петров" больше не отображается');
+
+      print('🎉 ТЕСТ РЕДАКТИРОВАНИЯ ПРОШЕЛ УСПЕШНО!');
     });
   });
 }
