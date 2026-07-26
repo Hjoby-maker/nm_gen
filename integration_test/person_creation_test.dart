@@ -8,9 +8,11 @@ import 'package:nm_gen/core/enums/gender.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  group('Создание человека', () {
-    testWidgets('открытие диалога добавления человека', (tester) async {
-      // Запускаем приложение
+  group('Создание и редактирование человека', () {
+    testWidgets('создание, а затем редактирование человека', (tester) async {
+      // ============================================================
+      // ШАГ 1: ЗАПУСК ПРИЛОЖЕНИЯ
+      // ============================================================
       app.main();
       await tester.pumpAndSettle(const Duration(seconds: 5));
 
@@ -33,10 +35,9 @@ void main() {
       expect(find.text('Добавить человека'), findsAtLeastNWidgets(1));
       print('✅ Диалог добавления успешно открыт');
       await tester.pumpAndSettle(const Duration(seconds: 5));
-      // (Опционально) можно проверить наличие хотя бы одного поля ввода,
-      // но для простоты теста мы этого не делаем.
+
       // ============================================================
-      // НОВЫЙ КОД: ЗАПОЛНЕНИЕ ФОРМЫ
+      // ШАГ 2: ЗАПОЛНЕНИЕ ФОРМЫ
       // ============================================================
 
       // Заполняем имя
@@ -68,7 +69,7 @@ void main() {
         print('✅ Выбран пол: Мужской');
       }
 
-      // 5. Дата рождения
+      // Дата рождения
       final birthDateField = find.widgetWithText(TextField, 'Дата рождения');
       if (birthDateField.evaluate().isNotEmpty) {
         // Вводим дату с маской: 15.05.1990
@@ -78,21 +79,21 @@ void main() {
         print('✅ Введена дата рождения: 15.05.1990');
       }
 
-      // 6. Место рождения
+      // Место рождения
       final birthPlaceField = find.widgetWithText(TextField, 'Место рождения');
       if (birthPlaceField.evaluate().isNotEmpty) {
         await tester.enterText(birthPlaceField, 'Москва, Россия');
         print('✅ Введено место рождения: Москва, Россия');
       }
 
-      // 7. Профессия
+      // Профессия
       final occupationField = find.widgetWithText(TextField, 'Профессия');
       if (occupationField.evaluate().isNotEmpty) {
         await tester.enterText(occupationField, 'Инженер-программист');
         print('✅ Введена профессия: Инженер-программист');
       }
 
-      // 8. Биография
+      // Биография
       final biographyField = find.widgetWithText(TextField, 'Биография');
       if (biographyField.evaluate().isNotEmpty) {
         await tester.enterText(
@@ -102,7 +103,7 @@ void main() {
         print('✅ Введена биография');
       }
 
-      // Ждём 3 секунды
+      // Ждём пока форма "устаканится"
       await tester.pump(const Duration(seconds: 3));
       print('⏳ Ожидание 3 секунды...');
 
@@ -119,39 +120,31 @@ void main() {
       await tester.pump(const Duration(seconds: 3));
       print('⏳ Ожидание 3 секунды...');
 
+      print('🎉 ШАГ 1 (СОЗДАНИЕ) ПРОШЕЛ УСПЕШНО!');
+
       // ============================================================
-      // КОНЕЦ НОВОГО КОДА
+      // ШАГ 3: ОТКРЫВАЕМ РЕДАКТИРОВАНИЕ
+      // (важно: это продолжение ТОГО ЖЕ теста, а не отдельный testWidgets —
+      // иначе виджет-дерево и состояние приложения сбрасываются, и запись
+      // "Иван Петров" из шага 1 недоступна в новом тесте)
       // ============================================================
 
-      print('🎉 ТЕСТ ПРОШЕЛ УСПЕШНО!');
-    });
-  });
-
-  group('Редактирование человека', () {
-    testWidgets('редактирование созданного человека', (tester) async {
-      // ============================================================
-      // ШАГ 2: ОТКРЫВАЕМ РЕДАКТИРОВАНИЕ
-      // ============================================================
-      await tester.pump(const Duration(seconds: 3));
-      print('⏳ Старт шага 2');
-
-      // Находим карточку человека в списке (свайп влево для открытия меню)
+      // Находим карточку человека в списке
       final personTile = find.widgetWithText(ListTile, 'Иван Петров');
       expect(personTile, findsOneWidget);
       print('✅ Карточка человека найдена');
 
-      // Свайпаем влево для открытия меню редактирования
-      await tester.drag(
-        personTile,
-        const Offset(-300, 0), // Свайп влево
-      );
+      // Прокручиваем к карточке, чтобы drag/fling попадал точно по ней
+      await tester.ensureVisible(personTile);
       await tester.pumpAndSettle();
 
-      // Альтернативный способ: нажимаем на карточку для перехода на экран деталей
-      // await tester.tap(personCard);
-      // await tester.pumpAndSettle();
+      // Свайпаем влево для открытия меню редактирования.
+      // Используем fling вместо drag: Dismissible реагирует на скорость жеста,
+      // а не только на итоговое смещение, и fling надёжнее пересекает порог.
+      await tester.fling(personTile, const Offset(-400, 0), 1000);
+      await tester.pumpAndSettle();
 
-      // Находим кнопку "Редактировать" в меню (после свайпа)
+      // Находим кнопку "Редактировать" в открывшемся bottom sheet
       final editButton = find.text('Редактировать');
       expect(editButton, findsOneWidget);
       await tester.tap(editButton);
@@ -159,7 +152,7 @@ void main() {
       print('✅ Открыт диалог редактирования');
 
       // ============================================================
-      // ШАГ 3: РЕДАКТИРУЕМ ДАННЫЕ
+      // ШАГ 4: РЕДАКТИРУЕМ ДАННЫЕ
       // ============================================================
 
       // Проверяем, что диалог редактирования открыт
@@ -177,9 +170,7 @@ void main() {
         'Дата рождения',
       );
       if (editBirthDateField.evaluate().isNotEmpty) {
-        // Сначала очищаем поле
         await tester.enterText(editBirthDateField, '');
-        // Вводим новую дату
         await tester.enterText(editBirthDateField, '20051985');
         await tester.pumpAndSettle();
         print('✅ Дата рождения изменена: 20.05.1985');
@@ -207,21 +198,21 @@ void main() {
       expect(updateButton, findsOneWidget);
       await tester.tap(updateButton);
       await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 2)); // дать время LoadPersonsEvent отработать
+await tester.pumpAndSettle();
       print('✅ Изменения сохранены');
 
       // ============================================================
-      // ШАГ 4: ПРОВЕРЯЕМ, ЧТО ИЗМЕНЕНИЯ ПРИМЕНИЛИСЬ
+      // ШАГ 5: ПРОВЕРЯЕМ, ЧТО ИЗМЕНЕНИЯ ПРИМЕНИЛИСЬ
       // ============================================================
 
-      // Проверяем, что имя изменилось
       expect(find.text('Алексей Петров'), findsOneWidget);
       print('✅ Имя изменено на "Алексей Петров"');
 
-      // Проверяем, что старое имя больше не отображается
       expect(find.text('Иван Петров'), findsNothing);
       print('✅ Старое имя "Иван Петров" больше не отображается');
 
-      print('🎉 ТЕСТ РЕДАКТИРОВАНИЯ ПРОШЕЛ УСПЕШНО!');
+      print('🎉 ТЕСТ (СОЗДАНИЕ + РЕДАКТИРОВАНИЕ) ПРОШЕЛ УСПЕШНО!');
     });
   });
 }
