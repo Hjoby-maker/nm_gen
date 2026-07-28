@@ -4,11 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nm_gen/di/injector.dart';
+import 'package:nm_gen/domain/entities/project.dart';
 import 'package:nm_gen/domain/use_cases/gedcom/import_gedcom.dart';
+import 'package:nm_gen/presentation/blocs/family/family_bloc.dart';
+import 'package:nm_gen/presentation/blocs/family/family_event.dart';
 import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
 import 'package:nm_gen/presentation/blocs/person/person_event.dart';
 import 'package:nm_gen/presentation/blocs/project/project_bloc.dart';
 import 'package:nm_gen/presentation/blocs/project/project_event.dart';
+import 'package:nm_gen/presentation/blocs/project/project_state.dart';
+import 'package:nm_gen/presentation/blocs/tree/tree_bloc.dart';
+import 'package:nm_gen/presentation/blocs/tree/tree_event.dart';
+import 'package:nm_gen/presentation/screens/main_screen.dart';
 
 class ImportGedcomScreen extends StatefulWidget {
   const ImportGedcomScreen({Key? key}) : super(key: key);
@@ -21,6 +28,7 @@ class _ImportGedcomScreenState extends State<ImportGedcomScreen> {
   bool _isLoading = false;
   String? _message;
   bool _isSuccess = false;
+  String? _currentTreeId;
 
   ImportGedcomUseCase get _importUseCase => getIt<ImportGedcomUseCase>();
 
@@ -108,13 +116,7 @@ class _ImportGedcomScreenState extends State<ImportGedcomScreen> {
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton.icon(
-                        onPressed: () {
-                          debugPrint(
-                            '🔍 ImportGedcomScreen: Нажата кнопка "Готово"',
-                          );
-                          // Используем Navigator.popUntil для гарантированного возврата
-                          Navigator.popUntil(context, (route) => route.isFirst);
-                        },
+                        onPressed: _onDonePressed,
                         icon: const Icon(Icons.check),
                         label: const Text('Готово'),
                         style: ElevatedButton.styleFrom(
@@ -254,6 +256,124 @@ class _ImportGedcomScreenState extends State<ImportGedcomScreen> {
   }
 
   // =========================================================================
+  // ОБРАБОТЧИК КНОПКИ "ГОТОВО"
+  // =========================================================================
+
+  void _onDonePressed() {
+    debugPrint('🔍 ImportGedcomScreen: _onDonePressed вызван');
+    _navigateToMainScreenWithRefresh();
+  }
+
+  /// Переход на MainScreen с полным обновлением данных
+  void _navigateToMainScreenWithRefresh() {
+    debugPrint('🔄 ImportGedcomScreen: Переход на MainScreen с обновлением...');
+
+    // 1. Определяем текущий treeId
+    String treeId = _currentTreeId ?? 'default';
+    try {
+      final projectState = context.read<ProjectBloc>().state;
+      if (projectState is ProjectsLoaded) {
+        final defaultProject = projectState.projects.firstWhere(
+          (p) => p.isDefault,
+          orElse: () => projectState.projects.isNotEmpty
+              ? projectState.projects.first
+              : Project.empty(),
+        );
+        if (defaultProject.id.isNotEmpty) {
+          treeId = defaultProject.id;
+          debugPrint('🔍 ImportGedcomScreen: Текущий treeId = $treeId');
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ ImportGedcomScreen: Не удалось получить treeId: $e');
+    }
+
+    // 2. Обновляем все BLoC с правильным treeId
+    try {
+      // PersonBloc - загружаем людей
+      final personBloc = getIt<PersonBloc>();
+      personBloc.add(LoadPersonsEvent(treeId: treeId));
+      debugPrint('✅ PersonBloc обновлен (treeId: $treeId)');
+    } catch (e) {
+      debugPrint('❌ Ошибка обновления PersonBloc: $e');
+    }
+
+    try {
+      // FamilyBloc - загружаем семьи
+      final familyBloc = getIt<FamilyBloc>();
+      familyBloc.add(LoadAllFamiliesEvent(treeId: treeId));
+      debugPrint('✅ FamilyBloc обновлен (treeId: $treeId)');
+    } catch (e) {
+      debugPrint('❌ Ошибка обновления FamilyBloc: $e');
+    }
+
+    try {
+      // TreeBloc - загружаем дерево
+      final treeBloc = getIt<TreeBloc>();
+      // Загружаем дерево с пустым корнем (покажет всех)
+      treeBloc.add(LoadTreeEvent('', treeId: treeId));
+      debugPrint('✅ TreeBloc обновлен (treeId: $treeId)');
+    } catch (e) {
+      debugPrint('❌ Ошибка обновления TreeBloc: $e');
+    }
+
+    try {
+      // ProjectBloc - перезагружаем проекты
+      final projectBloc = getIt<ProjectBloc>();
+      projectBloc.add(LoadProjectsEvent());
+      debugPrint('✅ ProjectBloc обновлен');
+    } catch (e) {
+      debugPrint('❌ Ошибка обновления ProjectBloc: $e');
+    }
+
+    debugPrint('✅ Все BLoC обновлены');
+
+    // 3. Выполняем навигацию с пересозданием MainScreen
+    // Используем pushReplacement для полной замены текущего экрана
+    // и удаления всех предыдущих экранов из стека
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) {
+        try {
+          // Сначала пробуем popUntil чтобы очистить стек
+          Navigator.popUntil(context, (route) => route.isFirst);
+
+          // Затем заменяем корневой экран на новый MainScreen
+          // с передачей параметра для принудительного обновления
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const MainScreen()),
+          );
+          debugPrint('✅ ImportGedcomScreen: Переход на MainScreen выполнен');
+        } catch (e) {
+          debugPrint('❌ ImportGedcomScreen: Ошибка навигации: $e');
+          // Запасной вариант - прямой pushReplacement
+          try {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const MainScreen()),
+            );
+            debugPrint(
+              '✅ ImportGedcomScreen: Переход на MainScreen (запасной)',
+            );
+          } catch (e2) {
+            debugPrint(
+              '❌ ImportGedcomScreen: Альтернативная навигация не удалась: $e2',
+            );
+            // Последний вариант - просто pop
+            try {
+              Navigator.pop(context);
+            } catch (e3) {
+              debugPrint(
+                '❌ ImportGedcomScreen: Все варианты навигации не удались: $e3',
+              );
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // =========================================================================
   // ЗАГРУЗКА ИЗ АССЕТОВ (ТЕСТОВЫЕ ДАННЫЕ)
   // =========================================================================
 
@@ -276,16 +396,41 @@ class _ImportGedcomScreenState extends State<ImportGedcomScreen> {
 
       if (content.isEmpty) {
         debugPrint('⚠️ ImportGedcomScreen: Файл пуст');
-        setState(() {
-          _isLoading = false;
-          _message = '❌ Файл пуст';
-          _isSuccess = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _message = '❌ Файл пуст';
+            _isSuccess = false;
+          });
+        }
         return;
       }
 
-      debugPrint('🔍 ImportGedcomScreen: Начинаем импорт...');
-      final importResult = await _importUseCase.execute(content);
+      // Получаем treeId для импорта
+      String treeId = 'default';
+      try {
+        final projectState = context.read<ProjectBloc>().state;
+        if (projectState is ProjectsLoaded) {
+          final defaultProject = projectState.projects.firstWhere(
+            (p) => p.isDefault,
+            orElse: () => projectState.projects.isNotEmpty
+                ? projectState.projects.first
+                : Project.empty(),
+          );
+          if (defaultProject.id.isNotEmpty) {
+            treeId = defaultProject.id;
+            _currentTreeId = treeId;
+          }
+        }
+      } catch (e) {
+        debugPrint('⚠️ ImportGedcomScreen: Не удалось получить treeId: $e');
+      }
+
+      debugPrint('🔍 ImportGedcomScreen: Начинаем импорт с treeId=$treeId...');
+      final importResult = await _importUseCase.execute(
+        content,
+        treeId: treeId,
+      );
       debugPrint('🔍 ImportGedcomScreen: Импорт завершен');
 
       importResult.fold(
@@ -293,42 +438,18 @@ class _ImportGedcomScreenState extends State<ImportGedcomScreen> {
           debugPrint(
             '❌ ImportGedcomScreen: Ошибка импорта: ${failure.message}',
           );
-          setState(() {
-            _isLoading = false;
-            _message = '❌ Ошибка: ${failure.message}';
-            _isSuccess = false;
-          });
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+              _message = '❌ Ошибка: ${failure.message}';
+              _isSuccess = false;
+            });
+          }
         },
         (count) {
           debugPrint(
             '✅ ImportGedcomScreen: Успешно импортировано $count человек',
           );
-
-          // Обновляем список людей с проверкой наличия контекста
-          try {
-            if (mounted) {
-              debugPrint('🔍 ImportGedcomScreen: Обновляем список людей...');
-              final personBloc = context.read<PersonBloc>();
-              personBloc.add(LoadPersonsEvent());
-              debugPrint('✅ ImportGedcomScreen: Список людей обновлен');
-            }
-          } catch (e) {
-            debugPrint(
-              '❌ ImportGedcomScreen: Ошибка обновления списка людей: $e',
-            );
-            // Если PersonBloc не найден, пробуем найти через getIt
-            try {
-              final personBloc = getIt<PersonBloc>();
-              personBloc.add(LoadPersonsEvent());
-              debugPrint(
-                '✅ ImportGedcomScreen: Список людей обновлен через getIt',
-              );
-            } catch (e2) {
-              debugPrint(
-                '❌ ImportGedcomScreen: Не удалось обновить список людей: $e2',
-              );
-            }
-          }
 
           if (mounted) {
             setState(() {
@@ -340,35 +461,6 @@ class _ImportGedcomScreenState extends State<ImportGedcomScreen> {
               '🔍 ImportGedcomScreen: Состояние обновлено, _isSuccess = true',
             );
           }
-
-          // Автоматически возвращаемся через 2 секунды
-          debugPrint('🔍 ImportGedcomScreen: Запускаем таймер на 2 секунды');
-          Future.delayed(const Duration(seconds: 2), () {
-            debugPrint(
-              '🔍 ImportGedcomScreen: Таймер сработал, возвращаемся на предыдущий экран',
-            );
-            if (mounted) {
-              try {
-                // Используем popUntil для гарантированного возврата
-                Navigator.popUntil(context, (route) => route.isFirst);
-                debugPrint('✅ ImportGedcomScreen: Навигация назад выполнена');
-              } catch (e) {
-                debugPrint('❌ ImportGedcomScreen: Ошибка навигации: $e');
-                // Пробуем альтернативный способ
-                try {
-                  Navigator.pop(context);
-                } catch (e2) {
-                  debugPrint(
-                    '❌ ImportGedcomScreen: Альтернативная навигация также не удалась: $e2',
-                  );
-                }
-              }
-            } else {
-              debugPrint(
-                '⚠️ ImportGedcomScreen: Widget не в дереве, навигация отменена',
-              );
-            }
-          });
         },
       );
     } catch (e, stackTrace) {
@@ -449,8 +541,31 @@ class _ImportGedcomScreenState extends State<ImportGedcomScreen> {
         return;
       }
 
-      debugPrint('🔍 ImportGedcomScreen: Начинаем импорт...');
-      final importResult = await _importUseCase.execute(content);
+      // Получаем treeId для импорта
+      String treeId = 'default';
+      try {
+        final projectState = context.read<ProjectBloc>().state;
+        if (projectState is ProjectsLoaded) {
+          final defaultProject = projectState.projects.firstWhere(
+            (p) => p.isDefault,
+            orElse: () => projectState.projects.isNotEmpty
+                ? projectState.projects.first
+                : Project.empty(),
+          );
+          if (defaultProject.id.isNotEmpty) {
+            treeId = defaultProject.id;
+            _currentTreeId = treeId;
+          }
+        }
+      } catch (e) {
+        debugPrint('⚠️ ImportGedcomScreen: Не удалось получить treeId: $e');
+      }
+
+      debugPrint('🔍 ImportGedcomScreen: Начинаем импорт с treeId=$treeId...');
+      final importResult = await _importUseCase.execute(
+        content,
+        treeId: treeId,
+      );
       debugPrint('🔍 ImportGedcomScreen: Импорт завершен');
 
       importResult.fold(
@@ -471,29 +586,6 @@ class _ImportGedcomScreenState extends State<ImportGedcomScreen> {
             '✅ ImportGedcomScreen: Успешно импортировано $count человек',
           );
 
-          try {
-            if (mounted) {
-              final personBloc = context.read<PersonBloc>();
-              personBloc.add(LoadPersonsEvent());
-              debugPrint('✅ ImportGedcomScreen: Список людей обновлен');
-            }
-          } catch (e) {
-            debugPrint(
-              '❌ ImportGedcomScreen: Ошибка обновления списка людей: $e',
-            );
-            try {
-              final personBloc = getIt<PersonBloc>();
-              personBloc.add(LoadPersonsEvent());
-              debugPrint(
-                '✅ ImportGedcomScreen: Список людей обновлен через getIt',
-              );
-            } catch (e2) {
-              debugPrint(
-                '❌ ImportGedcomScreen: Не удалось обновить список людей: $e2',
-              );
-            }
-          }
-
           if (mounted) {
             setState(() {
               _isLoading = false;
@@ -501,24 +593,6 @@ class _ImportGedcomScreenState extends State<ImportGedcomScreen> {
               _isSuccess = true;
             });
           }
-
-          Future.delayed(const Duration(seconds: 2), () {
-            debugPrint('🔍 ImportGedcomScreen: Таймер сработал, возвращаемся');
-            if (mounted) {
-              try {
-                Navigator.popUntil(context, (route) => route.isFirst);
-              } catch (e) {
-                debugPrint('❌ ImportGedcomScreen: Ошибка навигации: $e');
-                try {
-                  Navigator.pop(context);
-                } catch (e2) {
-                  debugPrint(
-                    '❌ ImportGedcomScreen: Альтернативная навигация не удалась: $e2',
-                  );
-                }
-              }
-            }
-          });
         },
       );
     } catch (e, stackTrace) {
