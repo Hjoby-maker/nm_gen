@@ -38,8 +38,10 @@ class _ImportGedcomScreenState extends State<ImportGedcomScreen> {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('🔍 ImportGedcomScreen: build вызван, isSuccess=$_isSuccess, isLoading=$_isLoading');
-    
+    debugPrint(
+      '🔍 ImportGedcomScreen: build вызван, isSuccess=$_isSuccess, isLoading=$_isLoading',
+    );
+
     try {
       return Scaffold(
         appBar: AppBar(
@@ -55,7 +57,9 @@ class _ImportGedcomScreenState extends State<ImportGedcomScreen> {
                 Icon(
                   _isSuccess ? Icons.check_circle : Icons.file_upload,
                   size: 80,
-                  color: _isSuccess ? Colors.green.shade400 : Colors.grey.shade400,
+                  color: _isSuccess
+                      ? Colors.green.shade400
+                      : Colors.grey.shade400,
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -105,8 +109,11 @@ class _ImportGedcomScreenState extends State<ImportGedcomScreen> {
                       const SizedBox(height: 16),
                       ElevatedButton.icon(
                         onPressed: () {
-                          debugPrint('🔍 ImportGedcomScreen: Нажата кнопка "Готово"');
-                          Navigator.pop(context);
+                          debugPrint(
+                            '🔍 ImportGedcomScreen: Нажата кнопка "Готово"',
+                          );
+                          // Используем Navigator.popUntil для гарантированного возврата
+                          Navigator.popUntil(context, (route) => route.isFirst);
                         },
                         icon: const Icon(Icons.check),
                         label: const Text('Готово'),
@@ -144,12 +151,19 @@ class _ImportGedcomScreenState extends State<ImportGedcomScreen> {
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.info_outline, size: 16, color: Colors.orange),
+                        Icon(
+                          Icons.info_outline,
+                          size: 16,
+                          color: Colors.orange,
+                        ),
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'Быстрая загрузка тестового дерева (4 поколения, 13 человек)',
-                            style: TextStyle(fontSize: 12, color: Colors.orange),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.orange,
+                            ),
                           ),
                         ),
                       ],
@@ -194,7 +208,9 @@ class _ImportGedcomScreenState extends State<ImportGedcomScreen> {
                   const SizedBox(height: 16),
                   OutlinedButton.icon(
                     onPressed: () {
-                      debugPrint('🔍 ImportGedcomScreen: Нажата кнопка "Назад"');
+                      debugPrint(
+                        '🔍 ImportGedcomScreen: Нажата кнопка "Назад"',
+                      );
                       Navigator.pop(context);
                     },
                     icon: const Icon(Icons.arrow_back),
@@ -254,7 +270,9 @@ class _ImportGedcomScreenState extends State<ImportGedcomScreen> {
       final String content = await rootBundle.loadString(
         'assets/gedcom/kuznetsov_tree.ged',
       );
-      debugPrint('🔍 ImportGedcomScreen: Файл загружен, размер: ${content.length} символов');
+      debugPrint(
+        '🔍 ImportGedcomScreen: Файл загружен, размер: ${content.length} символов',
+      );
 
       if (content.isEmpty) {
         debugPrint('⚠️ ImportGedcomScreen: Файл пуст');
@@ -272,7 +290,9 @@ class _ImportGedcomScreenState extends State<ImportGedcomScreen> {
 
       importResult.fold(
         (failure) {
-          debugPrint('❌ ImportGedcomScreen: Ошибка импорта: ${failure.message}');
+          debugPrint(
+            '❌ ImportGedcomScreen: Ошибка импорта: ${failure.message}',
+          );
           setState(() {
             _isLoading = false;
             _message = '❌ Ошибка: ${failure.message}';
@@ -280,35 +300,73 @@ class _ImportGedcomScreenState extends State<ImportGedcomScreen> {
           });
         },
         (count) {
-          debugPrint('✅ ImportGedcomScreen: Успешно импортировано $count человек');
+          debugPrint(
+            '✅ ImportGedcomScreen: Успешно импортировано $count человек',
+          );
+
+          // Обновляем список людей с проверкой наличия контекста
           try {
-            debugPrint('🔍 ImportGedcomScreen: Обновляем список людей...');
-            context.read<PersonBloc>().add(LoadPersonsEvent());
-            debugPrint('✅ ImportGedcomScreen: Список людей обновлен');
+            if (mounted) {
+              debugPrint('🔍 ImportGedcomScreen: Обновляем список людей...');
+              final personBloc = context.read<PersonBloc>();
+              personBloc.add(LoadPersonsEvent());
+              debugPrint('✅ ImportGedcomScreen: Список людей обновлен');
+            }
           } catch (e) {
-            debugPrint('❌ ImportGedcomScreen: Ошибка обновления списка людей: $e');
+            debugPrint(
+              '❌ ImportGedcomScreen: Ошибка обновления списка людей: $e',
+            );
+            // Если PersonBloc не найден, пробуем найти через getIt
+            try {
+              final personBloc = getIt<PersonBloc>();
+              personBloc.add(LoadPersonsEvent());
+              debugPrint(
+                '✅ ImportGedcomScreen: Список людей обновлен через getIt',
+              );
+            } catch (e2) {
+              debugPrint(
+                '❌ ImportGedcomScreen: Не удалось обновить список людей: $e2',
+              );
+            }
           }
 
-          setState(() {
-            _isLoading = false;
-            _message = '✅ Импортировано $count человек(а)';
-            _isSuccess = true;
-          });
-          debugPrint('🔍 ImportGedcomScreen: Состояние обновлено, _isSuccess = true');
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+              _message = '✅ Импортировано $count человек(а)';
+              _isSuccess = true;
+            });
+            debugPrint(
+              '🔍 ImportGedcomScreen: Состояние обновлено, _isSuccess = true',
+            );
+          }
 
           // Автоматически возвращаемся через 2 секунды
           debugPrint('🔍 ImportGedcomScreen: Запускаем таймер на 2 секунды');
           Future.delayed(const Duration(seconds: 2), () {
-            debugPrint('🔍 ImportGedcomScreen: Таймер сработал, возвращаемся на предыдущий экран');
+            debugPrint(
+              '🔍 ImportGedcomScreen: Таймер сработал, возвращаемся на предыдущий экран',
+            );
             if (mounted) {
               try {
-                Navigator.pop(context);
+                // Используем popUntil для гарантированного возврата
+                Navigator.popUntil(context, (route) => route.isFirst);
                 debugPrint('✅ ImportGedcomScreen: Навигация назад выполнена');
               } catch (e) {
                 debugPrint('❌ ImportGedcomScreen: Ошибка навигации: $e');
+                // Пробуем альтернативный способ
+                try {
+                  Navigator.pop(context);
+                } catch (e2) {
+                  debugPrint(
+                    '❌ ImportGedcomScreen: Альтернативная навигация также не удалась: $e2',
+                  );
+                }
               }
             } else {
-              debugPrint('⚠️ ImportGedcomScreen: Widget не в дереве, навигация отменена');
+              debugPrint(
+                '⚠️ ImportGedcomScreen: Widget не в дереве, навигация отменена',
+              );
             }
           });
         },
@@ -316,11 +374,13 @@ class _ImportGedcomScreenState extends State<ImportGedcomScreen> {
     } catch (e, stackTrace) {
       debugPrint('❌ ImportGedcomScreen: Критическая ошибка: $e');
       debugPrint('❌ StackTrace: $stackTrace');
-      setState(() {
-        _isLoading = false;
-        _message = '❌ Ошибка загрузки: ${e.toString()}';
-        _isSuccess = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _message = '❌ Ошибка загрузки: ${e.toString()}';
+          _isSuccess = false;
+        });
+      }
     }
   }
 
@@ -349,35 +409,43 @@ class _ImportGedcomScreenState extends State<ImportGedcomScreen> {
 
       if (file == null) {
         debugPrint('⚠️ ImportGedcomScreen: Выбор файла отменен');
-        setState(() {
-          _isLoading = false;
-          _message = '❌ Выбор файла отменен';
-          _isSuccess = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _message = '❌ Выбор файла отменен';
+            _isSuccess = false;
+          });
+        }
         return;
       }
 
       if (!file.path.toLowerCase().endsWith('.ged')) {
         debugPrint('⚠️ ImportGedcomScreen: Неверное расширение файла');
-        setState(() {
-          _isLoading = false;
-          _message = '❌ Пожалуйста, выберите файл с расширением .ged';
-          _isSuccess = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _message = '❌ Пожалуйста, выберите файл с расширением .ged';
+            _isSuccess = false;
+          });
+        }
         return;
       }
 
       debugPrint('🔍 ImportGedcomScreen: Читаем содержимое файла...');
       final content = await file.readAsString();
-      debugPrint('🔍 ImportGedcomScreen: Файл прочитан, размер: ${content.length} символов');
+      debugPrint(
+        '🔍 ImportGedcomScreen: Файл прочитан, размер: ${content.length} символов',
+      );
 
       if (content.isEmpty) {
         debugPrint('⚠️ ImportGedcomScreen: Файл пуст');
-        setState(() {
-          _isLoading = false;
-          _message = '❌ Файл пуст';
-          _isSuccess = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _message = '❌ Файл пуст';
+            _isSuccess = false;
+          });
+        }
         return;
       }
 
@@ -387,35 +455,67 @@ class _ImportGedcomScreenState extends State<ImportGedcomScreen> {
 
       importResult.fold(
         (failure) {
-          debugPrint('❌ ImportGedcomScreen: Ошибка импорта: ${failure.message}');
-          setState(() {
-            _isLoading = false;
-            _message = '❌ Ошибка: ${failure.message}';
-            _isSuccess = false;
-          });
+          debugPrint(
+            '❌ ImportGedcomScreen: Ошибка импорта: ${failure.message}',
+          );
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+              _message = '❌ Ошибка: ${failure.message}';
+              _isSuccess = false;
+            });
+          }
         },
         (count) {
-          debugPrint('✅ ImportGedcomScreen: Успешно импортировано $count человек');
+          debugPrint(
+            '✅ ImportGedcomScreen: Успешно импортировано $count человек',
+          );
+
           try {
-            context.read<PersonBloc>().add(LoadPersonsEvent());
-            debugPrint('✅ ImportGedcomScreen: Список людей обновлен');
+            if (mounted) {
+              final personBloc = context.read<PersonBloc>();
+              personBloc.add(LoadPersonsEvent());
+              debugPrint('✅ ImportGedcomScreen: Список людей обновлен');
+            }
           } catch (e) {
-            debugPrint('❌ ImportGedcomScreen: Ошибка обновления списка людей: $e');
+            debugPrint(
+              '❌ ImportGedcomScreen: Ошибка обновления списка людей: $e',
+            );
+            try {
+              final personBloc = getIt<PersonBloc>();
+              personBloc.add(LoadPersonsEvent());
+              debugPrint(
+                '✅ ImportGedcomScreen: Список людей обновлен через getIt',
+              );
+            } catch (e2) {
+              debugPrint(
+                '❌ ImportGedcomScreen: Не удалось обновить список людей: $e2',
+              );
+            }
           }
 
-          setState(() {
-            _isLoading = false;
-            _message = '✅ Импортировано $count человек(а)';
-            _isSuccess = true;
-          });
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+              _message = '✅ Импортировано $count человек(а)';
+              _isSuccess = true;
+            });
+          }
 
           Future.delayed(const Duration(seconds: 2), () {
             debugPrint('🔍 ImportGedcomScreen: Таймер сработал, возвращаемся');
             if (mounted) {
               try {
-                Navigator.pop(context);
+                Navigator.popUntil(context, (route) => route.isFirst);
               } catch (e) {
                 debugPrint('❌ ImportGedcomScreen: Ошибка навигации: $e');
+                try {
+                  Navigator.pop(context);
+                } catch (e2) {
+                  debugPrint(
+                    '❌ ImportGedcomScreen: Альтернативная навигация не удалась: $e2',
+                  );
+                }
               }
             }
           });
@@ -424,11 +524,13 @@ class _ImportGedcomScreenState extends State<ImportGedcomScreen> {
     } catch (e, stackTrace) {
       debugPrint('❌ ImportGedcomScreen: Критическая ошибка: $e');
       debugPrint('❌ StackTrace: $stackTrace');
-      setState(() {
-        _isLoading = false;
-        _message = '❌ Ошибка: ${e.toString()}';
-        _isSuccess = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _message = '❌ Ошибка: ${e.toString()}';
+          _isSuccess = false;
+        });
+      }
     }
   }
 }
