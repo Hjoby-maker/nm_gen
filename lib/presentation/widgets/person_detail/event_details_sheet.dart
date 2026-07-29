@@ -51,12 +51,6 @@ void showEventDetailsSheet(
               ),
             ),
             const Divider(height: 24),
-            MediaSection(
-              eventId: event.id,
-              showPrimaryBadge: false,
-              mediaBloc: mediaBloc, // Передаем явно
-            ),
-            const SizedBox(height: 16),
             Row(
               children: [
                 Container(
