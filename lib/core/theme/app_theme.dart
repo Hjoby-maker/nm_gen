@@ -57,8 +57,22 @@ class AppTheme {
       seedColor: _primaryGreen,
       brightness: Brightness.light,
       primary: _primaryGreen,
+      surface: Colors.white,
+      background: Colors.grey.shade50,
     ),
-    appBarTheme: const AppBarTheme(centerTitle: false, elevation: 0),
+    appBarTheme: const AppBarTheme(
+      centerTitle: false,
+      elevation: 0,
+      backgroundColor: _primaryGreen,
+      foregroundColor: Colors.white,
+      titleTextStyle: TextStyle(
+        color: Colors.white,
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+      ),
+      iconTheme: IconThemeData(color: Colors.white),
+      actionsIconTheme: IconThemeData(color: Colors.white),
+    ),
     cardTheme: _cardThemeData,
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
       backgroundColor: _primaryGreen,
@@ -68,7 +82,9 @@ class AppTheme {
       selectedItemColor: _primaryGreen,
       unselectedItemColor: Colors.grey,
       showUnselectedLabels: true,
+      backgroundColor: Colors.white,
     ),
+    scaffoldBackgroundColor: Colors.grey.shade50,
   );
 
   // ========== ТЕМНАЯ ТЕМА ==========
@@ -86,6 +102,14 @@ class AppTheme {
       centerTitle: false,
       elevation: 0,
       backgroundColor: Color(0xFF1E1E1E),
+      foregroundColor: Colors.white,
+      titleTextStyle: TextStyle(
+        color: Colors.white,
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+      ),
+      iconTheme: IconThemeData(color: Colors.white),
+      actionsIconTheme: IconThemeData(color: Colors.white),
     ),
     cardTheme: const CardThemeData(
       elevation: 2,
@@ -102,7 +126,9 @@ class AppTheme {
       selectedItemColor: _primaryGreenLight,
       unselectedItemColor: Colors.grey,
       showUnselectedLabels: true,
+      backgroundColor: Color(0xFF1E1E1E),
     ),
+    scaffoldBackgroundColor: const Color(0xFF121212),
   );
 
   // ========== ОКЕАН ==========
@@ -127,6 +153,13 @@ class AppTheme {
       elevation: 0,
       backgroundColor: Color(0xFF006064),
       foregroundColor: Colors.white,
+      titleTextStyle: TextStyle(
+        color: Colors.white,
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+      ),
+      iconTheme: IconThemeData(color: Colors.white),
+      actionsIconTheme: IconThemeData(color: Colors.white),
     ),
     cardTheme: _cardThemeData,
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
@@ -137,7 +170,9 @@ class AppTheme {
       selectedItemColor: Color(0xFF006064),
       unselectedItemColor: Colors.grey,
       showUnselectedLabels: true,
+      backgroundColor: Colors.white,
     ),
+    scaffoldBackgroundColor: Color(0xFFE0F7FA),
   );
 
   // ========== ЛЕС ==========
@@ -162,6 +197,13 @@ class AppTheme {
       elevation: 0,
       backgroundColor: Color(0xFF33691E),
       foregroundColor: Colors.white,
+      titleTextStyle: TextStyle(
+        color: Colors.white,
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+      ),
+      iconTheme: IconThemeData(color: Colors.white),
+      actionsIconTheme: IconThemeData(color: Colors.white),
     ),
     cardTheme: _cardThemeData,
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
@@ -172,7 +214,9 @@ class AppTheme {
       selectedItemColor: Color(0xFF33691E),
       unselectedItemColor: Colors.grey,
       showUnselectedLabels: true,
+      backgroundColor: Colors.white,
     ),
+    scaffoldBackgroundColor: Color(0xFFF1F8E9),
   );
 
   // ========== ЗАКАТ ==========
@@ -197,6 +241,13 @@ class AppTheme {
       elevation: 0,
       backgroundColor: Color(0xFFD84315),
       foregroundColor: Colors.white,
+      titleTextStyle: TextStyle(
+        color: Colors.white,
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+      ),
+      iconTheme: IconThemeData(color: Colors.white),
+      actionsIconTheme: IconThemeData(color: Colors.white),
     ),
     cardTheme: _cardThemeData,
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
@@ -207,7 +258,9 @@ class AppTheme {
       selectedItemColor: Color(0xFFD84315),
       unselectedItemColor: Colors.grey,
       showUnselectedLabels: true,
+      backgroundColor: Colors.white,
     ),
+    scaffoldBackgroundColor: Color(0xFFFFF3E0),
   );
 
   // ========== ЛАВАНДА ==========
@@ -232,6 +285,13 @@ class AppTheme {
       elevation: 0,
       backgroundColor: Color(0xFF6A1B9A),
       foregroundColor: Colors.white,
+      titleTextStyle: TextStyle(
+        color: Colors.white,
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+      ),
+      iconTheme: IconThemeData(color: Colors.white),
+      actionsIconTheme: IconThemeData(color: Colors.white),
     ),
     cardTheme: _cardThemeData,
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
@@ -242,7 +302,9 @@ class AppTheme {
       selectedItemColor: Color(0xFF6A1B9A),
       unselectedItemColor: Colors.grey,
       showUnselectedLabels: true,
+      backgroundColor: Colors.white,
     ),
+    scaffoldBackgroundColor: Color(0xFFF3E5F5),
   );
 
   // ========== ПОЛНОЧЬ ==========
@@ -267,6 +329,13 @@ class AppTheme {
       elevation: 0,
       backgroundColor: Color(0xFF1A1A2E),
       foregroundColor: Colors.white,
+      titleTextStyle: TextStyle(
+        color: Colors.white,
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+      ),
+      iconTheme: IconThemeData(color: Colors.white),
+      actionsIconTheme: IconThemeData(color: Colors.white),
     ),
     cardTheme: const CardThemeData(
       elevation: 2,
@@ -283,6 +352,8 @@ class AppTheme {
       selectedItemColor: Color(0xFF5C6BC0),
       unselectedItemColor: Colors.grey,
       showUnselectedLabels: true,
+      backgroundColor: Color(0xFF1A1A2E),
     ),
+    scaffoldBackgroundColor: Color(0xFF0D0D1A),
   );
 }

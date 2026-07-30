@@ -118,7 +118,7 @@ class _PersonsScreenState extends State<PersonsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Персоны'),
-        backgroundColor: Colors.transparent,
+        //backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
           IconButton(

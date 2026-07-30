@@ -150,7 +150,7 @@ class _MainScreenState extends State<MainScreen> {
               ),
             ],
           ),
-          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+          //backgroundColor: Theme.of(context).colorScheme.inversePrimary,
           actions: [
             IconButton(
               icon: const Icon(Icons.settings),
