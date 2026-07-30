@@ -41,6 +41,14 @@ class AppTheme {
   static const Color _primaryGreenLight = Color(0xFF4CAF50);
   static const Color _primaryGreenDark = Color(0xFF1B5E20);
 
+  // Общие настройки CardThemeData
+  static CardThemeData get _cardThemeData => const CardThemeData(
+    elevation: 2,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(12)),
+    ),
+  );
+
   // ========== СВЕТЛАЯ ТЕМА ==========
   static final ThemeData _lightTheme = ThemeData(
     useMaterial3: true,
@@ -51,10 +59,7 @@ class AppTheme {
       primary: _primaryGreen,
     ),
     appBarTheme: const AppBarTheme(centerTitle: false, elevation: 0),
-    cardTheme: CardTheme(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ),
+    cardTheme: _cardThemeData,
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
       backgroundColor: _primaryGreen,
       foregroundColor: Colors.white,
@@ -82,10 +87,12 @@ class AppTheme {
       elevation: 0,
       backgroundColor: Color(0xFF1E1E1E),
     ),
-    cardTheme: CardTheme(
+    cardTheme: const CardThemeData(
       elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: const Color(0xFF2D2D2D),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(12)),
+      ),
+      color: Color(0xFF2D2D2D),
     ),
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
       backgroundColor: _primaryGreenLight,
@@ -121,10 +128,7 @@ class AppTheme {
       backgroundColor: Color(0xFF006064),
       foregroundColor: Colors.white,
     ),
-    cardTheme: CardTheme(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ),
+    cardTheme: _cardThemeData,
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
       backgroundColor: Color(0xFF00838F),
       foregroundColor: Colors.white,
@@ -159,10 +163,7 @@ class AppTheme {
       backgroundColor: Color(0xFF33691E),
       foregroundColor: Colors.white,
     ),
-    cardTheme: CardTheme(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ),
+    cardTheme: _cardThemeData,
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
       backgroundColor: Color(0xFF558B2F),
       foregroundColor: Colors.white,
@@ -197,10 +198,7 @@ class AppTheme {
       backgroundColor: Color(0xFFD84315),
       foregroundColor: Colors.white,
     ),
-    cardTheme: CardTheme(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ),
+    cardTheme: _cardThemeData,
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
       backgroundColor: Color(0xFFBF360C),
       foregroundColor: Colors.white,
@@ -235,10 +233,7 @@ class AppTheme {
       backgroundColor: Color(0xFF6A1B9A),
       foregroundColor: Colors.white,
     ),
-    cardTheme: CardTheme(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ),
+    cardTheme: _cardThemeData,
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
       backgroundColor: Color(0xFF8E24AA),
       foregroundColor: Colors.white,
@@ -273,9 +268,11 @@ class AppTheme {
       backgroundColor: Color(0xFF1A1A2E),
       foregroundColor: Colors.white,
     ),
-    cardTheme: CardTheme(
+    cardTheme: const CardThemeData(
       elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(12)),
+      ),
       color: Color(0xFF2D2D44),
     ),
     floatingActionButtonTheme: const FloatingActionButtonThemeData(

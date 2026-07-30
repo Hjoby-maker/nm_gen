@@ -31,6 +31,10 @@ dependencies:
   file_selector: ^1.1.0
   path_provider: ^2.1.4
   sqflite_common_ffi: ^2.3.3+1
+
+  # Theme
+  provider: ^6.1.2
+  shared_preferences: ^2.5.2
   
   # JSON Serialization
   json_annotation: ^4.9.0

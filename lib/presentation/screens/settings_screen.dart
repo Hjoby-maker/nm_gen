@@ -1,4 +1,6 @@
+// lib/presentation/screens/settings_screen.dart
 import 'package:flutter/material.dart';
+import '../widgets/theme_selector_dialog.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -11,8 +13,8 @@ class SettingsScreen extends StatelessWidget {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: ListView(
-        children: <_SettingsSection>[
-          const _SettingsSection(
+        children: const <Widget>[
+          _SettingsSection(
             title: 'Внешний вид',
             children: [
               _SettingsTile(
@@ -24,12 +26,13 @@ class SettingsScreen extends StatelessWidget {
               _SettingsTile(
                 icon: Icons.palette,
                 title: 'Цветовая схема',
-                subtitle: 'Выберите основной цвет приложения',
+                subtitle: 'Выберите цветовую схему приложения',
                 trailing: Icon(Icons.chevron_right),
+                isThemeSelector: true, // <-- Добавляем флаг
               ),
             ],
           ),
-          const _SettingsSection(
+          _SettingsSection(
             title: 'Данные',
             children: [
               _SettingsTile(
@@ -52,7 +55,7 @@ class SettingsScreen extends StatelessWidget {
               ),
             ],
           ),
-          const _SettingsSection(
+          _SettingsSection(
             title: 'О приложении',
             children: [
               _SettingsTile(
@@ -75,6 +78,7 @@ class SettingsScreen extends StatelessWidget {
 
 class _SettingsSection extends StatelessWidget {
   const _SettingsSection({required this.title, required this.children});
+
   final String title;
   final List<Widget> children;
 
@@ -107,11 +111,14 @@ class _SettingsTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     this.trailing,
+    this.isThemeSelector = false, // <-- Новый параметр
   });
+
   final IconData icon;
   final String title;
   final String subtitle;
   final Widget? trailing;
+  final bool isThemeSelector;
 
   @override
   Widget build(BuildContext context) {
@@ -123,7 +130,16 @@ class _SettingsTile extends StatelessWidget {
         style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
       ),
       trailing: trailing,
-      onTap: trailing != null ? () {} : null,
+      onTap: isThemeSelector
+          ? () {
+              showDialog(
+                context: context,
+                builder: (context) => const ThemeSelectorDialog(),
+              );
+            }
+          : trailing != null
+          ? () {}
+          : null,
     );
   }
 }
