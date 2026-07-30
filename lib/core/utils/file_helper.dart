@@ -1,5 +1,4 @@
 // lib/core/utils/file_helper.dart
-import 'dart:io';
 import 'package:file_selector/file_selector.dart';
 
 /// Вспомогательный класс для работы с файлами
