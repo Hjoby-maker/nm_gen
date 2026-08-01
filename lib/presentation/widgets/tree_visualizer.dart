@@ -1,11 +1,17 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
-import 'package:nm_gen/core/enums/gender.dart';
-import 'package:nm_gen/domain/entities/person.dart';
 import 'package:nm_gen/domain/entities/tree_node.dart';
 import 'package:nm_gen/presentation/widgets/tree_node_widget.dart';
 import 'package:nm_gen/presentation/screens/tree_screen.dart';
 
-/// Виджет для визуализации генеалогического древа
+/// Виджет для визуализации генеалогического древа.
+/// Теперь дерево сначала полностью раскладывается в абсолютные координаты
+/// (_TreeLayoutEngine): для каждого узла заранее вычисляется (x, y), где
+/// y = уровень поколения * фиксированная высота строки — поэтому все узлы
+/// одного поколения гарантированно оказываются на одной линии. Связи между
+/// родителями и детьми рисуются одним CustomPaint по этим же точным
+/// координатам, поэтому связь никогда не "теряется".
 class TreeVisualizer extends StatelessWidget {
   final TreeNode rootNode;
   final Function(String) onPersonTap;
@@ -24,190 +30,487 @@ class TreeVisualizer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ⚠️ Раньше здесь и ниже по файлу контент оборачивался в
-    // SingleChildScrollView (в том числе несколько вложенных горизонтальных).
-    // Это конфликтовало с InteractiveViewer в tree_screen.dart: вложенные
-    // скроллы не дают InteractiveViewer правильно узнать реальный размер
-    // дерева, из-за чего при изменении масштаба раскладка "плыла" и
-    // переставала заполнять экран. Теперь InteractiveViewer (с
-    // constrained: false) сам панорамирует и масштабирует весь холст
-    // целиком, поэтому здесь просто отдаём ему контент его естественного
-    // размера, без собственных скроллов.
+    final _CardMetrics metrics = _CardMetrics.forDetailLevel(detailLevel);
+    final _TreeLayoutEngine engine = _TreeLayoutEngine(metrics: metrics);
+    final _TreeLayout layout = engine.layoutRoot(rootNode);
 
-    // rootNode может быть служебным "виртуальным корнем"
-    final Widget content;
-    if (rootNode.person.id == 'virtual_root') {
-      if (rootNode.children.length == 1) {
-        content = _buildNode(context, rootNode.children.first, true);
-      } else {
-        content = Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: rootNode.children
-              .map(
-                (node) => Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: _buildNode(context, node, true),
+    // InteractiveViewer (в tree_screen.dart) сам панорамирует и
+    // масштабирует весь холст целиком — здесь просто отдаём ему контент
+    // его естественного (заранее посчитанного) размера, без собственных
+    // скроллов и без Row/Column, "плывущих" от содержимого.
+    return Padding(
+      padding: const EdgeInsets.all(32.0),
+      child: SizedBox(
+        width: layout.size.width,
+        height: layout.size.height,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // Все связи (родитель-ребёнок и брачные) рисуются одним слоем
+            // под карточками, по точным координатам из layout-движка.
+            Positioned.fill(
+              child: CustomPaint(
+                painter: _TreeConnectorPainter(
+                  edges: layout.edges,
+                  marriageEdges: layout.marriageEdges,
                 ),
-              )
-              .toList(),
-        );
-      }
-    } else {
-      content = _buildNode(context, rootNode, true);
-    }
-
-    return Padding(padding: const EdgeInsets.all(32.0), child: content);
-  }
-
-  /// Рекурсивное построение дерева
-  Widget _buildNode(BuildContext context, TreeNode node, bool isRoot) {
-    final isSelected = selectedPersonId == node.person.id;
-    final isCenter = centerPersonId == node.person.id;
-
-    if (node.spouses.isNotEmpty) {
-      return _buildNodeWithSpouses(context, node, isRoot, isSelected, isCenter);
-    }
-
-    return _buildSinglePersonNode(context, node, isRoot, isSelected, isCenter);
-  }
-
-  /// Узел с одним человеком
-  Widget _buildSinglePersonNode(
-    BuildContext context,
-    TreeNode node,
-    bool isRoot,
-    bool isSelected,
-    bool isCenter,
-  ) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        TreeNodeWidget(
-          node: node,
-          isRoot: isRoot,
-          isSelected: isSelected,
-          isCenter: isCenter,
-          onTap: () => onPersonTap(node.person.id),
-          detailLevel: detailLevel,
-        ),
-        if (node.children.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          _buildVerticalLine(),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Text(
-              'Дети (${node.children.length})',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-            ),
-          ),
-          const SizedBox(height: 8),
-          _buildChildrenRow(context, node.children, false),
-        ],
-      ],
-    );
-  }
-
-  /// Узел с супругами
-  Widget _buildNodeWithSpouses(
-    BuildContext context,
-    TreeNode node,
-    bool isRoot,
-    bool isSelected,
-    bool isCenter,
-  ) {
-    final List<TreeNode> allParents = [node, ...node.spouses];
-    final allChildren = _getAllUniqueChildren(allParents);
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Горизонтальный ряд родителей с явным коннектором брака между ними
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: _buildParentsWithConnectors(allParents),
-        ),
-
-        // Общие дети
-        if (allChildren.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          _buildVerticalLine(),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Text(
-              'Все дети (${allChildren.length})',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.green.shade700,
-                fontWeight: FontWeight.w500,
               ),
             ),
-          ),
-          const SizedBox(height: 8),
-          _buildChildrenRow(context, allChildren, false),
-        ],
-      ],
-    );
-  }
-
-  /// Строит ряд карточек супругов, вставляя между каждой парой заметный
-  /// коннектор брака (⚭), чтобы горизонтальная семейная связь читалась
-  /// с первого взгляда, а не терялась в обычных отступах Row.
-  List<Widget> _buildParentsWithConnectors(List<TreeNode> parents) {
-    final List<Widget> widgets = [];
-    for (int i = 0; i < parents.length; i++) {
-      final parent = parents[i];
-      final isParentCenter = parent.person.id == centerPersonId;
-      final isParentSelected = parent.person.id == selectedPersonId;
-
-      widgets.add(
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: TreeNodeWidget(
-            node: parent,
-            isRoot: false,
-            isSelected: isParentSelected,
-            isCenter: isParentCenter,
-            onTap: () => onPersonTap(parent.person.id),
-            detailLevel: detailLevel,
-          ),
+            // Подписи "Дети (N)" над шиной коннектора.
+            for (final _ChildCountLabel label in layout.childCountLabels)
+              Positioned(
+                left: label.center.dx - 60,
+                top: label.top,
+                width: 120,
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 1,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      label.text,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: label.merged
+                            ? Colors.green.shade700
+                            : Colors.grey.shade600,
+                        fontWeight: label.merged
+                            ? FontWeight.w500
+                            : FontWeight.normal,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ),
+            // Иконки брака поверх линии коннектора между супругами.
+            for (final Offset center in layout.marriageMarkers)
+              Positioned(
+                left: center.dx - 8,
+                top: center.dy - 8,
+                child: Icon(
+                  Icons.favorite,
+                  size: 16,
+                  color: Colors.pink.shade300,
+                ),
+              ),
+            // Сами карточки людей — позиционированы абсолютно, поэтому все
+            // карточки одного поколения гарантированно на одной высоте.
+            for (final _PositionedCard card in layout.cards)
+              Positioned(
+                left: card.offset.dx,
+                top: card.offset.dy,
+                width: metrics.cardWidth,
+                child: TreeNodeWidget(
+                  node: card.node,
+                  isRoot: card.isRoot,
+                  isSelected: card.node.person.id == selectedPersonId,
+                  isCenter: card.node.person.id == centerPersonId,
+                  onTap: () => onPersonTap(card.node.person.id),
+                  detailLevel: detailLevel,
+                ),
+              ),
+          ],
         ),
-      );
-
-      if (i < parents.length - 1) {
-        widgets.add(_buildMarriageConnector());
-      }
-    }
-    return widgets;
-  }
-
-  /// Небольшая горизонтальная линия с иконкой брака между карточками
-  /// супругов.
-  Widget _buildMarriageConnector() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 2),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(width: 12, height: 2, color: Colors.pink.shade200),
-              Icon(Icons.favorite, size: 12, color: Colors.pink.shade300),
-              Container(width: 12, height: 2, color: Colors.pink.shade200),
-            ],
-          ),
-        ],
       ),
     );
   }
+}
 
-  /// Получить всех уникальных детей
-  List<TreeNode> _getAllUniqueChildren(List<TreeNode> parents) {
-    final childMap = <String, TreeNode>{};
+// =============================================================================
+// РАЗМЕРЫ КАРТОЧЕК ПО УРОВНЮ ДЕТАЛИЗАЦИИ
+// =============================================================================
+
+/// Ориентировочные размеры карточки для текущего DetailLevel. Точная
+/// фактическая высота TreeNodeWidget может слегка отличаться (например,
+/// из-за отображения профессии или пометки "†"), поэтому вертикальный
+/// зазор между поколениями (generationGap) взят с запасом.
+class _CardMetrics {
+  final double cardWidth;
+  final double cardHeight;
+  final double generationGap;
+  final double spouseGap;
+  final double siblingGap;
+
+  const _CardMetrics({
+    required this.cardWidth,
+    required this.cardHeight,
+    required this.generationGap,
+    required this.spouseGap,
+    required this.siblingGap,
+  });
+
+  double get rowHeight => cardHeight + generationGap;
+
+  // Карточка теперь горизонтальная (фото слева, текст справа), поэтому она
+  // заметно шире и заметно ниже, чем в прежней вертикальной раскладке.
+  factory _CardMetrics.forDetailLevel(DetailLevel level) {
+    switch (level) {
+      case DetailLevel.minimal:
+        // Аватар 28px + паддинги + "Фамилия И.О." в одну строку.
+        return const _CardMetrics(
+          cardWidth: 112,
+          cardHeight: 46,
+          generationGap: 40,
+          spouseGap: 20,
+          siblingGap: 14,
+        );
+      case DetailLevel.full:
+        // Аватар 52px + ФИО (до 2 строк) + дата рождения + дата смерти.
+        return const _CardMetrics(
+          cardWidth: 200,
+          cardHeight: 90,
+          generationGap: 56,
+          spouseGap: 28,
+          siblingGap: 22,
+        );
+      case DetailLevel.medium:
+        // Аватар 40px + полное ФИО (до 2 строк).
+        return const _CardMetrics(
+          cardWidth: 164,
+          cardHeight: 62,
+          generationGap: 48,
+          spouseGap: 24,
+          siblingGap: 18,
+        );
+    }
+  }
+}
+
+// =============================================================================
+// LAYOUT-ДВИЖОК
+// =============================================================================
+
+class _PositionedCard {
+  final TreeNode node;
+  final Offset offset; // top-left в глобальных координатах холста
+  final bool isRoot;
+
+  _PositionedCard(this.node, this.offset, this.isRoot);
+}
+
+class _Edge {
+  final Offset from;
+  final Offset to;
+
+  const _Edge(this.from, this.to);
+}
+
+class _ChildCountLabel {
+  final Offset center;
+  final double top;
+  final String text;
+  final bool merged;
+
+  _ChildCountLabel({
+    required this.center,
+    required this.top,
+    required this.text,
+    required this.merged,
+  });
+}
+
+/// Результат раскладки одного поддерева в локальных координатах, где
+/// x всегда начинается с 0.
+class _SubtreeLayout {
+  final double width;
+  final List<_PositionedCard> cards;
+  final List<_Edge> edges;
+  final List<Offset> marriageMarkers;
+  final List<_ChildCountLabel> childCountLabels;
+
+  /// x-координата (локальная) точки, к которой должен подключаться
+  /// коннектор родительского поколения сверху — это горизонтальный центр
+  /// родительского юнита (человек + супруги), а не центр всего поддерева.
+  final double parentUnitCenterX;
+  final double parentUnitBottomY;
+
+  _SubtreeLayout({
+    required this.width,
+    required this.cards,
+    required this.edges,
+    required this.marriageMarkers,
+    required this.childCountLabels,
+    required this.parentUnitCenterX,
+    required this.parentUnitBottomY,
+  });
+
+  _SubtreeLayout shiftedBy(double dx) {
+    Offset shift(Offset o) => Offset(o.dx + dx, o.dy);
+    return _SubtreeLayout(
+      width: width,
+      cards: cards
+          .map((c) => _PositionedCard(c.node, shift(c.offset), c.isRoot))
+          .toList(),
+      edges: edges.map((e) => _Edge(shift(e.from), shift(e.to))).toList(),
+      marriageMarkers: marriageMarkers.map(shift).toList(),
+      childCountLabels: childCountLabels
+          .map(
+            (l) => _ChildCountLabel(
+              center: shift(l.center),
+              top: l.top,
+              text: l.text,
+              merged: l.merged,
+            ),
+          )
+          .toList(),
+      parentUnitCenterX: parentUnitCenterX + dx,
+      parentUnitBottomY: parentUnitBottomY,
+    );
+  }
+}
+
+class _TreeLayout {
+  final Size size;
+  final List<_PositionedCard> cards;
+  final List<_Edge> edges;
+  final List<Offset> marriageMarkers;
+  final List<_ChildCountLabel> childCountLabels;
+
+  _TreeLayout({
+    required this.size,
+    required this.cards,
+    required this.edges,
+    required this.marriageMarkers,
+    required this.childCountLabels,
+  });
+
+  List<_Edge> get marriageEdges => const [];
+}
+
+class _TreeLayoutEngine {
+  final _CardMetrics metrics;
+
+  _TreeLayoutEngine({required this.metrics});
+
+  /// Точка входа: раскладывает всё дерево, включая случай служебного
+  /// "виртуального корня" с несколькими независимыми ветвями.
+  _TreeLayout layoutRoot(TreeNode rootNode) {
+    late final _SubtreeLayout layout;
+
+    if (rootNode.person.id == 'virtual_root') {
+      if (rootNode.children.length == 1) {
+        layout = _layoutFamily(rootNode.children.first, 0);
+      } else {
+        layout = _layoutForest(rootNode.children);
+      }
+    } else {
+      layout = _layoutFamily(rootNode, 0);
+    }
+
+    final double maxBottom = layout.cards.isEmpty
+        ? 0
+        : layout.cards
+              .map((c) => c.offset.dy + metrics.cardHeight)
+              .reduce(math.max);
+
+    return _TreeLayout(
+      size: Size(layout.width, maxBottom + 24),
+      cards: layout.cards,
+      edges: layout.edges,
+      marriageMarkers: layout.marriageMarkers,
+      childCountLabels: layout.childCountLabels,
+    );
+  }
+
+  /// Раскладывает несколько независимых деревьев (нет общего предка) рядом
+  /// друг с другом с увеличенным зазором между ними.
+  _SubtreeLayout _layoutForest(List<TreeNode> roots) {
+    final double gap = metrics.siblingGap * 3;
+    final List<_SubtreeLayout> layouts = roots
+        .map((r) => _layoutFamily(r, 0))
+        .toList();
+
+    double cursor = 0;
+    final List<_PositionedCard> cards = [];
+    final List<_Edge> edges = [];
+    final List<Offset> markers = [];
+    final List<_ChildCountLabel> labels = [];
+
+    for (final layout in layouts) {
+      final shifted = layout.shiftedBy(cursor);
+      cards.addAll(shifted.cards);
+      edges.addAll(shifted.edges);
+      markers.addAll(shifted.marriageMarkers);
+      labels.addAll(shifted.childCountLabels);
+      cursor += layout.width + gap;
+    }
+
+    final double totalWidth = layouts.isEmpty ? 0 : cursor - gap;
+    return _SubtreeLayout(
+      width: totalWidth,
+      cards: cards,
+      edges: edges,
+      marriageMarkers: markers,
+      childCountLabels: labels,
+      parentUnitCenterX: totalWidth / 2,
+      parentUnitBottomY: 0,
+    );
+  }
+
+  /// Раскладывает семейный юнит: primary + его супруги на уровне [level],
+  /// и рекурсивно — их общих детей на уровне [level] + 1.
+  _SubtreeLayout _layoutFamily(TreeNode primary, int level) {
+    final List<TreeNode> parents = [primary, ...primary.spouses];
+    final double unitWidth =
+        parents.length * metrics.cardWidth +
+        (parents.length - 1) * metrics.spouseGap;
+    final double y = level * metrics.rowHeight;
+
+    final List<TreeNode> children = _uniqueChildren(parents);
+
+    // Карточки-ссылки (isDuplicateReference) намеренно не разворачиваются
+    // повторно — их дети уже показаны в другой ветке дерева, поэтому здесь
+    // они всегда обрабатываются как листья, даже если данные на узле
+    // почему-то содержат children/spouses.
+    final bool treatAsLeaf = children.isEmpty || primary.isDuplicateReference;
+
+    if (treatAsLeaf) {
+      return _layoutParentsRow(parents, y, level == 0);
+    }
+
+    // 1. Раскладываем детей рекурсивно и ставим их в ряд.
+    final List<_SubtreeLayout> childLayouts = children
+        .map((c) => _layoutFamily(c, level + 1))
+        .toList();
+
+    final double childrenTotalWidth =
+        childLayouts.fold(0.0, (sum, l) => sum + l.width) +
+        metrics.siblingGap * (childLayouts.length - 1);
+
+    final double subtreeWidth = math.max(unitWidth, childrenTotalWidth);
+
+    double cursor = (subtreeWidth - childrenTotalWidth) / 2;
+    final List<_PositionedCard> cards = [];
+    final List<_Edge> edges = [];
+    final List<Offset> markers = [];
+    final List<_ChildCountLabel> labels = [];
+    final List<Offset> childConnectPoints = [];
+
+    for (final childLayout in childLayouts) {
+      final shifted = childLayout.shiftedBy(cursor);
+      cards.addAll(shifted.cards);
+      edges.addAll(shifted.edges);
+      markers.addAll(shifted.marriageMarkers);
+      labels.addAll(shifted.childCountLabels);
+      childConnectPoints.add(
+        Offset(shifted.parentUnitCenterX, y + metrics.rowHeight),
+      );
+      cursor += childLayout.width + metrics.siblingGap;
+    }
+
+    // 2. Родительский юнит центрируем над своим поддеревом детей.
+    final _SubtreeLayout parentsRow = _layoutParentsRow(
+      parents,
+      y,
+      level == 0,
+    );
+    final double unitStartX = (subtreeWidth - unitWidth) / 2;
+    final shiftedParents = parentsRow.shiftedBy(unitStartX);
+    cards.addAll(shiftedParents.cards);
+    edges.addAll(shiftedParents.edges);
+    markers.addAll(shiftedParents.marriageMarkers);
+
+    // 3. Коннектор: ствол вниз от родителя -> общая шина -> ветка к
+    // каждому ребёнку. Рисуется явными линиями по точным координатам, так
+    // что связь видна всегда, независимо от количества детей.
+    final double parentCenterX = unitStartX + unitWidth / 2;
+    final double parentBottomY = y + metrics.cardHeight;
+    final double busY = parentBottomY + metrics.generationGap / 2;
+
+    edges.add(_Edge(Offset(parentCenterX, parentBottomY), Offset(parentCenterX, busY)));
+
+    if (childConnectPoints.length == 1) {
+      final Offset p = childConnectPoints.first;
+      edges.add(_Edge(Offset(parentCenterX, busY), Offset(p.dx, busY)));
+      edges.add(_Edge(Offset(p.dx, busY), Offset(p.dx, p.dy)));
+    } else {
+      final double minX = childConnectPoints
+          .map((p) => p.dx)
+          .reduce(math.min);
+      final double maxX = childConnectPoints
+          .map((p) => p.dx)
+          .reduce(math.max);
+      // Шина обязательно проходит через x родителя, даже если он лежит
+      // чуть за пределами крайних детей (редкий случай очень узкой семьи).
+      edges.add(
+        _Edge(
+          Offset(math.min(minX, parentCenterX), busY),
+          Offset(math.max(maxX, parentCenterX), busY),
+        ),
+      );
+      for (final p in childConnectPoints) {
+        edges.add(_Edge(Offset(p.dx, busY), Offset(p.dx, p.dy)));
+      }
+    }
+
+    final bool merged = parents.length > 1;
+    labels.add(
+      _ChildCountLabel(
+        center: Offset(parentCenterX, busY),
+        top: busY - 9,
+        text: merged
+            ? 'Все дети (${children.length})'
+            : 'Дети (${children.length})',
+        merged: merged,
+      ),
+    );
+
+    return _SubtreeLayout(
+      width: subtreeWidth,
+      cards: cards,
+      edges: edges,
+      marriageMarkers: markers,
+      childCountLabels: labels,
+      parentUnitCenterX: subtreeWidth / 2,
+      parentUnitBottomY: parentBottomY,
+    );
+  }
+
+  /// Раскладывает только строку "человек + супруги" без детей, с брачными
+  /// коннекторами между соседними карточками.
+  _SubtreeLayout _layoutParentsRow(
+    List<TreeNode> parents,
+    double y,
+    bool isRoot,
+  ) {
+    final List<_PositionedCard> cards = [];
+    final List<Offset> markers = [];
+    final double unitWidth =
+        parents.length * metrics.cardWidth +
+        (parents.length - 1) * metrics.spouseGap;
+
+    for (int i = 0; i < parents.length; i++) {
+      final double x = i * (metrics.cardWidth + metrics.spouseGap);
+      cards.add(_PositionedCard(parents[i], Offset(x, y), isRoot));
+    }
+    for (int i = 0; i < parents.length - 1; i++) {
+      final double xA =
+          i * (metrics.cardWidth + metrics.spouseGap) + metrics.cardWidth;
+      final double xB = (i + 1) * (metrics.cardWidth + metrics.spouseGap);
+      markers.add(Offset((xA + xB) / 2, y + metrics.cardHeight / 2));
+    }
+
+    return _SubtreeLayout(
+      width: unitWidth,
+      cards: cards,
+      edges: const [],
+      marriageMarkers: markers,
+      childCountLabels: const [],
+      parentUnitCenterX: unitWidth / 2,
+      parentUnitBottomY: y + metrics.cardHeight,
+    );
+  }
+
+  /// Собирает уникальных детей по всем родителям юнита (человек + супруги),
+  /// т.к. общие дети могут числиться в children и у мужа, и у жены.
+  List<TreeNode> _uniqueChildren(List<TreeNode> parents) {
+    final Map<String, TreeNode> childMap = {};
     for (final parent in parents) {
       for (final child in parent.children) {
         childMap[child.person.id] = child;
@@ -215,82 +518,32 @@ class TreeVisualizer extends StatelessWidget {
     }
     return childMap.values.toList();
   }
+}
 
-  /// Построение строки детей (без переноса на новые строки внутри поколения)
-  Widget _buildChildrenRow(
-    BuildContext context,
-    List<TreeNode> children,
-    bool isNested,
-  ) {
-    if (children.isEmpty) return const SizedBox.shrink();
+// =============================================================================
+// ОТРИСОВКА СВЯЗЕЙ
+// =============================================================================
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Ряд детей одного поколения (панорамирование обеспечивает
-        // родительский InteractiveViewer, своя прокрутка тут не нужна)
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: children.map((child) {
-            return Padding(
-              padding: EdgeInsets.symmetric(horizontal: isNested ? 4 : 8),
-              child: _buildChildNode(context, child),
-            );
-          }).toList(),
-        ),
-        // ✅ Рекурсивно показываем внуков (без горизонтальных ограничений)
-        if (children.any((c) => c.children.isNotEmpty))
-          ...children.where((c) => c.children.isNotEmpty).map((child) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: 8),
-                _buildVerticalLine(),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Text(
-                    'Дети ${child.person.displayName} (${child.children.length})',
-                    style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                // ✅ Рекурсивный вызов с горизонтальной прокруткой
-                _buildChildrenRow(context, child.children, true),
-              ],
-            );
-          }).toList(),
-      ],
-    );
+class _TreeConnectorPainter extends CustomPainter {
+  final List<_Edge> edges;
+  final List<_Edge> marriageEdges;
+
+  _TreeConnectorPainter({required this.edges, required this.marriageEdges});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Paint linePaint = Paint()
+      ..color = Colors.grey.shade400
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+
+    for (final edge in edges) {
+      canvas.drawLine(edge.from, edge.to, linePaint);
+    }
   }
 
-  /// Построение узла ребенка
-  Widget _buildChildNode(BuildContext context, TreeNode child) {
-    final isSelected = selectedPersonId == child.person.id;
-    final isCenter = centerPersonId == child.person.id;
-
-    if (child.spouses.isNotEmpty) {
-      return _buildNodeWithSpouses(context, child, false, isSelected, isCenter);
-    }
-
-    if (child.children.isNotEmpty) {
-      return _buildNode(context, child, false);
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-      child: TreeNodeWidget(
-        node: child,
-        onTap: () => onPersonTap(child.person.id),
-        isSelected: isSelected,
-        isCenter: isCenter,
-        detailLevel: detailLevel,
-        isCompact: detailLevel == DetailLevel.minimal,
-      ),
-    );
-  }
-
-  Widget _buildVerticalLine() {
-    return Container(width: 2, height: 20, color: Colors.grey.shade400);
+  @override
+  bool shouldRepaint(covariant _TreeConnectorPainter oldDelegate) {
+    return oldDelegate.edges != edges;
   }
 }

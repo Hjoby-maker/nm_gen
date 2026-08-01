@@ -2,7 +2,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:nm_gen/core/utils/file_helper.dart';
 import 'package:nm_gen/domain/entities/media_attachment.dart';
 
 /// Карточка медиа-файла для отображения в сетке

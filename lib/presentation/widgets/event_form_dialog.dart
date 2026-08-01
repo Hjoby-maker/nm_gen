@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:file_selector/file_selector.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:nm_gen/core/utils/file_helper.dart';
 import 'package:nm_gen/domain/entities/event.dart';
 import 'package:nm_gen/presentation/blocs/media/media_bloc.dart';
@@ -83,10 +84,18 @@ class _EventFormDialogState extends State<EventFormDialog> {
   late final TextEditingController _descriptionController;
   late final TextEditingController _placeController;
   late final TextEditingController _notesController;
+  late final TextEditingController _startDateController;
+  late final TextEditingController _endDateController;
   late EventType _selectedType;
   DateTime? _startDate;
   DateTime? _endDate;
   final List<_PendingAttachment> _pendingAttachments = [];
+
+  // Состояние ошибок для полей дат
+  bool _startDateHasError = false;
+  bool _endDateHasError = false;
+  String? _startDateErrorText;
+  String? _endDateErrorText;
 
   bool get isEditing => widget.existingEvent != null;
 
@@ -103,6 +112,13 @@ class _EventFormDialogState extends State<EventFormDialog> {
     _selectedType = event?.type ?? EventType.other;
     _startDate = event?.startDate;
     _endDate = event?.endDate;
+
+    _startDateController = TextEditingController(
+      text: _startDate != null ? _formatDate(_startDate!) : '',
+    );
+    _endDateController = TextEditingController(
+      text: _endDate != null ? _formatDate(_endDate!) : '',
+    );
   }
 
   @override
@@ -111,6 +127,8 @@ class _EventFormDialogState extends State<EventFormDialog> {
     _descriptionController.dispose();
     _placeController.dispose();
     _notesController.dispose();
+    _startDateController.dispose();
+    _endDateController.dispose();
     super.dispose();
   }
 
@@ -122,7 +140,7 @@ class _EventFormDialogState extends State<EventFormDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Тип события — используем только доступные типы
+            // Тип события
             DropdownButtonFormField<EventType>(
               value: _selectedType,
               decoration: const InputDecoration(
@@ -159,19 +177,50 @@ class _EventFormDialogState extends State<EventFormDialog> {
               maxLines: 2,
             ),
             const SizedBox(height: 8),
-            // Дата начала
-            _buildDatePicker(
+            // Дата начала - с ручным вводом и маской
+            _buildDateTextField(
+              controller: _startDateController,
               label: 'Дата начала',
-              date: _startDate,
-              onChanged: (DateTime? date) => setState(() => _startDate = date),
-              onClear: () => setState(() => _startDate = null),
+              hasError: _startDateHasError,
+              errorText: _startDateErrorText,
+              onDateChanged: (date) {
+                setState(() {
+                  _startDate = date;
+                  _validateStartDate();
+                });
+              },
+              onCalendarTap: () => _selectDate(context, (date) {
+                setState(() {
+                  _startDate = date;
+                  _startDateController.text = date != null
+                      ? _formatDate(date)
+                      : '';
+                  _validateStartDate();
+                });
+              }, initialDate: _startDate ?? DateTime.now()),
             ),
-            // Дата окончания
-            _buildDatePicker(
+            const SizedBox(height: 4),
+            // Дата окончания - с ручным вводом и маской
+            _buildDateTextField(
+              controller: _endDateController,
               label: 'Дата окончания',
-              date: _endDate,
-              onChanged: (DateTime? date) => setState(() => _endDate = date),
-              onClear: () => setState(() => _endDate = null),
+              hasError: _endDateHasError,
+              errorText: _endDateErrorText,
+              onDateChanged: (date) {
+                setState(() {
+                  _endDate = date;
+                  _validateEndDate();
+                });
+              },
+              onCalendarTap: () => _selectDate(context, (date) {
+                setState(() {
+                  _endDate = date;
+                  _endDateController.text = date != null
+                      ? _formatDate(date)
+                      : '';
+                  _validateEndDate();
+                });
+              }, initialDate: _endDate ?? DateTime.now()),
             ),
             const SizedBox(height: 8),
             // Место
@@ -209,6 +258,155 @@ class _EventFormDialogState extends State<EventFormDialog> {
       ],
     );
   }
+
+  /// Поле ввода даты с маской и валидацией (как в PersonFormDialog)
+  Widget _buildDateTextField({
+    required TextEditingController controller,
+    required String label,
+    required bool hasError,
+    required String? errorText,
+    required Function(DateTime?) onDateChanged,
+    required VoidCallback onCalendarTap,
+  }) {
+    return TextField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: 'ДД.ММ.ГГГГ',
+        border: const OutlineInputBorder(),
+        errorText: errorText,
+        suffixIcon: IconButton(
+          icon: const Icon(Icons.calendar_today),
+          onPressed: onCalendarTap,
+          tooltip: 'Выбрать из календаря',
+        ),
+      ),
+      onChanged: (value) {
+        // Применяем маску ввода
+        final filtered = _applyDateMask(value);
+        if (filtered != value) {
+          controller.value = TextEditingValue(
+            text: filtered,
+            selection: TextSelection.collapsed(offset: filtered.length),
+          );
+        }
+
+        final parsedDate = _parseDate(filtered);
+        onDateChanged(parsedDate);
+      },
+      keyboardType: TextInputType.datetime,
+      inputFormatters: [
+        LengthLimitingTextInputFormatter(10), // ДД.ММ.ГГГГ
+      ],
+    );
+  }
+
+  /// Применяет маску для ввода даты
+  String _applyDateMask(String value) {
+    // Удаляем все нецифровые символы
+    final digitsOnly = value.replaceAll(RegExp(r'[^0-9]'), '');
+
+    if (digitsOnly.isEmpty) return '';
+
+    final buffer = StringBuffer();
+    int digitIndex = 0;
+
+    // День (2 цифры)
+    for (int i = 0; i < 2 && digitIndex < digitsOnly.length; i++) {
+      buffer.write(digitsOnly[digitIndex]);
+      digitIndex++;
+    }
+    if (buffer.length == 2 && digitIndex < digitsOnly.length) {
+      buffer.write('.');
+    }
+
+    // Месяц (2 цифры)
+    for (int i = 0; i < 2 && digitIndex < digitsOnly.length; i++) {
+      buffer.write(digitsOnly[digitIndex]);
+      digitIndex++;
+    }
+    if (buffer.length >= 5 && digitIndex < digitsOnly.length) {
+      buffer.write('.');
+    }
+
+    // Год (4 цифры)
+    for (int i = 0; i < 4 && digitIndex < digitsOnly.length; i++) {
+      buffer.write(digitsOnly[digitIndex]);
+      digitIndex++;
+    }
+
+    return buffer.toString();
+  }
+
+  /// Парсит дату из строки
+  DateTime? _parseDate(String text) {
+    try {
+      final cleaned = text.replaceAll(RegExp(r'[./-]'), '.');
+      final parts = cleaned.split('.');
+      if (parts.length == 3) {
+        final day = int.parse(parts[0]);
+        final month = int.parse(parts[1]);
+        final year = int.parse(parts[2]);
+        final date = DateTime(year, month, day);
+        if (date.year == year && date.month == month && date.day == day) {
+          return date;
+        }
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Валидация даты начала
+  void _validateStartDate() {
+    setState(() {
+      if (_startDateController.text.isNotEmpty && _startDate == null) {
+        _startDateHasError = true;
+        _startDateErrorText = 'Неверный формат даты';
+      } else if (_startDate != null && _startDate!.isAfter(DateTime.now())) {
+        _startDateHasError = true;
+        _startDateErrorText = 'Дата не может быть в будущем';
+      } else if (_startDate != null && _startDate!.isBefore(DateTime(1800))) {
+        _startDateHasError = true;
+        _startDateErrorText = 'Год должен быть не раньше 1800';
+      } else if (_startDate != null &&
+          _endDate != null &&
+          _endDate!.isBefore(_startDate!)) {
+        _startDateHasError = true;
+        _startDateErrorText = 'Дата окончания не может быть раньше даты начала';
+      } else {
+        _startDateHasError = false;
+        _startDateErrorText = null;
+      }
+    });
+  }
+
+  /// Валидация даты окончания
+  void _validateEndDate() {
+    setState(() {
+      if (_endDateController.text.isNotEmpty && _endDate == null) {
+        _endDateHasError = true;
+        _endDateErrorText = 'Неверный формат даты';
+      } else if (_endDate != null && _endDate!.isAfter(DateTime.now())) {
+        _endDateHasError = true;
+        _endDateErrorText = 'Дата не может быть в будущем';
+      } else if (_endDate != null && _endDate!.isBefore(DateTime(1800))) {
+        _endDateHasError = true;
+        _endDateErrorText = 'Год должен быть не раньше 1800';
+      } else if (_endDate != null &&
+          _startDate != null &&
+          _endDate!.isBefore(_startDate!)) {
+        _endDateHasError = true;
+        _endDateErrorText = 'Дата окончания не может быть раньше даты начала';
+      } else {
+        _endDateHasError = false;
+        _endDateErrorText = null;
+      }
+    });
+  }
+
+  // ===== ОСТАЛЬНЫЕ МЕТОДЫ БЕЗ ИЗМЕНЕНИЙ =====
 
   Widget _buildAttachmentsSection() {
     return Column(
@@ -443,11 +641,6 @@ class _EventFormDialogState extends State<EventFormDialog> {
     );
   }
 
-  /// Реально прикрепляет все отложенные вложения к событию. Вызывается
-  /// ПОСЛЕ того, как событие сохранено (id уже гарантированно существует
-  /// в БД) - иначе вставка media-строки с несуществующим event_id по
-  /// смыслу некорректна, даже если сама SQLite сейчас не проверяет
-  /// внешние ключи строго.
   void _attachPendingFiles(String eventId) {
     for (final _PendingAttachment att in _pendingAttachments) {
       switch (att.type) {
@@ -491,44 +684,14 @@ class _EventFormDialogState extends State<EventFormDialog> {
     }
   }
 
-  Widget _buildDatePicker({
-    required String label,
-    required DateTime? date,
-    required Function(DateTime?) onChanged,
-    required VoidCallback onClear,
-  }) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      title: Text(
-        date != null ? '$label: ${_formatDate(date)}' : '$label не указана',
-        style: TextStyle(
-          color: date != null ? Colors.black : Colors.grey.shade600,
-        ),
-      ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (date != null)
-            IconButton(
-              icon: const Icon(Icons.clear, size: 20),
-              onPressed: onClear,
-            ),
-          IconButton(
-            icon: const Icon(Icons.calendar_today),
-            onPressed: () => _selectDate(context, onChanged),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _selectDate(
     BuildContext context,
-    Function(DateTime?) onChanged,
-  ) async {
+    Function(DateTime?) onChanged, {
+    required DateTime initialDate,
+  }) async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: initialDate,
       firstDate: DateTime(1800),
       lastDate: DateTime.now(),
     );
@@ -536,7 +699,7 @@ class _EventFormDialogState extends State<EventFormDialog> {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.day}.${date.month}.${date.year}';
+    return '${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year}';
   }
 
   void _saveEvent() {
@@ -549,6 +712,39 @@ class _EventFormDialogState extends State<EventFormDialog> {
         ),
       );
       return;
+    }
+
+    // Валидация дат перед сохранением
+    if (_startDateController.text.isNotEmpty && _startDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Неверный формат даты начала'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    if (_endDateController.text.isNotEmpty && _endDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Неверный формат даты окончания'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    if (_startDate != null && _endDate != null) {
+      if (_endDate!.isBefore(_startDate!)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Дата окончания не может быть раньше даты начала'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
     }
 
     final event = Event(
@@ -576,10 +772,6 @@ class _EventFormDialogState extends State<EventFormDialog> {
 
     widget.onSave(event);
 
-    // event.id уже известен (сгенерирован выше, ДО вызова onSave) - поэтому
-    // можно сразу прикрепить отложенные вложения, не дожидаясь отдельного
-    // подтверждения от EventBloc. Соответствует уже принятому в проекте
-    // стилю "fire-and-forget" (сам onSave тоже не awaited).
     if (_pendingAttachments.isNotEmpty) {
       _attachPendingFiles(event.id);
     }
