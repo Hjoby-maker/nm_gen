@@ -6,11 +6,22 @@ import 'package:nm_gen/core/errors/failures.dart';
 import 'package:nm_gen/domain/entities/event.dart';
 import 'package:nm_gen/domain/repositories/event_repository.dart';
 import 'package:nm_gen/domain/use_cases/event/update_event.dart';
+import 'package:nm_gen/domain/use_cases/event/sync_event_to_person.dart';
 import '../../../test_utils/test_helpers.dart';
 import '../../../test_utils/mocks.dart';
 
+/// ⚠️ UpdateEventUseCase теперь принимает второй параметр -
+/// SyncEventToPersonUseCase (обратная синхронизация "событие -> человек"
+/// для событий рождения/смерти). Мок объявлен прямо здесь, а не в
+/// ../../../test_utils/mocks.dart - если у вас там уже есть общий
+/// MockSyncEventToPersonUseCase (например, добавленный вместе с
+/// add_event_test.dart), удалите дубликат и используйте общий.
+class MockSyncEventToPersonUseCase extends Mock
+    implements SyncEventToPersonUseCase {}
+
 void main() {
   late MockEventRepository mockRepository;
+  late MockSyncEventToPersonUseCase mockSyncEventToPerson;
   late UpdateEventUseCase useCase;
 
   setUpAll(() {
@@ -19,7 +30,12 @@ void main() {
 
   setUp(() {
     mockRepository = MockEventRepository();
-    useCase = UpdateEventUseCase(mockRepository);
+    mockSyncEventToPerson = MockSyncEventToPersonUseCase();
+    useCase = UpdateEventUseCase(mockRepository, mockSyncEventToPerson);
+
+    when(
+      () => mockSyncEventToPerson.execute(any<Event>()),
+    ).thenAnswer((_) async {});
   });
 
   group('UpdateEventUseCase', () {
@@ -42,6 +58,30 @@ void main() {
       verify(() => mockRepository.updateEvent(any<Event>())).called(1);
     });
 
+    test(
+      'после успешного обновления вызывает синхронизацию с человеком '
+      '(SyncEventToPersonUseCase.execute) с обновлённым событием',
+      () async {
+        // Arrange
+        final event = createTestEvent(id: 'e1', title: 'Старое название');
+        final updatedEvent = event.copyWith(title: 'Новое название');
+
+        when(
+          () => mockRepository.updateEvent(any<Event>()),
+        ).thenAnswer((_) async => updatedEvent);
+
+        // Act
+        await useCase.execute(updatedEvent);
+
+        // Assert
+        final captured = verify(
+          () => mockSyncEventToPerson.execute(captureAny<Event>()),
+        ).captured;
+        expect(captured, hasLength(1));
+        expect((captured.first as Event).title, 'Новое название');
+      },
+    );
+
     test('возвращает Left с ValidationFailure при пустом ID', () async {
       // Arrange
       final event = createTestEvent(id: '');
@@ -61,6 +101,7 @@ void main() {
         true,
       );
       verifyNever(() => mockRepository.updateEvent(any<Event>()));
+      verifyNever(() => mockSyncEventToPerson.execute(any<Event>()));
     });
 
     test('возвращает Left с ValidationFailure при пустом названии', () async {
@@ -82,6 +123,7 @@ void main() {
         true,
       );
       verifyNever(() => mockRepository.updateEvent(any<Event>()));
+      verifyNever(() => mockSyncEventToPerson.execute(any<Event>()));
     });
 
     test('возвращает Left с ServerFailure при ошибке репозитория', () async {
@@ -101,6 +143,7 @@ void main() {
         result.fold((failure) => failure is ServerFailure, (_) => false),
         true,
       );
+      verifyNever(() => mockSyncEventToPerson.execute(any<Event>()));
     });
   });
 }

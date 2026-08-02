@@ -119,7 +119,9 @@ void main() {
     });
 
     test(
-      'возвращает Left с NotFoundFailure если нет людей в проекте',
+      'возвращает пустой virtual_root, если в проекте нет людей '
+      '(без ошибки - чтобы UI мог показать пустое дерево, а не экран '
+      'ошибки, для только что созданного проекта)',
       () async {
         // Arrange
         when(
@@ -133,16 +135,12 @@ void main() {
         final result = await useCase.execute(treeId: 'tree_1');
 
         // Assert
-        expect(result.isLeft(), true);
-        expect(
-          result.fold(
-            (failure) =>
-                failure is NotFoundFailure &&
-                failure.message.contains('нет людей'),
-            (_) => false,
-          ),
-          true,
+        expect(result.isRight(), true);
+        final rootNode = result.getOrElse(
+          () => TreeNode(person: Person.empty()),
         );
+        expect(rootNode.person.id, 'virtual_root');
+        expect(rootNode.children, isEmpty);
       },
     );
 
