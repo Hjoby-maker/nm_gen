@@ -48,6 +48,7 @@ import 'package:nm_gen/domain/use_cases/event/get_all_events.dart';
 import 'package:nm_gen/domain/use_cases/event/update_event.dart';
 import 'package:nm_gen/domain/use_cases/event/delete_event.dart';
 import 'package:nm_gen/domain/use_cases/event/delete_all_person_events.dart';
+import 'package:nm_gen/domain/use_cases/event/sync_event_to_person.dart';
 import 'injector.config.dart';
 
 final getIt = GetIt.instance;
@@ -178,6 +179,14 @@ void registerUseCasesAndBlocs() {
   );
 
   // ============================================================
+  // 6b. РЕГИСТРАЦИЯ USE CASE SyncEventToPersonUseCase (обратная
+  // синхронизация: событие birth/death -> Person.birthDate/deathDate)
+  // ============================================================
+  registerFactoryIfNotRegistered<SyncEventToPersonUseCase>(
+    () => SyncEventToPersonUseCase(getIt<PersonRepository>()),
+  );
+
+  // ============================================================
   // 7. ПОЛУЧАЕМ РЕПОЗИТОРИИ ИЗ КОНТЕЙНЕРА
   // ============================================================
   final PersonRepository personRepo = getIt<PersonRepository>();
@@ -276,7 +285,7 @@ void registerUseCasesAndBlocs() {
   // 12. РЕГИСТРАЦИЯ USE CASES ДЛЯ EVENT
   // ============================================================
   registerFactoryIfNotRegistered<AddEventUseCase>(
-    () => AddEventUseCase(eventRepo),
+    () => AddEventUseCase(eventRepo, getIt<SyncEventToPersonUseCase>()),
   );
 
   registerFactoryIfNotRegistered<GetEventsByPersonUseCase>(
@@ -288,11 +297,11 @@ void registerUseCasesAndBlocs() {
   );
 
   registerFactoryIfNotRegistered<UpdateEventUseCase>(
-    () => UpdateEventUseCase(eventRepo),
+    () => UpdateEventUseCase(eventRepo, getIt<SyncEventToPersonUseCase>()),
   );
 
   registerFactoryIfNotRegistered<DeleteEventUseCase>(
-    () => DeleteEventUseCase(eventRepo),
+    () => DeleteEventUseCase(eventRepo, getIt<SyncEventToPersonUseCase>()),
   );
 
   registerFactoryIfNotRegistered<DeleteAllPersonEventsUseCase>(

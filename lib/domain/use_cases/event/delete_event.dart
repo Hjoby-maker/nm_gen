@@ -3,11 +3,13 @@ import 'package:dartz/dartz.dart';
 import 'package:nm_gen/core/errors/failures.dart';
 import 'package:nm_gen/domain/entities/event.dart';
 import 'package:nm_gen/domain/repositories/event_repository.dart';
+import 'package:nm_gen/domain/use_cases/event/sync_event_to_person.dart';
 
 /// Use Case: Удаление события
 class DeleteEventUseCase {
-  DeleteEventUseCase(this._repository);
+  DeleteEventUseCase(this._repository, this._syncEventToPersonUseCase);
   final EventRepository _repository;
+  final SyncEventToPersonUseCase _syncEventToPersonUseCase;
 
   Future<Either<Failure, Event?>> execute(String eventId) async {
     try {
@@ -18,6 +20,13 @@ class DeleteEventUseCase {
       // Получаем событие перед удалением, чтобы вернуть его ID
       final event = await _repository.getEvent(eventId);
       await _repository.deleteEvent(eventId);
+
+      // Если удалили именно событие рождения/смерти - соответствующая
+      // дата у человека тоже больше не актуальна и должна быть очищена,
+      // иначе в карточке останется "призрачная" дата без события.
+      if (event != null) {
+        await _syncEventToPersonUseCase.executeOnDelete(event);
+      }
 
       return Right(event);
     } catch (e) {
