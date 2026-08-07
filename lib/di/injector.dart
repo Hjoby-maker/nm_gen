@@ -331,7 +331,16 @@ void registerUseCasesAndBlocs() {
   final deleteEventUseCase = getIt<DeleteEventUseCase>();
   final deleteAllPersonEventsUseCase = getIt<DeleteAllPersonEventsUseCase>();
 
-  registerFactoryIfNotRegistered<PersonBloc>(
+  // ⚠️ Person/Family/Tree блоки регистрируем как LazySingleton, а НЕ Factory.
+  // Эти блоки живут на уровне MainScreen и раздаются вниз через
+  // BlocProvider.value сразу нескольким экранам, которые остаются
+  // смонтированными в IndexedStack. Если бы это был Factory, каждый
+  // getIt<PersonBloc>() (в т.ч. повторный вызов внутри самих экранов)
+  // создавал бы новый независимый инстанс со своим стримом состояний —
+  // и изменения на одном экране не были бы видны остальным. LazySingleton
+  // гарантирует, что все части приложения работают с одним и тем же
+  // инстансом блока.
+  registerLazySingletonIfNotRegistered<PersonBloc>(
     () => PersonBloc(
       getAllPersonsUseCase: getAllPersonsUseCase,
       addPersonUseCase: addPersonUseCase,
@@ -343,9 +352,9 @@ void registerUseCasesAndBlocs() {
     ),
   );
 
-  registerFactoryIfNotRegistered<TreeBloc>(() => TreeBloc());
+  registerLazySingletonIfNotRegistered<TreeBloc>(() => TreeBloc());
 
-  registerFactoryIfNotRegistered<FamilyBloc>(
+  registerLazySingletonIfNotRegistered<FamilyBloc>(
     () => FamilyBloc(
       getFamiliesByPersonUseCase: getFamiliesByPersonUseCase,
       getFamilyWithDetailsUseCase: getFamilyWithDetailsUseCase,

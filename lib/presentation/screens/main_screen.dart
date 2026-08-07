@@ -2,12 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nm_gen/di/injector.dart';
 import 'package:nm_gen/domain/entities/project.dart';
+import 'package:nm_gen/presentation/blocs/family/family_bloc.dart';
+import 'package:nm_gen/presentation/blocs/family/family_event.dart';
+import 'package:nm_gen/presentation/blocs/family/family_state.dart';
 import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
 import 'package:nm_gen/presentation/blocs/person/person_event.dart';
+import 'package:nm_gen/presentation/blocs/person/person_state.dart';
 import 'package:nm_gen/presentation/blocs/project/project_bloc.dart';
 import 'package:nm_gen/presentation/blocs/project/project_event.dart';
 import 'package:nm_gen/presentation/blocs/project/project_state.dart';
 import 'package:nm_gen/presentation/blocs/tree/tree_bloc.dart';
+import 'package:nm_gen/presentation/blocs/tree/tree_event.dart';
 import 'package:nm_gen/presentation/screens/all_families_screen.dart';
 import 'package:nm_gen/presentation/screens/export_gedcom_screen.dart';
 import 'package:nm_gen/presentation/screens/import_gedcom_screen.dart';
@@ -31,6 +36,7 @@ class _MainScreenState extends State<MainScreen> {
 
   late final ProjectBloc _projectBloc;
   late final PersonBloc _personBloc;
+  late final FamilyBloc _familyBloc;
   late final TreeBloc _treeBloc;
   late List<Widget> _screens;
 
@@ -39,12 +45,20 @@ class _MainScreenState extends State<MainScreen> {
     super.initState();
     _projectBloc = getIt<ProjectBloc>();
     _personBloc = getIt<PersonBloc>();
+    _familyBloc = getIt<FamilyBloc>();
     _treeBloc = getIt<TreeBloc>();
 
     _projectBloc.add(LoadProjectsEvent());
     _personBloc.add(LoadPersonsEvent(treeId: _selectedTreeId));
 
     _buildScreens();
+  }
+
+  /// Перезагружает древо для текущего выбранного проекта.
+  /// TreeScreenWrapper всегда открывает дерево с пустым rootPersonId
+  /// (показ всего древа целиком), поэтому и здесь перезагружаем так же.
+  void _reloadTree() {
+    _treeBloc.add(LoadTreeEvent('', treeId: _selectedTreeId));
   }
 
   /// Создает экраны с текущим treeId
@@ -107,6 +121,8 @@ class _MainScreenState extends State<MainScreen> {
     _selectedTreeName = treeName;
 
     _personBloc.add(LoadPersonsEvent(treeId: treeId));
+    _familyBloc.add(LoadAllFamiliesEvent(treeId: treeId));
+    _treeBloc.add(LoadTreeEvent('', treeId: treeId));
     _buildScreens();
 
     setState(() {});
@@ -127,9 +143,38 @@ class _MainScreenState extends State<MainScreen> {
       providers: [
         BlocProvider.value(value: _projectBloc),
         BlocProvider.value(value: _personBloc),
+        BlocProvider.value(value: _familyBloc),
         BlocProvider.value(value: _treeBloc),
       ],
-      child: Scaffold(
+      // ✅ Кросс-обновление экранов.
+      // Экраны (Persons/Families/Tree) остаются смонтированными в
+      // IndexedStack и раньше обновляли только свой собственный блок.
+      // Теперь при успешной операции в PersonBloc (добавили/изменили/
+      // удалили человека) перезагружаем FamilyBloc и TreeBloc - список
+      // семей и структура древа зависят от списка людей. При успешной
+      // операции в FamilyBloc (создали/изменили/удалили семью, добавили/
+      // убрали ребёнка) перезагружаем TreeBloc - структура древа строится
+      // из семей. Список людей от операций с семьёй не меняется, поэтому
+      // PersonBloc в этом случае не трогаем.
+      child: MultiBlocListener(
+        listeners: [
+          BlocListener<PersonBloc, PersonState>(
+            listenWhen: (previous, current) =>
+                current is PersonOperationSuccess,
+            listener: (context, state) {
+              _familyBloc.add(LoadAllFamiliesEvent(treeId: _selectedTreeId));
+              _reloadTree();
+            },
+          ),
+          BlocListener<FamilyBloc, FamilyState>(
+            listenWhen: (previous, current) =>
+                current is FamilyOperationSuccess,
+            listener: (context, state) {
+              _reloadTree();
+            },
+          ),
+        ],
+        child: Scaffold(
         appBar: AppBar(
           title: Row(
             children: [
@@ -231,7 +276,8 @@ class _MainScreenState extends State<MainScreen> {
             ),
           ],
         ),
-      ),
+      ), // Scaffold
+      ), // MultiBlocListener
     );
   }
 
