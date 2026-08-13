@@ -1,3 +1,4 @@
+// lib/data/datasources/local/person_local_datasource.dart
 import 'package:injectable/injectable.dart';
 import 'package:nm_gen/data/datasources/local/database/db_helper.dart';
 import 'package:nm_gen/data/datasources/local/database/person_model.dart';
@@ -44,6 +45,32 @@ class PersonLocalDataSource {
     } else {
       maps = await db.query(
         'persons',
+        orderBy: 'last_name ASC, first_name ASC',
+      );
+    }
+
+    return maps
+        .map((Map<String, dynamic> map) => PersonModel.fromMap(map))
+        .toList();
+  }
+
+  /// Получить избранных людей (с фильтром по treeId) <-- ДОБАВЛЯЕМ
+  Future<List<PersonModel>> getFavoritePersons({String? treeId}) async {
+    final Database db = await dbHelper.database;
+
+    final List<Map<String, dynamic>> maps;
+
+    if (treeId != null && treeId.isNotEmpty) {
+      maps = await db.query(
+        'persons',
+        where: 'tree_id = ? AND is_favorite = 1',
+        whereArgs: <Object?>[treeId],
+        orderBy: 'last_name ASC, first_name ASC',
+      );
+    } else {
+      maps = await db.query(
+        'persons',
+        where: 'is_favorite = 1',
         orderBy: 'last_name ASC, first_name ASC',
       );
     }
@@ -115,6 +142,37 @@ class PersonLocalDataSource {
         .toList();
   }
 
+  /// Поиск избранных людей по запросу (с фильтром по treeId) <-- ДОБАВЛЯЕМ
+  Future<List<PersonModel>> searchFavoritePersons(
+    String query, {
+    String? treeId,
+  }) async {
+    final Database db = await dbHelper.database;
+
+    final List<Map<String, dynamic>> maps;
+
+    if (treeId != null && treeId.isNotEmpty) {
+      maps = await db.query(
+        'persons',
+        where:
+            'tree_id = ? AND is_favorite = 1 AND (first_name LIKE ? OR last_name LIKE ?)',
+        whereArgs: <Object?>[treeId, '%$query%', '%$query%'],
+        orderBy: 'last_name ASC, first_name ASC',
+      );
+    } else {
+      maps = await db.query(
+        'persons',
+        where: 'is_favorite = 1 AND (first_name LIKE ? OR last_name LIKE ?)',
+        whereArgs: <Object?>['%$query%', '%$query%'],
+        orderBy: 'last_name ASC, first_name ASC',
+      );
+    }
+
+    return maps
+        .map((Map<String, dynamic> map) => PersonModel.fromMap(map))
+        .toList();
+  }
+
   /// Получить людей по списку ID (с фильтром по treeId)
   Future<List<PersonModel>> getPersonsByIds(
     List<String> ids, {
@@ -162,6 +220,29 @@ class PersonLocalDataSource {
     }
 
     // Безопасное получение значения
+    if (result.isNotEmpty && result.first.containsKey('count')) {
+      return result.first['count'] as int? ?? 0;
+    }
+    return 0;
+  }
+
+  /// Получить количество избранных людей в древе <-- ДОБАВЛЯЕМ
+  Future<int> getFavoritePersonsCount({String? treeId}) async {
+    final Database db = await dbHelper.database;
+
+    final List<Map<String, dynamic>> result;
+
+    if (treeId != null && treeId.isNotEmpty) {
+      result = await db.rawQuery(
+        'SELECT COUNT(*) as count FROM persons WHERE tree_id = ? AND is_favorite = 1',
+        <String>[treeId],
+      );
+    } else {
+      result = await db.rawQuery(
+        'SELECT COUNT(*) as count FROM persons WHERE is_favorite = 1',
+      );
+    }
+
     if (result.isNotEmpty && result.first.containsKey('count')) {
       return result.first['count'] as int? ?? 0;
     }

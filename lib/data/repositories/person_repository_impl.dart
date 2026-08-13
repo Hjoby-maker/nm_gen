@@ -29,6 +29,13 @@ class PersonRepositoryImpl implements PersonRepository {
   }
 
   @override
+  Future<List<Person>> getFavoritePersons({String? treeId}) async {
+    // <-- ДОБАВЛЯЕМ
+    final models = await localDataSource.getFavoritePersons(treeId: treeId);
+    return models.map((model) => model.toDomain()).toList();
+  }
+
+  @override
   Future<Person> updatePerson(Person person) async {
     final PersonModel model = PersonModel.fromDomain(person);
     final PersonModel updatedModel = await localDataSource.updatePerson(model);
@@ -58,6 +65,20 @@ class PersonRepositoryImpl implements PersonRepository {
   }
 
   @override
+  Future<List<Person>> searchFavoritePersons(
+    String query, {
+    String? treeId,
+  }) async {
+    // <-- ДОБАВЛЯЕМ
+    if (query.isEmpty) {
+      return getFavoritePersons(treeId: treeId);
+    }
+    final List<PersonModel> models = await localDataSource
+        .searchFavoritePersons(query, treeId: treeId);
+    return models.map((model) => model.toDomain()).toList();
+  }
+
+  @override
   Future<List<Person>> getPersonsByIds(
     List<String> ids, {
     String? treeId,
@@ -73,5 +94,11 @@ class PersonRepositoryImpl implements PersonRepository {
   @override
   Future<int> getPersonsCount({String? treeId}) async {
     return await localDataSource.getPersonsCount(treeId: treeId);
+  }
+
+  @override
+  Future<int> getFavoritePersonsCount({String? treeId}) async {
+    // <-- ДОБАВЛЯЕМ
+    return await localDataSource.getFavoritePersonsCount(treeId: treeId);
   }
 }

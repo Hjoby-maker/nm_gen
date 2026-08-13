@@ -41,6 +41,8 @@ import 'package:nm_gen/presentation/blocs/media/media_bloc.dart';
 import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
 import 'package:nm_gen/presentation/blocs/project/project_bloc.dart';
 import 'package:nm_gen/presentation/blocs/tree/tree_bloc.dart';
+import 'package:nm_gen/domain/use_cases/person/get_favorite_persons.dart';
+import 'package:nm_gen/domain/use_cases/person/search_favorite_persons.dart';
 // Импорты Use Cases для Event
 import 'package:nm_gen/domain/use_cases/event/add_event.dart';
 import 'package:nm_gen/domain/use_cases/event/get_events_by_person.dart';
@@ -209,6 +211,14 @@ void registerUseCasesAndBlocs() {
     () => GetAllPersonsUseCase(personRepo),
   );
 
+  registerFactoryIfNotRegistered<GetFavoritePersonsUseCase>(
+    () => GetFavoritePersonsUseCase(personRepo),
+  );
+
+  registerFactoryIfNotRegistered<SearchFavoritePersonsUseCase>(
+    () => SearchFavoritePersonsUseCase(personRepo),
+  );
+
   registerFactoryIfNotRegistered<UpdatePersonUseCase>(
     () => UpdatePersonUseCase(personRepo, getIt<SyncPersonEventsUseCase>()),
   );
@@ -312,10 +322,12 @@ void registerUseCasesAndBlocs() {
   // 13. РЕГИСТРАЦИЯ BLOC
   // ============================================================
   final getAllPersonsUseCase = getIt<GetAllPersonsUseCase>();
+  final getFavoritePersonsUseCase = getIt<GetFavoritePersonsUseCase>();
   final addPersonUseCase = getIt<AddPersonUseCase>();
   final updatePersonUseCase = getIt<UpdatePersonUseCase>();
   final deletePersonUseCase = getIt<DeletePersonUseCase>();
   final searchPersonsUseCase = getIt<SearchPersonsUseCase>();
+  final searchFavoritePersonsUseCase = getIt<SearchFavoritePersonsUseCase>();
   final getFamiliesByPersonUseCase = getIt<GetFamiliesByPersonUseCase>();
   final getFamilyWithDetailsUseCase = getIt<GetFamilyWithDetailsUseCase>();
   final addFamilyUseCase = getIt<AddFamilyUseCase>();
@@ -343,10 +355,12 @@ void registerUseCasesAndBlocs() {
   registerLazySingletonIfNotRegistered<PersonBloc>(
     () => PersonBloc(
       getAllPersonsUseCase: getAllPersonsUseCase,
+      getFavoritePersonsUseCase: getFavoritePersonsUseCase,
       addPersonUseCase: addPersonUseCase,
       updatePersonUseCase: updatePersonUseCase,
       deletePersonUseCase: deletePersonUseCase,
       searchPersonsUseCase: searchPersonsUseCase,
+      searchFavoritePersonsUseCase: searchFavoritePersonsUseCase,
       familyRepository: familyRepo,
       personRepository: personRepo,
     ),

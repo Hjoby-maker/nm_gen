@@ -1,3 +1,4 @@
+// lib/presentation/blocs/person/person_state.dart
 import 'package:equatable/equatable.dart';
 import 'package:nm_gen/domain/entities/person.dart';
 
@@ -21,19 +22,22 @@ class PersonsLoaded extends PersonState {
     required this.persons,
     this.isSearching = false,
     this.searchQuery,
-    this.treeId, // <-- ДОБАВЛЯЕМ
+    this.treeId,
+    this.onlyFavorites = false, // <-- ДОБАВЛЯЕМ
   });
   final List<Person> persons;
   final bool isSearching;
   final String? searchQuery;
-  final String? treeId; // <-- ДОБАВЛЯЕМ
+  final String? treeId;
+  final bool onlyFavorites; // <-- ДОБАВЛЯЕМ
 
   @override
   List<Object?> get props => <Object?>[
     persons,
     isSearching,
     searchQuery,
-    treeId, // <-- ДОБАВЛЯЕМ
+    treeId,
+    onlyFavorites, // <-- ДОБАВЛЯЕМ
   ];
 }
 

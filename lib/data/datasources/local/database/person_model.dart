@@ -20,6 +20,7 @@ class PersonModel {
     this.photoPath,
     required this.createdAt,
     required this.updatedAt,
+    this.isFavorite = 0,
   });
 
   /// Конвертация из Domain Entity
@@ -41,6 +42,7 @@ class PersonModel {
       photoPath: person.photoPath,
       createdAt: person.createdAt.millisecondsSinceEpoch,
       updatedAt: person.updatedAt.millisecondsSinceEpoch,
+      isFavorite: person.isFavorite ? 1 : 0,
     );
   }
 
@@ -63,6 +65,7 @@ class PersonModel {
       photoPath: map['photo_path'] as String?,
       createdAt: map['created_at'] as int,
       updatedAt: map['updated_at'] as int,
+      isFavorite: (map['is_favorite'] as int? ?? 0),
     );
   }
   final String id;
@@ -81,6 +84,7 @@ class PersonModel {
   final String? photoPath;
   final int createdAt;
   final int updatedAt;
+  final int isFavorite;
 
   /// Конвертация в Domain Entity
   Person toDomain() {
@@ -108,6 +112,7 @@ class PersonModel {
       photoPath: photoPath,
       createdAt: DateTime.fromMillisecondsSinceEpoch(createdAt),
       updatedAt: DateTime.fromMillisecondsSinceEpoch(updatedAt),
+      isFavorite: isFavorite == 1,
     );
   }
 
@@ -130,6 +135,7 @@ class PersonModel {
       'photo_path': photoPath,
       'created_at': createdAt,
       'updated_at': updatedAt,
+      'is_favorite': isFavorite,
     };
   }
 }

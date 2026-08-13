@@ -1,3 +1,4 @@
+// lib/presentation/blocs/person/person_event.dart
 import 'package:equatable/equatable.dart';
 import 'package:nm_gen/domain/entities/person.dart';
 
@@ -13,11 +14,15 @@ abstract class PersonEvent extends Equatable {
 }
 
 class LoadPersonsEvent extends PersonEvent {
-  const LoadPersonsEvent({this.treeId});
+  const LoadPersonsEvent({
+    this.treeId,
+    this.onlyFavorites = false, // <-- Убедитесь, что этот параметр есть
+  });
   final String? treeId;
+  final bool onlyFavorites;
 
   @override
-  List<Object?> get props => <Object?>[treeId];
+  List<Object?> get props => <Object?>[treeId, onlyFavorites];
 }
 
 class AddPersonEvent extends PersonEvent {
@@ -56,12 +61,17 @@ class DeleteAllPersonsEvent extends PersonEvent {
 }
 
 class SearchPersonsEvent extends PersonEvent {
-  const SearchPersonsEvent(this.query, {this.treeId});
+  const SearchPersonsEvent(
+    this.query, {
+    this.treeId,
+    this.onlyFavorites = false,
+  });
   final String query;
   final String? treeId;
+  final bool onlyFavorites;
 
   @override
-  List<Object?> get props => <Object?>[query, treeId];
+  List<Object?> get props => <Object?>[query, treeId, onlyFavorites];
 }
 
 class ClearSearchEvent extends PersonEvent {
@@ -75,4 +85,16 @@ class SelectPersonEvent extends PersonEvent {
 
   @override
   List<Object?> get props => <Object?>[personId, treeId];
+}
+
+class ToggleFavoriteEvent extends PersonEvent {
+  const ToggleFavoriteEvent(this.person);
+  final Person person;
+
+  @override
+  List<Object?> get props => <Object?>[person];
+}
+
+class ToggleShowFavoritesEvent extends PersonEvent {
+  const ToggleShowFavoritesEvent();
 }

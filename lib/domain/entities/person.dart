@@ -21,6 +21,7 @@ class Person extends Equatable {
     this.photoPath,
     required this.createdAt,
     required this.updatedAt,
+    this.isFavorite = false,
   });
 
   /// Создать нового человека с автоматической генерацией ID
@@ -38,6 +39,7 @@ class Person extends Equatable {
     String? biography,
     List<String>? photoUrls,
     String? photoPath,
+    bool isFavorite = false,
   }) {
     final DateTime now = DateTime.now();
     return Person(
@@ -57,6 +59,7 @@ class Person extends Equatable {
       photoPath: photoPath,
       createdAt: now,
       updatedAt: now,
+      isFavorite: isFavorite,
     );
   }
 
@@ -76,6 +79,7 @@ class Person extends Equatable {
   final String? photoPath;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final bool isFavorite;
 
   /// Полное имя (Фамилия Имя Отчество)
   String get fullName {
@@ -165,6 +169,7 @@ class Person extends Equatable {
     List<String>? photoUrls,
     String? photoPath,
     DateTime? updatedAt,
+    bool? isFavorite,
   }) {
     return Person(
       id: id ?? this.id,
@@ -183,6 +188,7 @@ class Person extends Equatable {
       photoPath: photoPath ?? this.photoPath,
       createdAt: createdAt,
       updatedAt: updatedAt ?? DateTime.now(),
+      isFavorite: isFavorite ?? this.isFavorite,
     );
   }
 
@@ -204,6 +210,7 @@ class Person extends Equatable {
     photoPath,
     createdAt,
     updatedAt,
+    isFavorite,
   ];
 
   /// Пустой человек (для начального состояния)
@@ -215,5 +222,6 @@ class Person extends Equatable {
     gender: Gender.unknown,
     createdAt: DateTime.now(),
     updatedAt: DateTime.now(),
+    isFavorite: false,
   );
 }

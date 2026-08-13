@@ -4,6 +4,7 @@ abstract class PersonRepository {
   Future<Person> addPerson(Person person);
   Future<Person?> getPerson(String id);
   Future<List<Person>> getAllPersons({String? treeId}); // <-- ДОБАВЛЯЕМ
+  Future<List<Person>> getFavoritePersons({String? treeId});
   Future<Person> updatePerson(Person person);
   Future<void> deletePerson(String id);
   Future<void> deleteAllPersons({String? treeId}); // <-- ДОБАВЛЯЕМ
@@ -11,9 +12,11 @@ abstract class PersonRepository {
     String query, {
     String? treeId,
   }); // <-- ДОБАВЛЯЕМ
+  Future<List<Person>> searchFavoritePersons(String query, {String? treeId});
   Future<List<Person>> getPersonsByIds(
     List<String> ids, {
     String? treeId,
   }); // <-- ДОБАВЛЯЕМ
   Future<int> getPersonsCount({String? treeId}); // <-- ДОБАВЛЯЕМ
+  Future<int> getFavoritePersonsCount({String? treeId});
 }

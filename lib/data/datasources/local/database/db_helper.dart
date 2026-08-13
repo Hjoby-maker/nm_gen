@@ -74,7 +74,8 @@ class DatabaseHelper {
         photo_urls TEXT,
         photo_path TEXT,
         created_at INTEGER NOT NULL,
-        updated_at INTEGER NOT NULL
+        updated_at INTEGER NOT NULL,
+        is_favorite INTEGER DEFAULT 0
       )
     ''');
 
@@ -307,7 +308,9 @@ class DatabaseHelper {
           await _migrateMediaAttachmentsToV8(db);
         }
       } catch (e) {
-        print('⚠️ Ошибка миграции media_attachments (source/nullable local_path): $e');
+        print(
+          '⚠️ Ошибка миграции media_attachments (source/nullable local_path): $e',
+        );
       }
     }
   }
