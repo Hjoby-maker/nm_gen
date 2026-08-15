@@ -11,6 +11,7 @@ class TreeNode extends Equatable {
     this.isCenter = false, // <-- По умолчанию false
     this.generation = 0,
     this.isDuplicateReference = false,
+    this.isDivorced = false,
   });
   final Person person;
   final List<TreeNode> children;
@@ -26,6 +27,12 @@ class TreeNode extends Equatable {
   /// карточка без собственных детей - полная версия уже отрисована в другом
   /// месте.
   final bool isDuplicateReference;
+
+  /// true, если брак между основным человеком и ЭТИМ супругом расторгнут
+  /// (Family.divorceDate != null). Имеет смысл только когда узел находится
+  /// внутри чужого списка spouses - у "основного" узла в каждой конкретной
+  /// семье это поле не используется.
+  final bool isDivorced;
 
   bool get isLeaf => children.isEmpty;
 
@@ -47,6 +54,7 @@ class TreeNode extends Equatable {
     bool? isCenter,
     int? generation,
     bool? isDuplicateReference,
+    bool? isDivorced,
   }) {
     return TreeNode(
       person: person ?? this.person,
@@ -56,6 +64,7 @@ class TreeNode extends Equatable {
       isCenter: isCenter ?? this.isCenter,
       generation: generation ?? this.generation,
       isDuplicateReference: isDuplicateReference ?? this.isDuplicateReference,
+      isDivorced: isDivorced ?? this.isDivorced,
     );
   }
 
@@ -68,5 +77,6 @@ class TreeNode extends Equatable {
     isCenter,
     generation,
     isDuplicateReference,
+    isDivorced,
   ];
 }

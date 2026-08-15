@@ -131,6 +131,11 @@ class GetFullTreeUseCase {
                   spouses: const [],
                   isRoot: false,
                   isCenter: spouseId == selectedPersonId,
+                  // Дата развода хранится на конкретной Family, а не на
+                  // человеке - `family` здесь как раз та семья, из которой
+                  // взят этот супруг, поэтому её divorceDate и определяет
+                  // статус именно этого брака.
+                  isDivorced: family.divorceDate != null,
                 ),
               );
             }

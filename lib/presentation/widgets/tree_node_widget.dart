@@ -74,6 +74,13 @@ class TreeNodeWidget extends StatelessWidget {
       borderColor = Colors.orange.shade400;
       backgroundColor = Colors.orange.shade50;
       borderWidth = 1.5;
+    } else if (!person.isAlive) {
+      // Умерший человек - приглушаем карточку серым, чтобы это было видно
+      // на любом уровне детализации (не только по надписи "ум. ..." на
+      // полном уровне, которая на minimal/medium вообще не показывается).
+      borderColor = Colors.grey.shade400;
+      backgroundColor = Colors.grey.shade200;
+      borderWidth = 1.5;
     }
 
     return GestureDetector(
@@ -96,26 +103,33 @@ class TreeNodeWidget extends StatelessWidget {
           ],
         ),
         padding: EdgeInsets.all(padding),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            _buildAvatar(context, avatarRadius, iconSize),
-            SizedBox(width: gap),
-            Flexible(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: _buildTextContent(
-                  person: person,
-                  isMinimal: isMinimal,
-                  isFull: isFull,
-                  nameFontSize: nameFontSize,
-                  dateFontSize: dateFontSize,
+        child: Opacity(
+          // ⚠️ Opacity, а не серый цвет для аватара/текста по отдельности -
+          // так приглушается сразу всё содержимое (иконка пола на аватаре,
+          // имя, даты) одним параметром, независимо от detailLevel, вместо
+          // того чтобы точечно перекрашивать каждый Text/Icon.
+          opacity: person.isAlive ? 1.0 : 0.6,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _buildAvatar(context, avatarRadius, iconSize),
+              SizedBox(width: gap),
+              Flexible(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: _buildTextContent(
+                    person: person,
+                    isMinimal: isMinimal,
+                    isFull: isFull,
+                    nameFontSize: nameFontSize,
+                    dateFontSize: dateFontSize,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

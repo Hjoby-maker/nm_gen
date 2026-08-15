@@ -6,6 +6,18 @@ import 'package:nm_gen/presentation/widgets/tree_node_widget.dart';
 import 'package:nm_gen/presentation/screens/tree_screen.dart';
 
 /// Виджет для визуализации генеалогического древа.
+///
+/// ⚠️ Раньше дерево строилось вложенными Row/Column ("виджет-композицией").
+/// У этого подхода два системных недостатка, из-за которых дерево иногда
+/// выглядело сломанным:
+///   1. Между родителем и рядом детей рисовалась одна вертикальная палочка
+///      без разветвления к каждому ребёнку — при 3+ детях связь читалась
+///      плохо или пропадала визуально.
+///   2. Row выравнивает карточки по центру строки. Если у одного ребёнка
+///      нет потомков, а у другого — большое поддерево, их "строки"
+///      получали разную высоту, и карточки одного поколения съезжали по
+///      вертикали друг относительно друга.
+///
 /// Теперь дерево сначала полностью раскладывается в абсолютные координаты
 /// (_TreeLayoutEngine): для каждого узла заранее вычисляется (x, y), где
 /// y = уровень поколения * фиксированная высота строки — поэтому все узлы
@@ -88,15 +100,19 @@ class TreeVisualizer extends StatelessWidget {
                   ),
                 ),
               ),
-            // Иконки брака поверх линии коннектора между супругами.
-            for (final Offset center in layout.marriageMarkers)
+            // Иконки брака поверх линии коннектора между супругами:
+            // разбитое сердце для расторгнутых браков (Family.divorceDate
+            // != null), обычное - для действующих.
+            for (final _MarriageMarker marker in layout.marriageMarkers)
               Positioned(
-                left: center.dx - 8,
-                top: center.dy - 8,
+                left: marker.center.dx - 8,
+                top: marker.center.dy - 8,
                 child: Icon(
-                  Icons.favorite,
+                  marker.isDivorced ? Icons.heart_broken : Icons.favorite,
                   size: 16,
-                  color: Colors.pink.shade300,
+                  color: marker.isDivorced
+                      ? Colors.grey.shade500
+                      : Colors.pink.shade300,
                 ),
               ),
             // Сами карточки людей — позиционированы абсолютно, поэтому все
@@ -215,13 +231,23 @@ class _ChildCountLabel {
   });
 }
 
+/// Иконка брака между двумя соседними карточками супругов. [isDivorced]
+/// решает, рисовать целое сердце (действующий брак) или разбитое
+/// (Family.divorceDate != null - брак расторгнут), см. TreeNode.isDivorced.
+class _MarriageMarker {
+  final Offset center;
+  final bool isDivorced;
+
+  const _MarriageMarker({required this.center, required this.isDivorced});
+}
+
 /// Результат раскладки одного поддерева в локальных координатах, где
 /// x всегда начинается с 0.
 class _SubtreeLayout {
   final double width;
   final List<_PositionedCard> cards;
   final List<_Edge> edges;
-  final List<Offset> marriageMarkers;
+  final List<_MarriageMarker> marriageMarkers;
   final List<_ChildCountLabel> childCountLabels;
 
   /// x-координата (локальная) точки, к которой должен подключаться
@@ -248,7 +274,14 @@ class _SubtreeLayout {
           .map((c) => _PositionedCard(c.node, shift(c.offset), c.isRoot))
           .toList(),
       edges: edges.map((e) => _Edge(shift(e.from), shift(e.to))).toList(),
-      marriageMarkers: marriageMarkers.map(shift).toList(),
+      marriageMarkers: marriageMarkers
+          .map(
+            (m) => _MarriageMarker(
+              center: shift(m.center),
+              isDivorced: m.isDivorced,
+            ),
+          )
+          .toList(),
       childCountLabels: childCountLabels
           .map(
             (l) => _ChildCountLabel(
@@ -269,7 +302,7 @@ class _TreeLayout {
   final Size size;
   final List<_PositionedCard> cards;
   final List<_Edge> edges;
-  final List<Offset> marriageMarkers;
+  final List<_MarriageMarker> marriageMarkers;
   final List<_ChildCountLabel> childCountLabels;
 
   _TreeLayout({
@@ -329,7 +362,7 @@ class _TreeLayoutEngine {
     double cursor = 0;
     final List<_PositionedCard> cards = [];
     final List<_Edge> edges = [];
-    final List<Offset> markers = [];
+    final List<_MarriageMarker> markers = [];
     final List<_ChildCountLabel> labels = [];
 
     for (final layout in layouts) {
@@ -388,7 +421,7 @@ class _TreeLayoutEngine {
     double cursor = (subtreeWidth - childrenTotalWidth) / 2;
     final List<_PositionedCard> cards = [];
     final List<_Edge> edges = [];
-    final List<Offset> markers = [];
+    final List<_MarriageMarker> markers = [];
     final List<_ChildCountLabel> labels = [];
     final List<Offset> childConnectPoints = [];
 
@@ -480,7 +513,7 @@ class _TreeLayoutEngine {
     bool isRoot,
   ) {
     final List<_PositionedCard> cards = [];
-    final List<Offset> markers = [];
+    final List<_MarriageMarker> markers = [];
     final double unitWidth =
         parents.length * metrics.cardWidth +
         (parents.length - 1) * metrics.spouseGap;
@@ -493,7 +526,15 @@ class _TreeLayoutEngine {
       final double xA =
           i * (metrics.cardWidth + metrics.spouseGap) + metrics.cardWidth;
       final double xB = (i + 1) * (metrics.cardWidth + metrics.spouseGap);
-      markers.add(Offset((xA + xB) / 2, y + metrics.cardHeight / 2));
+      // parents = [primary, ...primary.spouses], поэтому parents[i + 1]
+      // всегда сам супруг - именно на нём (а не на primary) хранится
+      // isDivorced для брака между ним и primary, см. TreeNode.isDivorced.
+      markers.add(
+        _MarriageMarker(
+          center: Offset((xA + xB) / 2, y + metrics.cardHeight / 2),
+          isDivorced: parents[i + 1].isDivorced,
+        ),
+      );
     }
 
     return _SubtreeLayout(
