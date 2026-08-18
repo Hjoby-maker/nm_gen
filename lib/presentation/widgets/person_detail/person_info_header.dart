@@ -1,8 +1,12 @@
 // lib/presentation/widgets/person_detail/person_info_header.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nm_gen/core/enums/gender.dart';
 import 'package:nm_gen/core/utils/date_formatters.dart';
 import 'package:nm_gen/domain/entities/person.dart';
+import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
+import 'package:nm_gen/presentation/blocs/person/person_event.dart';
+import 'package:nm_gen/presentation/widgets/favorite_icon.dart';
 import 'package:nm_gen/presentation/widgets/person_detail/person_avatar_picker.dart';
 
 /// Карточка с основной информацией о человеке: аватар (кликабельный,
@@ -34,13 +38,36 @@ class PersonInfoHeader extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    person.fullName,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    overflow: TextOverflow.ellipsis,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          person.fullName,
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      // Звездочка избранного на детальном экране
+                      AnimatedFavoriteIcon(
+                        isFavorite: person.isFavorite,
+                        size: 28,
+                        onTap: () {
+                          context.read<PersonBloc>().add(
+                            ToggleFavoriteEvent(person),
+                          );
+                          Future.delayed(const Duration(milliseconds: 200), () {
+                            if (context.mounted) {
+                              context.read<PersonBloc>().add(
+                                LoadPersonsEvent(treeId: person.treeId),
+                              );
+                            }
+                          });
+                        },
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   Wrap(
@@ -122,10 +149,6 @@ class PersonInfoHeader extends StatelessWidget {
                   ],
                   if (person.birthPlace != null) ...[
                     const SizedBox(height: 4),
-                    // Expanded требует прямого предка Row/Column/Flex - Wrap
-                    // для этого не подходит ("Incorrect use of
-                    // ParentDataWidget"). По смыслу это одна строка "иконка
-                    // + текст", а не переносимый поток элементов - Row.
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [

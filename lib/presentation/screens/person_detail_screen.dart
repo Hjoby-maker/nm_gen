@@ -72,25 +72,18 @@ class _PersonDetailScreenState extends State<PersonDetailScreen>
 
     final updatedState = _personBloc.state;
     if (updatedState is PersonsLoaded) {
+      final Person foundPerson = updatedState.persons.firstWhere(
+        (p) => p.id == widget.personId,
+        orElse: () => Person.empty(),
+      );
+
       setState(() {
-        _person = updatedState.persons.firstWhere(
-          (p) => p.id == widget.personId,
-          orElse: () => Person.empty(),
-        );
+        _person = foundPerson;
         _treeId = updatedState.treeId ?? 'default';
         _isLoading = false;
       });
 
       _eventBloc.add(LoadPersonEventsEvent(widget.personId, treeId: _treeId));
-      // ⚠️ Раньше здесь ещё был _mediaBloc.add(LoadPrimaryPortrait(...)).
-      // Он больше не нужен: PersonAvatar показывает фото из person.photoPath
-      // (см. BlocListener ниже), а не напрямую из состояния MediaBloc. Но
-      // этот вызов ВСЁ РАВНО обрабатывался - MediaBloc обрабатывает события
-      // строго последовательно, и он шёл СРАЗУ ПОСЛЕ LoadMediaForPerson,
-      // затирая MediaLoaded финальным состоянием PrimaryPortraitLoaded.
-      // Вкладка "Файлы" (MediaSection) слушает тот же самый MediaBloc и не
-      // знала, что делать с PrimaryPortraitLoaded - поэтому список файлов
-      // пропадал сразу после загрузки экрана. Именно это и было багом.
       _mediaBloc.add(LoadMediaForPerson(personId: widget.personId));
     } else {
       setState(() => _isLoading = false);
@@ -108,13 +101,6 @@ class _PersonDetailScreenState extends State<PersonDetailScreen>
       child: MultiBlocListener(
         listeners: [
           BlocListener<MediaBloc, MediaState>(
-            // ⚠️ PersonAvatar рисует фото из person.photoPath, а не из
-            // MediaBloc (и не может из него читать напрямую - тот же виджет
-            // используется в списках для разных людей одновременно, а у
-            // MediaBloc только одно текущее состояние на весь bloc). Поэтому
-            // здесь, как только основной портрет успешно сохранён или
-            // назначен, синхронизируем photoPath на самом Person - именно
-            // это поле PersonAvatar показывает везде в приложении.
             listener: (context, state) {
               MediaAttachment? updatedPortrait;
               if (state is MediaFileAdded && state.media.isPrimary) {
@@ -137,22 +123,6 @@ class _PersonDetailScreenState extends State<PersonDetailScreen>
             },
           ),
           BlocListener<EventBloc, EventState>(
-            // ⚠️ Дата рождения человека (а значит и возраст, который
-            // показывает PersonInfoHeader) может измениться не только через
-            // форму редактирования человека, но и напрямую через форму
-            // события "Рождение" на вкладке "Информация" (см.
-            // PersonEventsSection -> EventFormDialog). Бэкенд уже держит
-            // Person.birthDate в актуальном состоянии (SyncEventToPersonUseCase
-            // в AddEventUseCase/UpdateEventUseCase), но локальный _person в
-            // состоянии этого экрана - просто снимок, загруженный один раз в
-            // _loadData(), и сам по себе не обновится.
-            //
-            // EventBloc после добавления/обновления/удаления события сам
-            // диспатчит LoadPersonEventsEvent и эмитит EventsLoaded со
-            // свежим списком - слушаем именно это состояние и, если в новом
-            // списке есть (или пропало) событие типа "Рождение", подтягиваем
-            // его дату/место в локальный _person, чтобы возраст в шапке
-            // экрана обновился сразу же, без повторного открытия экрана.
             listener: (context, state) {
               if (state is! EventsLoaded || _person == null) return;
               if (state.treeId != null &&
@@ -180,10 +150,6 @@ class _PersonDetailScreenState extends State<PersonDetailScreen>
                   newBirthPlace != _person!.birthPlace;
               if (!changed) return;
 
-              // ⚠️ Person.copyWith не умеет сбрасывать поле в null
-              // (`value ?? this.value`) - если событие "Рождение" удалили,
-              // newBirthDate/newBirthPlace будут null и их нужно явно
-              // обнулить через прямой конструктор, а не copyWith.
               setState(() {
                 _person = Person(
                   id: _person!.id,
@@ -202,10 +168,12 @@ class _PersonDetailScreenState extends State<PersonDetailScreen>
                   photoPath: _person!.photoPath,
                   createdAt: _person!.createdAt,
                   updatedAt: DateTime.now(),
+                  isFavorite: _person!.isFavorite,
                 );
               });
             },
           ),
+          // УДАЛЯЕМ BlocListener<PersonBloc, PersonState> - он не нужен
         ],
         child: Scaffold(
           appBar: AppBar(
@@ -247,7 +215,42 @@ class _PersonDetailScreenState extends State<PersonDetailScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          PersonInfoHeader(person: _person!),
+          // Используем BlocBuilder для автоматического обновления
+          BlocBuilder<PersonBloc, PersonState>(
+            builder: (context, state) {
+              if (state is PersonsLoaded) {
+                final Person currentPerson = state.persons.firstWhere(
+                  (p) => p.id == widget.personId,
+                  orElse: () => _person ?? Person.empty(),
+                );
+
+                // Обновляем _person если он изменился
+                if (_person != null && currentPerson.id.isNotEmpty) {
+                  final bool hasChanged =
+                      currentPerson.isFavorite != _person!.isFavorite ||
+                      currentPerson.photoPath != _person!.photoPath ||
+                      currentPerson.birthDate != _person!.birthDate ||
+                      currentPerson.birthPlace != _person!.birthPlace ||
+                      currentPerson.firstName != _person!.firstName ||
+                      currentPerson.lastName != _person!.lastName;
+
+                  if (hasChanged) {
+                    // Используем WidgetsBinding для безопасного setState
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) {
+                        setState(() {
+                          _person = currentPerson;
+                        });
+                      }
+                    });
+                  }
+                }
+
+                return PersonInfoHeader(person: currentPerson);
+              }
+              return PersonInfoHeader(person: _person ?? Person.empty());
+            },
+          ),
           const SizedBox(height: 24),
           PersonEventsSection(
             personId: widget.personId,

@@ -1,6 +1,10 @@
 // lib/presentation/widgets/persons/person_list_tile.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nm_gen/domain/entities/person.dart';
+import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
+import 'package:nm_gen/presentation/blocs/person/person_event.dart';
+import 'package:nm_gen/presentation/widgets/favorite_icon.dart';
 import 'package:nm_gen/presentation/widgets/person_avatar.dart';
 
 /// Одна строка человека в списке (persons_screen.dart): свайп вправо -
@@ -56,7 +60,25 @@ class PersonListTile extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         child: ListTile(
           leading: PersonAvatar(person: person, radius: 25),
-          title: Text(person.displayName),
+          title: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  person.displayName,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              // Звездочка избранного
+              FavoriteIcon(
+                isFavorite: person.isFavorite,
+                size: 18,
+                onTap: () {
+                  // Переключаем избранное при клике на звездочку
+                  context.read<PersonBloc>().add(ToggleFavoriteEvent(person));
+                },
+              ),
+            ],
+          ),
           subtitle: Text(
             '${person.formattedAge} · ${person.occupation ?? 'Без профессии'}',
           ),
