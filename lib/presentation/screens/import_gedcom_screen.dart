@@ -54,7 +54,7 @@ class _ImportGedcomScreenState extends State<ImportGedcomScreen> {
       return Scaffold(
         appBar: AppBar(
           title: const Text('Импорт GEDCOM'),
-          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+          //backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         ),
         body: SingleChildScrollView(
           child: Padding(
@@ -230,7 +230,7 @@ class _ImportGedcomScreenState extends State<ImportGedcomScreen> {
       return Scaffold(
         appBar: AppBar(
           title: const Text('Импорт GEDCOM'),
-          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+          //backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         ),
         body: Center(
           child: Column(

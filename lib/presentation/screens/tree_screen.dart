@@ -73,19 +73,16 @@ class _TreeScreenState extends State<TreeScreen> {
       '$childPrefix   children: ${node.children.length}, spouses: ${node.spouses.length}',
     );
 
-    // Выводим детей
     for (int i = 0; i < node.children.length; i++) {
       final child = node.children[i];
       final bool isChildLast = i == node.children.length - 1;
       _debugPrintTree(child, prefix: prefix + childPrefix, isLast: isChildLast);
     }
 
-    // Выводим супругов
     for (int i = 0; i < node.spouses.length; i++) {
       final spouse = node.spouses[i];
       final bool isSpouseLast = i == node.spouses.length - 1;
       print('$prefix$childPrefix   ─── Супруг: ${spouse.person.displayName}');
-      // Рекурсивно показываем детей супруга
       for (int j = 0; j < spouse.children.length; j++) {
         final child = spouse.children[j];
         final bool isChildLast = j == spouse.children.length - 1;
@@ -103,7 +100,7 @@ class _TreeScreenState extends State<TreeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Генеалогическое древо'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        // ✅ Убираем backgroundColor: Theme.of(context).colorScheme.inversePrimary
         actions: <Widget>[
           IconButton(
             icon: const Icon(Icons.zoom_in),
@@ -142,7 +139,6 @@ class _TreeScreenState extends State<TreeScreen> {
             );
           }
           if (state is TreeLoaded) {
-            // 🔍 Отладочный вывод структуры дерева
             print('═══════════════════════════════════════════════════');
             print('🌳 СТРУКТУРА ДЕРЕВА');
             print('═══════════════════════════════════════════════════');
@@ -153,14 +149,6 @@ class _TreeScreenState extends State<TreeScreen> {
             print('  - Детей у корня: ${state.rootNode.children.length}');
             print('  - Супругов у корня: ${state.rootNode.spouses.length}');
 
-            // Подсчет всех людей в дереве.
-            // ⚠️ Раньше здесь просто инкрементировался счётчик на каждый
-            // визит узла - но один и тот же человек может законно
-            // встречаться в структуре несколько раз (например, он одному
-            // родителю ребёнок, а другому - супруг), и get_full_tree.dart
-            // в таких случаях возвращает "карточку-ссылку"
-            // (isDuplicateReference), а не разворачивает его заново.
-            // Считаем уникальные id, а не количество визитов узлов.
             final Set<String> uniqueIds = <String>{};
             void countPeople(TreeNode node) {
               uniqueIds.add(node.person.id);
@@ -265,19 +253,10 @@ class _TreeScreenState extends State<TreeScreen> {
                   transformationController: _transformationController,
                   minScale: _minScale,
                   maxScale: _maxScale,
-                  // constrained: false отдаёт ребёнку его естественный
-                  // (потенциально огромный) размер, вместо того чтобы
-                  // насильно ужимать его под вьюпорт - именно этого не
-                  // хватало, чтобы дерево нормально панорамировалось и
-                  // масштабировалось целиком, а не "плыло".
                   constrained: false,
                   boundaryMargin: const EdgeInsets.all(400),
                   onInteractionUpdate: (details) {
                     setState(() {
-                      // details.scale - это дельта текущего жеста, а не
-                      // абсолютный масштаб. Берём реальный масштаб из
-                      // самой матрицы трансформации, иначе бейдж процентов
-                      // и detailLevel постепенно расходятся с реальностью.
                       _currentScale = _transformationController.value
                           .getMaxScaleOnAxis();
                     });
@@ -410,11 +389,6 @@ class _TreeScreenState extends State<TreeScreen> {
   void _updateScale(double scale) {
     final double clampedScale = scale.clamp(_minScale, _maxScale);
 
-    // Раньше здесь стояло Matrix4.identity()..scale(scale) - это всегда
-    // масштабирует от левого верхнего угла (0,0). При уменьшении масштаба
-    // дерево визуально "уезжало" в угол и переставало заполнять экран.
-    // Масштабируем вместо этого относительно центра видимой области, чтобы
-    // дерево оставалось на месте и по центру после нажатия +/-.
     final Size viewportSize = MediaQuery.of(context).size;
     final Offset center = Offset(
       viewportSize.width / 2,

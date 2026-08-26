@@ -64,7 +64,7 @@ class AppTheme {
       centerTitle: false,
       elevation: 0,
       backgroundColor: _primaryGreen,
-      foregroundColor: Colors.white,
+      foregroundColor: Colors.white, // Белый текст на зеленом фоне
       titleTextStyle: TextStyle(
         color: Colors.white,
         fontSize: 20,
@@ -102,7 +102,7 @@ class AppTheme {
       centerTitle: false,
       elevation: 0,
       backgroundColor: Color(0xFF1E1E1E),
-      foregroundColor: Colors.white,
+      foregroundColor: Colors.white, // Белый текст на темном фоне
       titleTextStyle: TextStyle(
         color: Colors.white,
         fontSize: 20,
@@ -152,7 +152,7 @@ class AppTheme {
       centerTitle: false,
       elevation: 0,
       backgroundColor: Color(0xFF006064),
-      foregroundColor: Colors.white,
+      foregroundColor: Colors.white, // Белый текст на синем фоне
       titleTextStyle: TextStyle(
         color: Colors.white,
         fontSize: 20,
@@ -196,7 +196,7 @@ class AppTheme {
       centerTitle: false,
       elevation: 0,
       backgroundColor: Color(0xFF33691E),
-      foregroundColor: Colors.white,
+      foregroundColor: Colors.white, // Белый текст на зеленом фоне
       titleTextStyle: TextStyle(
         color: Colors.white,
         fontSize: 20,
@@ -240,7 +240,7 @@ class AppTheme {
       centerTitle: false,
       elevation: 0,
       backgroundColor: Color(0xFFD84315),
-      foregroundColor: Colors.white,
+      foregroundColor: Colors.white, // Белый текст на оранжевом фоне
       titleTextStyle: TextStyle(
         color: Colors.white,
         fontSize: 20,
@@ -284,7 +284,7 @@ class AppTheme {
       centerTitle: false,
       elevation: 0,
       backgroundColor: Color(0xFF6A1B9A),
-      foregroundColor: Colors.white,
+      foregroundColor: Colors.white, // Белый текст на фиолетовом фоне
       titleTextStyle: TextStyle(
         color: Colors.white,
         fontSize: 20,
@@ -328,14 +328,14 @@ class AppTheme {
       centerTitle: false,
       elevation: 0,
       backgroundColor: Color(0xFF1A1A2E),
-      foregroundColor: Colors.white,
+      foregroundColor: Color(0xFFE8EAF6), // Светлый текст на темном фоне
       titleTextStyle: TextStyle(
-        color: Colors.white,
+        color: Color(0xFFE8EAF6),
         fontSize: 20,
         fontWeight: FontWeight.w600,
       ),
-      iconTheme: IconThemeData(color: Colors.white),
-      actionsIconTheme: IconThemeData(color: Colors.white),
+      iconTheme: IconThemeData(color: Color(0xFFE8EAF6)),
+      actionsIconTheme: IconThemeData(color: Color(0xFFE8EAF6)),
     ),
     cardTheme: const CardThemeData(
       elevation: 2,

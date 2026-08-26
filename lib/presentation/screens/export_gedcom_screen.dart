@@ -27,7 +27,7 @@ class _ExportGedcomScreenState extends State<ExportGedcomScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Экспорт GEDCOM'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        //backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),

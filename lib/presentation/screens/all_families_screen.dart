@@ -47,7 +47,6 @@ class _AllFamiliesScreenState extends State<AllFamiliesScreen> {
   @override
   void didUpdateWidget(covariant AllFamiliesScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // ✅ Если treeId изменился, перезагружаем данные
     if (oldWidget.treeId != widget.treeId) {
       _familyBloc.add(LoadAllFamiliesEvent(treeId: widget.treeId));
       _personBloc.add(LoadPersonsEvent(treeId: widget.treeId));
@@ -64,8 +63,8 @@ class _AllFamiliesScreenState extends State<AllFamiliesScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Семьи'),
-          backgroundColor: Colors.transparent,
-          elevation: 0,
+          // ✅ Убираем backgroundColor: Colors.transparent
+          // ✅ Убираем elevation: 0 (оставляем по умолчанию или можно оставить)
           actions: [
             IconButton(
               icon: const Icon(Icons.add),
@@ -103,6 +102,7 @@ class _AllFamiliesScreenState extends State<AllFamiliesScreen> {
             }
           },
           builder: (context, state) {
+            // ... остальной код без изменений ...
             if (state is FamilyLoading) {
               return const Center(
                 child: Column(
@@ -176,7 +176,6 @@ class _AllFamiliesScreenState extends State<AllFamiliesScreen> {
                 );
               }
 
-              // Сортируем семьи по дате брака (новые сверху)
               final sortedFamilies = List<Family>.from(state.families)
                 ..sort((a, b) {
                   if (a.marriageDate == null && b.marriageDate == null)
@@ -201,16 +200,12 @@ class _AllFamiliesScreenState extends State<AllFamiliesScreen> {
                   return Dismissible(
                     key: Key(family.id),
                     direction: DismissDirection.horizontal,
-                    // Свайп ВПРАВО → Удаление (красный фон)
                     background: _buildSwipeRightBackground(context),
-                    // Свайп ВЛЕВО → Редактирование (синий фон)
                     secondaryBackground: _buildSwipeLeftBackground(context),
                     confirmDismiss: (direction) async {
                       if (direction == DismissDirection.startToEnd) {
-                        // Свайп ВПРАВО → Удаление
                         return _confirmDeleteFamilyDialog(context, family.id);
                       } else if (direction == DismissDirection.endToStart) {
-                        // Свайп ВЛЕВО → Показать действия (не удаляем)
                         _showSwipeLeftActions(context, family);
                         return false;
                       }
@@ -232,7 +227,6 @@ class _AllFamiliesScreenState extends State<AllFamiliesScreen> {
                       wife: wife,
                       children: children,
                       onTap: () => _showFamilyDetails(context, family.id),
-                      // Убираем кнопки, так как теперь есть свайпы
                       onEdit: null,
                       onDelete: null,
                       onDeleteChild: (childId) {
@@ -297,11 +291,8 @@ class _AllFamiliesScreenState extends State<AllFamiliesScreen> {
     );
   }
 
-  // =========================================================================
-  // ДЕЙСТВИЯ ПРИ СВАЙПЕ
-  // =========================================================================
+  // ... все остальные методы остаются без изменений ...
 
-  /// Фон при свайпе ВЛЕВО (endToStart) — показывается справа
   Widget _buildSwipeLeftBackground(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
@@ -330,7 +321,6 @@ class _AllFamiliesScreenState extends State<AllFamiliesScreen> {
     );
   }
 
-  /// Фон при свайпе ВПРАВО (startToEnd) — показывается слева
   Widget _buildSwipeRightBackground(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
@@ -356,7 +346,6 @@ class _AllFamiliesScreenState extends State<AllFamiliesScreen> {
     );
   }
 
-  /// Показать диалог с выбором действия при свайпе влево
   void _showSwipeLeftActions(BuildContext context, Family family) {
     showModalBottomSheet(
       context: context,
@@ -420,7 +409,6 @@ class _AllFamiliesScreenState extends State<AllFamiliesScreen> {
     );
   }
 
-  /// Диалог подтверждения удаления семьи
   Future<bool> _confirmDeleteFamilyDialog(
     BuildContext context,
     String familyId,
@@ -450,10 +438,6 @@ class _AllFamiliesScreenState extends State<AllFamiliesScreen> {
     );
     return result ?? false;
   }
-
-  // =========================================================================
-  // ДИАЛОГИ
-  // =========================================================================
 
   Future<void> _ensurePersonsLoaded(BuildContext context) async {
     final state = _personBloc.state;

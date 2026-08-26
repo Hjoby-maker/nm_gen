@@ -54,14 +54,10 @@ class _MainScreenState extends State<MainScreen> {
     _buildScreens();
   }
 
-  /// Перезагружает древо для текущего выбранного проекта.
-  /// TreeScreenWrapper всегда открывает дерево с пустым rootPersonId
-  /// (показ всего древа целиком), поэтому и здесь перезагружаем так же.
   void _reloadTree() {
     _treeBloc.add(LoadTreeEvent('', treeId: _selectedTreeId));
   }
 
-  /// Создает экраны с текущим treeId
   void _buildScreens() {
     _screens = [
       PersonsScreen(
@@ -146,16 +142,6 @@ class _MainScreenState extends State<MainScreen> {
         BlocProvider.value(value: _familyBloc),
         BlocProvider.value(value: _treeBloc),
       ],
-      // ✅ Кросс-обновление экранов.
-      // Экраны (Persons/Families/Tree) остаются смонтированными в
-      // IndexedStack и раньше обновляли только свой собственный блок.
-      // Теперь при успешной операции в PersonBloc (добавили/изменили/
-      // удалили человека) перезагружаем FamilyBloc и TreeBloc - список
-      // семей и структура древа зависят от списка людей. При успешной
-      // операции в FamilyBloc (создали/изменили/удалили семью, добавили/
-      // убрали ребёнка) перезагружаем TreeBloc - структура древа строится
-      // из семей. Список людей от операций с семьёй не меняется, поэтому
-      // PersonBloc в этом случае не трогаем.
       child: MultiBlocListener(
         listeners: [
           BlocListener<PersonBloc, PersonState>(
@@ -175,109 +161,118 @@ class _MainScreenState extends State<MainScreen> {
           ),
         ],
         child: Scaffold(
-        appBar: AppBar(
-          title: Row(
-            children: [
-              const Icon(Icons.family_restroom, size: 28),
-              const SizedBox(width: 8),
-              Text(_selectedTreeName),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade200,
-                  borderRadius: BorderRadius.circular(12),
+          appBar: AppBar(
+            title: Row(
+              children: [
+                const Icon(Icons.family_restroom, size: 28),
+                const SizedBox(width: 8),
+                Text(_selectedTreeName),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'v1.0',
+                    style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                  ),
                 ),
-                child: Text(
-                  'v1.0',
-                  style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
-                ),
+              ],
+            ),
+            // ✅ Убираем закомментированную строку
+            // backgroundColor больше не нужен — берется из темы
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.settings),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SettingsScreen(),
+                    ),
+                  );
+                },
+                tooltip: 'Настройки',
+              ),
+              IconButton(
+                icon: const Icon(Icons.account_circle),
+                onPressed: () {
+                  _showAuthDialog(context);
+                },
+                tooltip: 'Войти',
               ),
             ],
           ),
-          //backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.settings),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const SettingsScreen(),
+          drawer: BlocConsumer<ProjectBloc, ProjectState>(
+            listener: (context, state) {
+              if (state is ProjectError) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.message),
+                    backgroundColor: Colors.red,
                   ),
                 );
-              },
-              tooltip: 'Настройки',
-            ),
-            IconButton(
-              icon: const Icon(Icons.account_circle),
-              onPressed: () {
-                _showAuthDialog(context);
-              },
-              tooltip: 'Войти',
-            ),
-          ],
+              }
+              if (state is ProjectOperationSuccess) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.message),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            },
+            builder: (context, state) {
+              if (state is ProjectsLoaded) {
+                return TreeSelectorDrawer(
+                  currentTreeId: _selectedTreeId,
+                  projects: state.projects,
+                  onTreeSelected: _onTreeSelected,
+                  onAddTree: () => _showAddTreeDialog(context),
+                  onDeleteProject: _onDeleteProject,
+                  onSetDefaultProject: _onSetDefaultProject,
+                  onRenameProject: _onRenameProject,
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
+          body: IndexedStack(index: _selectedIndex, children: _screens),
+          bottomNavigationBar: BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
+            currentIndex: _selectedIndex,
+            onTap: _onItemTapped,
+            selectedItemColor: Theme.of(context).colorScheme.primary,
+            unselectedItemColor: Theme.of(
+              context,
+            ).colorScheme.onSurface.withOpacity(0.6),
+            showUnselectedLabels: true,
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.people),
+                label: 'Персоны',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.family_restroom),
+                label: 'Семьи',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.account_tree),
+                label: 'Древо',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.file_copy),
+                label: 'Импорт/Экспорт',
+              ),
+            ],
+          ),
         ),
-        drawer: BlocConsumer<ProjectBloc, ProjectState>(
-          listener: (context, state) {
-            if (state is ProjectError) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            }
-            if (state is ProjectOperationSuccess) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            }
-          },
-          builder: (context, state) {
-            if (state is ProjectsLoaded) {
-              return TreeSelectorDrawer(
-                currentTreeId: _selectedTreeId,
-                projects: state.projects,
-                onTreeSelected: _onTreeSelected,
-                onAddTree: () => _showAddTreeDialog(context),
-                onDeleteProject: _onDeleteProject,
-                onSetDefaultProject: _onSetDefaultProject,
-                onRenameProject: _onRenameProject,
-              );
-            }
-            return const SizedBox.shrink();
-          },
-        ),
-        body: IndexedStack(index: _selectedIndex, children: _screens),
-        bottomNavigationBar: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed,
-          currentIndex: _selectedIndex,
-          onTap: _onItemTapped,
-          selectedItemColor: Colors.green,
-          unselectedItemColor: Colors.grey,
-          showUnselectedLabels: true,
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Персоны'),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.family_restroom),
-              label: 'Семьи',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.account_tree),
-              label: 'Древо',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.file_copy),
-              label: 'Импорт/Экспорт',
-            ),
-          ],
-        ),
-      ), // Scaffold
-      ), // MultiBlocListener
+      ),
     );
   }
 
@@ -401,10 +396,7 @@ class TreeScreenWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider.value(
       value: treeBloc,
-      child: TreeScreen(
-        rootPersonId: '', // Пустая строка — дерево покажет всех людей проекта
-        treeId: treeId,
-      ),
+      child: TreeScreen(rootPersonId: '', treeId: treeId),
     );
   }
 }
@@ -420,9 +412,12 @@ class ImportExportScreen extends StatelessWidget {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Импорт / Экспорт'),
-          backgroundColor: Colors.transparent,
-          elevation: 0,
+          // ✅ Убираем backgroundColor: Colors.transparent
+          // ✅ Убираем elevation: 0
           bottom: const TabBar(
+            labelColor: Colors.white, // Цвет активной вкладки
+            unselectedLabelColor: Colors.white70, // Цвет неактивной вкладки
+            indicatorColor: Colors.white,
             tabs: [
               Tab(icon: Icon(Icons.upload_file), text: 'Импорт'),
               Tab(icon: Icon(Icons.download), text: 'Экспорт'),
