@@ -113,6 +113,9 @@ abstract class MediaRepository {
 
   /// Очистить неиспользуемые файлы на диске
   Future<Either<Failure, int>> cleanUnusedFiles();
+
+  Future<Either<Failure, void>> deleteAllMedia();
+  Future<Either<Failure, void>> clearAllFiles();
 }
 
 /// Статистика по медиа-файлам

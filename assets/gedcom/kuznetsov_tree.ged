@@ -1,1218 +1,270 @@
 0 HEAD
-1 SOUR GEN_SIM
-2 NAME Genealogy Simulator Pro
-2 VERS 2.0
-1 DEST GEDCOM 5.5.1
-1 DATE 15 AUG 2026
-2 TIME 12:00:00
+1 SOUR GENERATED
+2 VERS 1.0
+1 DEST DISKETTE
+1 DATE 19 JUN 2026
 1 GEDC
 2 VERS 5.5.1
 2 FORM LINEAGE-LINKED
 1 CHAR UTF-8
-1 SUBM @SUB1@
-0 @SUB1@ SUBM
-1 NAME Generated Tree - 8 Generations
 
-// ============================================================
-// ПОКОЛЕНИЕ 1 - Самые старшие (родились ~1820-1840)
-// ============================================================
+# ========== ПОКОЛЕНИЕ 1 (БАБУШКА И ДЕДУШКА) ==========
 
 0 @I1@ INDI
-1 NAME Ivan /Petrov/
+1 NAME Александр /Соколов/
 1 SEX M
 1 BIRT
-2 DATE 15 MAR 1825
-2 PLAC Moscow, Russia
+2 DATE 15 MAR 1940
 1 DEAT
-2 DATE 12 JAN 1890
-2 PLAC Moscow, Russia
-1 FAMS @F1@
+2 DATE 20 JAN 2010
+1 _BIRT_PLACE Москва
+1 OCCU Военный
 
 0 @I2@ INDI
-1 NAME Maria /Petrova/
+1 NAME Екатерина /Соколова/
 1 SEX F
 1 BIRT
-2 DATE 22 JUN 1828
-2 PLAC Saint Petersburg, Russia
+2 DATE 22 AUG 1943
 1 DEAT
-2 DATE 8 MAY 1895
-2 PLAC Moscow, Russia
-1 FAMS @F1@
+2 DATE 05 MAY 2015
+1 _BIRT_PLACE Москва
+1 OCCU Врач
 
+# БРАТЬЯ И СЕСТРЫ БАБУШКИ (ЕКАТЕРИНЫ)
 0 @I3@ INDI
-1 NAME Alexei /Smirnov/
+1 NAME Николай /Петров/        # брат Екатерины
 1 SEX M
 1 BIRT
-2 DATE 5 NOV 1823
-2 PLAC Tver, Russia
-1 DEAT
-2 DATE 14 APR 1888
-2 PLAC Tver, Russia
-1 FAMS @F2@
+2 DATE 10 JAN 1941
+1 _BIRT_PLACE Москва
+1 OCCU Инженер
 
 0 @I4@ INDI
-1 NAME Olga /Smirnova/
+1 NAME Ольга /Петрова/          # сестра Екатерины
 1 SEX F
 1 BIRT
-2 DATE 18 MAR 1826
-2 PLAC Tver, Russia
-1 DEAT
-2 DATE 22 SEP 1892
-2 PLAC Tver, Russia
-1 FAMS @F2@
+2 DATE 05 MAY 1945
+1 _BIRT_PLACE Москва
+1 OCCU Учительница
 
+# БРАТЬЯ И СЕСТРЫ ДЕДУШКИ (АЛЕКСАНДРА)
 0 @I5@ INDI
-1 NAME Dmitri /Kuznetsov/
+1 NAME Владимир /Соколов/       # брат Александра
 1 SEX M
 1 BIRT
-2 DATE 10 AUG 1820
-2 PLAC Novgorod, Russia
+2 DATE 12 JUN 1938
 1 DEAT
-2 DATE 5 JAN 1885
-2 PLAC Novgorod, Russia
-1 FAMS @F3@
+2 DATE 03 NOV 2005
+1 _BIRT_PLACE Москва
+1 OCCU Художник
 
 0 @I6@ INDI
-1 NAME Elena /Kuznetsova/
+1 NAME Людмила /Соколова/        # сестра Александра
 1 SEX F
 1 BIRT
-2 DATE 3 SEP 1822
-2 PLAC Novgorod, Russia
-1 DEAT
-2 DATE 17 OCT 1889
-2 PLAC Novgorod, Russia
-1 FAMS @F3@
+2 DATE 18 SEP 1942
+1 _BIRT_PLACE Москва
+1 OCCU Библиотекарь
 
+# СЕМЬЯ БАБУШКИ И ДЕДУШКИ
+0 @F1@ FAM
+1 HUSB @I1@
+1 WIFE @I2@
+1 CHIL @I7@
+1 CHIL @I8@
+1 CHIL @I9@
+1 CHIL @I10@
+1 MARR
+2 DATE 01 JUN 1965
+
+# ========== ПОКОЛЕНИЕ 2 (ДЕТИ) ==========
+
+# ДЕТИ АЛЕКСАНДРА И ЕКАТЕРИНЫ (4 ЧЕЛОВЕКА)
 0 @I7@ INDI
-1 NAME Sergei /Volkov/
-1 SEX M
+1 NAME Ирина /Соколова/
+1 SEX F
 1 BIRT
-2 DATE 12 DEC 1824
-2 PLAC Moscow, Russia
-1 DEAT
-2 DATE 30 MAR 1893
-2 PLAC Moscow, Russia
-1 FAMS @F4@
+2 DATE 10 APR 1966
+1 _BIRT_PLACE Москва
+1 OCCU Экономист
 
 0 @I8@ INDI
-1 NAME Anna /Volkova/
-1 SEX F
+1 NAME Олег /Соколов/
+1 SEX M
 1 BIRT
-2 DATE 25 FEB 1827
-2 PLAC Moscow, Russia
-1 DEAT
-2 DATE 9 JUN 1896
-2 PLAC Moscow, Russia
-1 FAMS @F4@
+2 DATE 25 JUL 1968
+1 _BIRT_PLACE Москва
+1 OCCU Водитель
 
 0 @I9@ INDI
-1 NAME Petr /Sokolov/
-1 SEX M
+1 NAME Татьяна /Соколова/
+1 SEX F
 1 BIRT
-2 DATE 14 JUN 1821
-2 PLAC Yaroslavl, Russia
-1 DEAT
-2 DATE 28 NOV 1886
-2 PLAC Yaroslavl, Russia
-1 FAMS @F5@
+2 DATE 03 DEC 1970
+1 _BIRT_PLACE Москва
+1 OCCU Медсестра
 
 0 @I10@ INDI
-1 NAME Natalia /Sokolova/
-1 SEX F
+1 NAME Павел /Соколов/
+1 SEX M
 1 BIRT
-2 DATE 8 SEP 1824
-2 PLAC Yaroslavl, Russia
-1 DEAT
-2 DATE 15 FEB 1891
-2 PLAC Yaroslavl, Russia
-1 FAMS @F5@
+2 DATE 14 MAY 1973
+1 _BIRT_PLACE Москва
+1 OCCУ Программист
 
+# СУПРУГИ ДЛЯ 2 ДЕТЕЙ (СЕМЬИ)
 0 @I11@ INDI
-1 NAME Mikhail /Morozov/
-1 SEX M
-1 BIRT
-2 DATE 20 APR 1822
-2 PLAC Vladimir, Russia
-1 DEAT
-2 DATE 3 JUL 1887
-2 PLAC Vladimir, Russia
-1 FAMS @F6@
-
-0 @I12@ INDI
-1 NAME Irina /Morozova/
+1 NAME Анна /Иванова/
 1 SEX F
 1 BIRT
-2 DATE 15 JUN 1825
-2 PLAC Vladimir, Russia
-1 DEAT
-2 DATE 19 DEC 1894
-2 PLAC Vladimir, Russia
-1 FAMS @F6@
+2 DATE 12 AUG 1968
+1 _BIRT_PLACE Москва
+1 OCCU Бухгалтер
 
-0 @I13@ INDI
-1 NAME Nikolai /Orlov/
-1 SEX M
-1 BIRT
-2 DATE 5 NOV 1827
-2 PLAC Kaluga, Russia
-1 DEAT
-2 DATE 22 APR 1892
-2 PLAC Kaluga, Russia
-1 FAMS @F7@
-
-0 @I14@ INDI
-1 NAME Ksenia /Orlova/
-1 SEX F
-1 BIRT
-2 DATE 8 DEC 1829
-2 PLAC Kaluga, Russia
-1 DEAT
-2 DATE 7 SEP 1898
-2 PLAC Kaluga, Russia
-1 FAMS @F7@
-
-// ============================================================
-// ПОКОЛЕНИЕ 2 - Дети поколения 1 (родились ~1845-1865)
-// ============================================================
+0 @F2@ FAM
+1 HUSB @I8@
+1 WIFE @I11@
+1 CHIL @I12@
+1 CHIL @I13@
+1 CHIL @I14@
+1 MARR
+2 DATE 15 SEP 1992
 
 0 @I15@ INDI
-1 NAME Alexei /Petrov/
-1 SEX M
-1 BIRT
-2 DATE 25 JAN 1848
-2 PLAC Moscow, Russia
-1 DEAT
-2 DATE 12 MAR 1912
-2 PLAC Moscow, Russia
-1 FAMS @F8@
-1 FAMC @F1@
-
-0 @I16@ INDI
-1 NAME Yulia /Petrova/
+1 NAME Елена /Козлова/
 1 SEX F
 1 BIRT
-2 DATE 3 MAY 1850
-2 PLAC Moscow, Russia
-1 DEAT
-2 DATE 18 AUG 1915
-2 PLAC Moscow, Russia
-1 FAMS @F8@
-1 FAMC @F1@
+2 DATE 20 FEB 1975
+1 _BIRT_PLACE Москва
+1 OCCU Дизайнер
+
+0 @F3@ FAM
+1 HUSB @I10@
+1 WIFE @I15@
+1 CHIL @I16@
+1 CHIL @I17@
+1 MARR
+2 DATE 10 OCT 1998
+
+# ========== ПОКОЛЕНИЕ 3 (ВНУКИ) ==========
+
+# ДЕТИ ОЛЕГА И АННЫ (3 ЧЕЛОВЕКА)
+0 @I12@ INDI
+1 NAME Сергей /Соколов/
+1 SEX M
+1 BIRT
+2 DATE 20 JAN 1993
+1 _BIRT_PLACE Москва
+
+0 @I13@ INDI
+1 NAME Наталья /Соколова/
+1 SEX F
+1 BIRT
+2 DATE 15 JUN 1995
+1 _BIRT_PLACE Москва
+
+0 @I14@ INDI
+1 NAME Дмитрий /Соколов/
+1 SEX M
+1 BIRT
+2 DATE 08 SEP 1997
+1 _BIRT_PLACE Москва
+
+# ДЕТИ ПАВЛА И ЕЛЕНЫ (2 ЧЕЛОВЕКА)
+0 @I16@ INDI
+1 NAME Карина /Соколова/
+1 SEX F
+1 BIRT
+2 DATE 25 DEC 1999
+1 _BIRT_PLACE Москва
 
 0 @I17@ INDI
-1 NAME Andrei /Smirnov/
+1 NAME Алексей /Соколов/
 1 SEX M
 1 BIRT
-2 DATE 12 FEB 1849
-2 PLAC Tver, Russia
-1 DEAT
-2 DATE 5 JUN 1913
-2 PLAC Tver, Russia
-1 FAMS @F9@
-1 FAMC @F2@
+2 DATE 01 APR 2002
+1 _BIRT_PLACE Москва
 
+# СУПРУГА ДЛЯ ОДНОГО ИЗ ВНУКОВ (СЕМЬЯ)
 0 @I18@ INDI
-1 NAME Ekaterina /Smirnova/
+1 NAME Мария /Морозова/
 1 SEX F
 1 BIRT
-2 DATE 19 JUL 1852
-2 PLAC Tver, Russia
-1 DEAT
-2 DATE 20 OCT 1916
-2 PLAC Tver, Russia
-1 FAMS @F9@
-1 FAMC @F2@
+2 DATE 15 MAR 1995
+1 _BIRT_PLACE Москва
+1 OCCU Фотограф
 
+0 @F4@ FAM
+1 HUSB @I14@
+1 WIFE @I18@
+1 CHIL @I19@
+1 CHIL @I20@
+1 MARR
+2 DATE 20 DEC 2020
+
+# ========== ПОКОЛЕНИЕ 4 (ПРАВНУКИ) ==========
+
+# ДЕТИ ДМИТРИЯ И МАРИИ (2 ЧЕЛОВЕКА)
 0 @I19@ INDI
-1 NAME Viktor /Kuznetsov/
-1 SEX M
+1 NAME София /Соколова/
+1 SEX F
 1 BIRT
-2 DATE 2 MAR 1846
-2 PLAC Novgorod, Russia
-1 DEAT
-2 DATE 14 SEP 1910
-2 PLAC Novgorod, Russia
-1 FAMS @F10@
-1 FAMC @F3@
+2 DATE 05 MAR 2022
+1 _BIRT_PLACE Москва
 
 0 @I20@ INDI
-1 NAME Tatiana /Kuznetsova/
-1 SEX F
+1 NAME Максим /Соколов/
+1 SEX M
 1 BIRT
-2 DATE 17 AUG 1848
-2 PLAC Novgorod, Russia
-1 DEAT
-2 DATE 25 DEC 1914
-2 PLAC Novgorod, Russia
-1 FAMS @F10@
-1 FAMC @F3@
+2 DATE 18 OCT 2023
+1 _BIRT_PLACE Москва
+
+# ========== СЕМЬИ БРАТЬЕВ И СЕСТЕР (ДЛЯ СВЯЗИ) ==========
+
+# Братья и сестры бабушки (Екатерины)
+0 @F5@ FAM
+1 HUSB @I3@
+1 WIFE @I21@
+1 CHIL @I22@
+1 MARR
+2 DATE 10 MAY 1965
 
 0 @I21@ INDI
-1 NAME Yuri /Volkov/
-1 SEX M
+1 NAME Галина /Петрова/
+1 SEX F
 1 BIRT
-2 DATE 10 APR 1850
-2 PLAC Moscow, Russia
-1 DEAT
-2 DATE 8 JAN 1915
-2 PLAC Moscow, Russia
-1 FAMS @F11@
-1 FAMC @F4@
+2 DATE 01 APR 1944
+1 _BIRT_PLACE Москва
 
 0 @I22@ INDI
-1 NAME Svetlana /Volkova/
-1 SEX F
+1 NAME Алексей /Петров/
+1 SEX M
 1 BIRT
-2 DATE 25 JUN 1853
-2 PLAC Moscow, Russia
-1 DEAT
-2 DATE 30 MAY 1918
-2 PLAC Moscow, Russia
-1 FAMS @F11@
-1 FAMC @F4@
+2 DATE 12 AUG 1966
+1 _BIRT_PLACE Москва
+
+# Братья и сестры дедушки (Александра)
+0 @F6@ FAM
+1 HUSB @I5@
+1 WIFE @I23@
+1 CHIL @I24@
+1 MARR
+2 DATE 15 JUN 1960
 
 0 @I23@ INDI
-1 NAME Ivan /Sokolov/
-1 SEX M
+1 NAME Зинаида /Соколова/
+1 SEX F
 1 BIRT
-2 DATE 8 SEP 1847
-2 PLAC Yaroslavl, Russia
-1 DEAT
-2 DATE 12 NOV 1912
-2 PLAC Yaroslavl, Russia
-1 FAMS @F12@
-1 FAMC @F5@
+2 DATE 20 FEB 1941
+1 _BIRT_PLACE Москва
 
 0 @I24@ INDI
-1 NAME Galina /Sokolova/
-1 SEX F
-1 BIRT
-2 DATE 14 NOV 1850
-2 PLAC Yaroslavl, Russia
-1 DEAT
-2 DATE 19 FEB 1916
-2 PLAC Yaroslavl, Russia
-1 FAMS @F12@
-1 FAMC @F5@
-
-0 @I25@ INDI
-1 NAME Roman /Morozov/
+1 NAME Виктор /Соколов/
 1 SEX M
 1 BIRT
-2 DATE 12 JAN 1848
-2 PLAC Vladimir, Russia
-1 DEAT
-2 DATE 22 APR 1913
-2 PLAC Vladimir, Russia
-1 FAMS @F13@
-1 FAMC @F6@
+2 DATE 25 MAR 1962
+1 _BIRT_PLACE Москва
 
-0 @I26@ INDI
-1 NAME Vera /Morozova/
-1 SEX F
-1 BIRT
-2 DATE 3 MAR 1851
-2 PLAC Vladimir, Russia
-1 DEAT
-2 DATE 27 JUL 1916
-2 PLAC Vladimir, Russia
-1 FAMS @F13@
-1 FAMC @F6@
+# ========== ЗАВЕРШЕНИЕ ==========
 
-0 @I27@ INDI
-1 NAME Oleg /Orlov/
-1 SEX M
-1 BIRT
-2 DATE 15 JUL 1850
-2 PLAC Kaluga, Russia
-1 DEAT
-2 DATE 9 SEP 1914
-2 PLAC Kaluga, Russia
-1 FAMS @F14@
-1 FAMC @F7@
-
-0 @I28@ INDI
-1 NAME Lyudmila /Orlova/
-1 SEX F
-1 BIRT
-2 DATE 22 OCT 1853
-2 PLAC Kaluga, Russia
-1 DEAT
-2 DATE 14 DEC 1917
-2 PLAC Kaluga, Russia
-1 FAMS @F14@
-1 FAMC @F7@
-
-// ============================================================
-// ПОКОЛЕНИЕ 3 - Внуки (родились ~1870-1890)
-// ============================================================
-
-0 @I29@ INDI
-1 NAME Dmitri /Petrov/
-1 SEX M
-1 BIRT
-2 DATE 18 MAY 1873
-2 PLAC Moscow, Russia
-1 DEAT
-2 DATE 3 AUG 1935
-2 PLAC Moscow, Russia
-1 FAMS @F15@
-1 FAMC @F8@
-
-0 @I30@ INDI
-1 NAME Valentina /Petrova/
-1 SEX F
-1 BIRT
-2 DATE 24 SEP 1876
-2 PLAC Moscow, Russia
-1 DEAT
-2 DATE 12 OCT 1940
-2 PLAC Moscow, Russia
-1 FAMS @F15@
-1 FAMC @F8@
-
-0 @I31@ INDI
-1 NAME Boris /Smirnov/
-1 SEX M
-1 BIRT
-2 DATE 1 JAN 1875
-2 PLAC Tver, Russia
-1 DEAT
-2 DATE 18 JUN 1936
-2 PLAC Tver, Russia
-1 FAMS @F16@
-1 FAMC @F9@
-
-0 @I32@ INDI
-1 NAME Marina /Smirnova/
-1 SEX F
-1 BIRT
-2 DATE 2 FEB 1878
-2 PLAC Tver, Russia
-1 DEAT
-2 DATE 22 NOV 1941
-2 PLAC Tver, Russia
-1 FAMS @F16@
-1 FAMC @F9@
-
-0 @I33@ INDI
-1 NAME Alexander /Kuznetsov/
-1 SEX M
-1 BIRT
-2 DATE 12 APR 1872
-2 PLAC Novgorod, Russia
-1 DEAT
-2 DATE 30 JAN 1935
-2 PLAC Novgorod, Russia
-1 FAMS @F17@
-1 FAMC @F10@
-
-0 @I34@ INDI
-1 NAME Zoya /Kuznetsova/
-1 SEX F
-1 BIRT
-2 DATE 18 JUN 1875
-2 PLAC Novgorod, Russia
-1 DEAT
-2 DATE 4 MAR 1937
-2 PLAC Novgorod, Russia
-1 FAMS @F17@
-1 FAMC @F10@
-
-0 @I35@ INDI
-1 NAME Gleb /Volkov/
-1 SEX M
-1 BIRT
-2 DATE 15 MAY 1877
-2 PLAC Moscow, Russia
-1 DEAT
-2 DATE 29 SEP 1938
-2 PLAC Moscow, Russia
-1 FAMS @F18@
-1 FAMC @F11@
-
-0 @I36@ INDI
-1 NAME Daria /Volkova/
-1 SEX F
-1 BIRT
-2 DATE 22 JUL 1880
-2 PLAC Moscow, Russia
-1 DEAT
-2 DATE 15 DEC 1943
-2 PLAC Moscow, Russia
-1 FAMS @F18@
-1 FAMC @F11@
-
-0 @I37@ INDI
-1 NAME Anton /Sokolov/
-1 SEX M
-1 BIRT
-2 DATE 7 MAR 1874
-2 PLAC Yaroslavl, Russia
-1 DEAT
-2 DATE 20 MAY 1936
-2 PLAC Yaroslavl, Russia
-1 FAMS @F19@
-1 FAMC @F12@
-
-0 @I38@ INDI
-1 NAME Polina /Sokolova/
-1 SEX F
-1 BIRT
-2 DATE 11 NOV 1877
-2 PLAC Yaroslavl, Russia
-1 DEAT
-2 DATE 2 AUG 1942
-2 PLAC Yaroslavl, Russia
-1 FAMS @F19@
-1 FAMC @F12@
-
-0 @I39@ INDI
-1 NAME Kirill /Morozov/
-1 SEX M
-1 BIRT
-2 DATE 25 AUG 1875
-2 PLAC Vladimir, Russia
-1 DEAT
-2 DATE 14 OCT 1937
-2 PLAC Vladimir, Russia
-1 FAMS @F20@
-1 FAMC @F13@
-
-0 @I40@ INDI
-1 NAME Arina /Morozova/
-1 SEX F
-1 BIRT
-2 DATE 30 OCT 1878
-2 PLAC Vladimir, Russia
-1 DEAT
-2 DATE 28 JAN 1942
-2 PLAC Vladimir, Russia
-1 FAMS @F20@
-1 FAMC @F13@
-
-0 @I41@ INDI
-1 NAME Stanislav /Orlov/
-1 SEX M
-1 BIRT
-2 DATE 3 JUN 1876
-2 PLAC Kaluga, Russia
-1 DEAT
-2 DATE 17 DEC 1938
-2 PLAC Kaluga, Russia
-1 FAMS @F21@
-1 FAMC @F14@
-
-0 @I42@ INDI
-1 NAME Oksana /Orlova/
-1 SEX F
-1 BIRT
-2 DATE 14 JAN 1879
-2 PLAC Kaluga, Russia
-1 DEAT
-2 DATE 23 APR 1943
-2 PLAC Kaluga, Russia
-1 FAMS @F21@
-1 FAMC @F14@
-
-// ============================================================
-// ПОКОЛЕНИЕ 4 - Правнуки (родились ~1895-1915)
-// ============================================================
-
-0 @I43@ INDI
-1 NAME Nikolai /Petrov/
-1 SEX M
-1 BIRT
-2 DATE 12 FEB 1898
-2 PLAC Moscow, Russia
-1 DEAT
-2 DATE 5 JUN 1958
-2 PLAC Moscow, Russia
-1 FAMS @F22@
-1 FAMC @F15@
-
-0 @I44@ INDI
-1 NAME Alina /Petrova/
-1 SEX F
-1 BIRT
-2 DATE 18 APR 1901
-2 PLAC Moscow, Russia
-1 DEAT
-2 DATE 12 SEP 1962
-2 PLAC Moscow, Russia
-1 FAMS @F22@
-1 FAMC @F15@
-
-0 @I45@ INDI
-1 NAME Grigory /Smirnov/
-1 SEX M
-1 BIRT
-2 DATE 27 FEB 1899
-2 PLAC Tver, Russia
-1 DEAT
-2 DATE 22 JUL 1960
-2 PLAC Tver, Russia
-1 FAMS @F23@
-1 FAMC @F16@
-
-0 @I46@ INDI
-1 NAME Natalya /Smirnova/
-1 SEX F
-1 BIRT
-2 DATE 15 JUL 1902
-2 PLAC Tver, Russia
-1 DEAT
-2 DATE 18 NOV 1965
-2 PLAC Tver, Russia
-1 FAMS @F23@
-1 FAMC @F16@
-
-0 @I47@ INDI
-1 NAME Nikita /Kuznetsov/
-1 SEX M
-1 BIRT
-2 DATE 20 MAY 1897
-2 PLAC Novgorod, Russia
-1 DEAT
-2 DATE 14 MAR 1959
-2 PLAC Novgorod, Russia
-1 FAMS @F24@
-1 FAMC @F17@
-
-0 @I48@ INDI
-1 NAME Polina /Kuznetsova/
-1 SEX F
-1 BIRT
-2 DATE 3 NOV 1900
-2 PLAC Novgorod, Russia
-1 DEAT
-2 DATE 27 AUG 1964
-2 PLAC Novgorod, Russia
-1 FAMS @F24@
-1 FAMC @F17@
-
-0 @I49@ INDI
-1 NAME Denis /Volkov/
-1 SEX M
-1 BIRT
-2 DATE 8 SEP 1898
-2 PLAC Moscow, Russia
-1 DEAT
-2 DATE 15 JAN 1960
-2 PLAC Moscow, Russia
-1 FAMS @F25@
-1 FAMC @F18@
-
-0 @I50@ INDI
-1 NAME Larisa /Volkova/
-1 SEX F
-1 BIRT
-2 DATE 22 DEC 1901
-2 PLAC Moscow, Russia
-1 DEAT
-2 DATE 2 OCT 1966
-2 PLAC Moscow, Russia
-1 FAMS @F25@
-1 FAMC @F18@
-
-0 @I51@ INDI
-1 NAME Artem /Sokolov/
-1 SEX M
-1 BIRT
-2 DATE 14 JUN 1899
-2 PLAC Yaroslavl, Russia
-1 DEAT
-2 DATE 9 APR 1961
-2 PLAC Yaroslavl, Russia
-1 FAMS @F26@
-1 FAMC @F19@
-
-0 @I52@ INDI
-1 NAME Diana /Sokolova/
-1 SEX F
-1 BIRT
-2 DATE 19 OCT 1902
-2 PLAC Yaroslavl, Russia
-1 DEAT
-2 DATE 3 DEC 1967
-2 PLAC Yaroslavl, Russia
-1 FAMS @F26@
-1 FAMC @F19@
-
-0 @I53@ INDI
-1 NAME Pavel /Morozov/
-1 SEX M
-1 BIRT
-2 DATE 2 JAN 1900
-2 PLAC Vladimir, Russia
-1 DEAT
-2 DATE 28 MAY 1962
-2 PLAC Vladimir, Russia
-1 FAMS @F27@
-1 FAMC @F20@
-
-0 @I54@ INDI
-1 NAME Irina /Morozova/
-1 SEX F
-1 BIRT
-2 DATE 13 APR 1903
-2 PLAC Vladimir, Russia
-1 DEAT
-2 DATE 9 SEP 1968
-2 PLAC Vladimir, Russia
-1 FAMS @F27@
-1 FAMC @F20@
-
-0 @I55@ INDI
-1 NAME Evgeny /Orlov/
-1 SEX M
-1 BIRT
-2 DATE 10 OCT 1897
-2 PLAC Kaluga, Russia
-1 DEAT
-2 DATE 5 JUN 1959
-2 PLAC Kaluga, Russia
-1 FAMS @F28@
-1 FAMC @F21@
-
-0 @I56@ INDI
-1 NAME Anastasia /Orlova/
-1 SEX F
-1 BIRT
-2 DATE 25 DEC 1900
-2 PLAC Kaluga, Russia
-1 DEAT
-2 DATE 22 AUG 1965
-2 PLAC Kaluga, Russia
-1 FAMS @F28@
-1 FAMC @F21@
-
-// ============================================================
-// ПОКОЛЕНИЕ 5 - Праправнуки (родились ~1920-1940)
-// ============================================================
-
-0 @I57@ INDI
-1 NAME Vasily /Petrov/
-1 SEX M
-1 BIRT
-2 DATE 17 MAY 1922
-2 PLAC Moscow, Russia
-1 DEAT
-2 DATE 4 NOV 1985
-2 PLAC Moscow, Russia
-1 FAMS @F29@
-1 FAMC @F22@
-
-0 @I58@ INDI
-1 NAME Elena /Petrova/
-1 SEX F
-1 BIRT
-2 DATE 24 AUG 1925
-2 PLAC Moscow, Russia
-1 DEAT
-2 DATE 15 FEB 1990
-2 PLAC Moscow, Russia
-1 FAMS @F29@
-1 FAMC @F22@
-
-0 @I59@ INDI
-1 NAME Konstantin /Smirnov/
-1 SEX M
-1 BIRT
-2 DATE 3 DEC 1923
-2 PLAC Tver, Russia
-1 DEAT
-2 DATE 28 JUN 1987
-2 PLAC Tver, Russia
-1 FAMS @F30@
-1 FAMC @F23@
-
-0 @I60@ INDI
-1 NAME Maria /Smirnova/
-1 SEX F
-1 BIRT
-2 DATE 15 JAN 1926
-2 PLAC Tver, Russia
-1 DEAT
-2 DATE 19 SEP 1991
-2 PLAC Tver, Russia
-1 FAMS @F30@
-1 FAMC @F23@
-
-0 @I61@ INDI
-1 NAME Alexander /Kuznetsov/
-1 SEX M
-1 BIRT
-2 DATE 6 NOV 1921
-2 PLAC Novgorod, Russia
-1 DEAT
-2 DATE 25 MAR 1986
-2 PLAC Novgorod, Russia
-1 FAMS @F31@
-1 FAMC @F24@
-
-0 @I62@ INDI
-1 NAME Ekaterina /Kuznetsova/
-1 SEX F
-1 BIRT
-2 DATE 18 FEB 1924
-2 PLAC Novgorod, Russia
-1 DEAT
-2 DATE 12 OCT 1989
-2 PLAC Novgorod, Russia
-1 FAMS @F31@
-1 FAMC @F24@
-
-0 @I63@ INDI
-1 NAME Vladimir /Volkov/
-1 SEX M
-1 BIRT
-2 DATE 22 MAR 1924
-2 PLAC Moscow, Russia
-1 DEAT
-2 DATE 8 DEC 1987
-2 PLAC Moscow, Russia
-1 FAMS @F32@
-1 FAMC @F25@
-
-0 @I64@ INDI
-1 NAME Elena /Volkova/
-1 SEX F
-1 BIRT
-2 DATE 5 JUN 1927
-2 PLAC Moscow, Russia
-1 DEAT
-2 DATE 4 FEB 1992
-2 PLAC Moscow, Russia
-1 FAMS @F32@
-1 FAMC @F25@
-
-0 @I65@ INDI
-1 NAME Sergey /Sokolov/
-1 SEX M
-1 BIRT
-2 DATE 12 JUL 1922
-2 PLAC Yaroslavl, Russia
-1 DEAT
-2 DATE 30 MAY 1986
-2 PLAC Yaroslavl, Russia
-1 FAMS @F33@
-1 FAMC @F26@
-
-0 @I66@ INDI
-1 NAME Anna /Sokolova/
-1 SEX F
-1 BIRT
-2 DATE 19 SEP 1925
-2 PLAC Yaroslavl, Russia
-1 DEAT
-2 DATE 15 NOV 1990
-2 PLAC Yaroslavl, Russia
-1 FAMS @F33@
-1 FAMC @F26@
-
-0 @I67@ INDI
-1 NAME Andrey /Morozov/
-1 SEX M
-1 BIRT
-2 DATE 4 NOV 1923
-2 PLAC Vladimir, Russia
-1 DEAT
-2 DATE 22 JUL 1988
-2 PLAC Vladimir, Russia
-1 FAMS @F34@
-1 FAMC @F27@
-
-0 @I68@ INDI
-1 NAME Olga /Morozova/
-1 SEX F
-1 BIRT
-2 DATE 8 FEB 1926
-2 PLAC Vladimir, Russia
-1 DEAT
-2 DATE 13 APR 1991
-2 PLAC Vladimir, Russia
-1 FAMS @F34@
-1 FAMC @F27@
-
-0 @I69@ INDI
-1 NAME Dmitry /Orlov/
-1 SEX M
-1 BIRT
-2 DATE 29 JAN 1922
-2 PLAC Kaluga, Russia
-1 DEAT
-2 DATE 6 DEC 1985
-2 PLAC Kaluga, Russia
-1 FAMS @F35@
-1 FAMC @F28@
-
-0 @I70@ INDI
-1 NAME Tatiana /Orlova/
-1 SEX F
-1 BIRT
-2 DATE 16 MAR 1925
-2 PLAC Kaluga, Russia
-1 DEAT
-2 DATE 28 SEP 1990
-2 PLAC Kaluga, Russia
-1 FAMS @F35@
-1 FAMC @F28@
-
-// ============================================================
-// ПОКОЛЕНИЕ 6 - (родились ~1945-1965)
-// ============================================================
-
-0 @I71@ INDI
-1 NAME Nikolay /Petrov/
-1 SEX M
-1 BIRT
-2 DATE 11 AUG 1948
-2 PLAC Moscow, Russia
-1 FAMS @F36@
-1 FAMC @F29@
-
-0 @I72@ INDI
-1 NAME Kseniya /Petrova/
-1 SEX F
-1 BIRT
-2 DATE 26 DEC 1951
-2 PLAC Moscow, Russia
-1 FAMS @F36@
-1 FAMC @F29@
-
-0 @I73@ INDI
-1 NAME Igor /Smirnov/
-1 SEX M
-1 BIRT
-2 DATE 5 MAY 1950
-2 PLAC Tver, Russia
-1 FAMS @F37@
-1 FAMC @F30@
-
-0 @I74@ INDI
-1 NAME Lyudmila /Smirnova/
-1 SEX F
-1 BIRT
-2 DATE 11 JUL 1953
-2 PLAC Tver, Russia
-1 FAMS @F37@
-1 FAMC @F30@
-
-0 @I75@ INDI
-1 NAME Oleg /Kuznetsov/
-1 SEX M
-1 BIRT
-2 DATE 17 SEP 1949
-2 PLAC Novgorod, Russia
-1 FAMS @F38@
-1 FAMC @F31@
-
-0 @I76@ INDI
-1 NAME Irina /Kuznetsova/
-1 SEX F
-1 BIRT
-2 DATE 24 NOV 1952
-2 PLAC Novgorod, Russia
-1 FAMS @F38@
-1 FAMC @F31@
-
-0 @I77@ INDI
-1 NAME Mikhail /Volkov/
-1 SEX M
-1 BIRT
-2 DATE 8 FEB 1951
-2 PLAC Moscow, Russia
-1 FAMS @F39@
-1 FAMC @F32@
-
-0 @I78@ INDI
-1 NAME Olga /Volkova/
-1 SEX F
-1 BIRT
-2 DATE 14 APR 1954
-2 PLAC Moscow, Russia
-1 FAMS @F39@
-1 FAMC @F32@
-
-0 @I79@ INDI
-1 NAME Alexey /Sokolov/
-1 SEX M
-1 BIRT
-2 DATE 10 JUN 1950
-2 PLAC Yaroslavl, Russia
-1 FAMS @F40@
-1 FAMC @F33@
-
-0 @I80@ INDI
-1 NAME Maria /Sokolova/
-1 SEX F
-1 BIRT
-2 DATE 23 AUG 1953
-2 PLAC Yaroslavl, Russia
-1 FAMS @F40@
-1 FAMC @F33@
-
-0 @I81@ INDI
-1 NAME Stepan /Morozov/
-1 SEX M
-1 BIRT
-2 DATE 6 OCT 1952
-2 PLAC Vladimir, Russia
-1 FAMS @F41@
-1 FAMC @F34@
-
-0 @I82@ INDI
-1 NAME Natalia /Morozova/
-1 SEX F
-1 BIRT
-2 DATE 11 DEC 1955
-2 PLAC Vladimir, Russia
-1 FAMS @F41@
-1 FAMC @F34@
-
-0 @I83@ INDI
-1 NAME Ivan /Orlov/
-1 SEX M
-1 BIRT
-2 DATE 15 JAN 1951
-2 PLAC Kaluga, Russia
-1 FAMS @F42@
-1 FAMC @F35@
-
-0 @I84@ INDI
-1 NAME Elena /Orlova/
-1 SEX F
-1 BIRT
-2 DATE 28 MAR 1954
-2 PLAC Kaluga, Russia
-1 FAMS @F42@
-1 FAMC @F35@
-
-// ============================================================
-// ПОКОЛЕНИЕ 7 - (родились ~1970-1990)
-// ============================================================
-
-0 @I85@ INDI
-1 NAME Petr /Petrov/
-1 SEX M
-1 BIRT
-2 DATE 20 MAY 1975
-2 PLAC Moscow, Russia
-1 FAMS @F43@
-1 FAMC @F36@
-
-0 @I86@ INDI
-1 NAME Anna /Petrova/
-1 SEX F
-1 BIRT
-2 DATE 15 JUL 1978
-2 PLAC Moscow, Russia
-1 FAMS @F43@
-1 FAMC @F36@
-
-0 @I87@ INDI
-1 NAME Vasiliy /Smirnov/
-1 SEX M
-1 BIRT
-2 DATE 10 SEP 1977
-2 PLAC Tver, Russia
-1 FAMS @F44@
-1 FAMC @F37@
-
-0 @I88@ INDI
-1 NAME Olga /Smirnova/
-1 SEX F
-1 BIRT
-2 DATE 5 DEC 1980
-2 PLAC Tver, Russia
-1 FAMS @F44@
-1 FAMC @F37@
-
-0 @I89@ INDI
-1 NAME Valentin /Kuznetsov/
-1 SEX M
-1 BIRT
-2 DATE 28 FEB 1976
-2 PLAC Novgorod, Russia
-1 FAMS @F45@
-1 FAMC @F38@
-
-0 @I90@ INDI
-1 NAME Svetlana /Kuznetsova/
-1 SEX F
-1 BIRT
-2 DATE 3 MAY 1979
-2 PLAC Novgorod, Russia
-1 FAMS @F45@
-1 FAMC @F38@
-
-0 @I91@ INDI
-1 NAME Vladimir /Volkov/
-1 SEX M
-1 BIRT
-2 DATE 10 AUG 1978
-2 PLAC Moscow, Russia
-1 FAMS @F46@
-1 FAMC @F39@
-
-0 @I92@ INDI
-1 NAME Tatyana /Volkova/
-1 SEX F
-1 BIRT
-2 DATE 22 OCT 1981
-2 PLAC Moscow, Russia
-1 FAMS @F46@
-1 FAMC @F39@
-
-0 @I93@ INDI
-1 NAME Ilya /Sokolov/
-1 SEX M
-1 BIRT
-2 DATE 17 JUN 1977
-2 PLAC Yaroslavl, Russia
-1 FAMS @F47@
-1 FAMC @F40@
-
-0 @I94@ INDI
-1 NAME Ekaterina /Sokolova/
-1 SEX F
-1 BIRT
-2 DATE 29 AUG 1980
-2 PLAC Yaroslavl, Russia
-1 FAMS @F47@
-1 FAMC @F40@
-
-0 @I95@ INDI
-1 NAME Dmitriy /Morozov/
-1 SEX M
-1 BIRT
-2 DATE 14 JAN 1979
-2 PLAC Vladimir, Russia
-1 FAMS @F48@
-1 FAMC @F41@
-
-0 @I96@ INDI
-1 NAME Anastasia /Morozova/
-1 SEX F
-1 BIRT
-2 DATE 7 APR 1982
-2 PLAC Vladimir, Russia
-1 FAMS @F48@
-1 FAMC @F41@
-
-0 @I97@ INDI
-1 NAME Alexandr /Orlov/
-1 SEX M
-1 BIRT
-2 DATE 3 NOV 1978
-2 PLAC Kaluga, Russia
-1 FAMS @F49@
-1 FAMC @F42@
-
-0 @I98@ INDI
-1 NAME Irina /Orlova/
-1 SEX F
-1 BIRT
-2 DATE 18 JAN 1981
-2 PLAC Kaluga, Russia
-1 FAMS @F49@
-1 FAMC @F42@
-
-// ============================================================
-// ПОКОЛЕНИЕ 8 - (родились ~1995-2015)
-// ============================================================
-
-0 @I99@ INDI
-1 NAME Roman /Petrov/
-1 SEX M
-1 BIRT
-2 DATE 25 MAR 2000
-2 PLAC Moscow, Russia
-1 FAMC @F43@
-
-0 @I100@ INDI
-1 NAME Maria /Petrova/
-1 SEX F
-1 BIRT
-2 DATE 12 SEP 2002
-2 PLAC Moscow, Russia
-1 FAMC @F43@
-
-0 @I101@ INDI
-1 NAME Nikolay /Smirnov/
-1 SEX M
-1 BIRT
-2 DATE 10 APR 2001
-2 PLAC Tver, Russia
-1 FAMC @F44@
-
-0 @I102@ INDI
-1 NAME Galina /Smirnova/
-1 SEX F
-1 BIRT
-2 DATE 23 MAY 2003
-2 PLAC Tver, Russia
-1 FAMC @F44@
-
-0 @I103@ INDI
-1 NAME Boris /Kuznetsov/
-1 SEX M
-1 BIRT
-2 DATE 15 SEP 1999
-2 PLAC Novgorod, Russia
-1 FAMC @F45@
-
-0 @I104@ INDI
-1 NAME Vera /Kuznetsova/
-1 SEX F
-1 BIRT
-2 DATE 20 NOV 2001
-2 PLAC Novgorod, Russia
-1 FAMC @F45@
-
-0 @I105@ INDI
-1 NAME Alexey /Volkov/
-1 SEX M
-1 BIRT
-2 DATE 7 DEC 2000
-2 PLAC Moscow, Russia
-1 FAMC @F46@
-
-0 @I106@ INDI
-1 NAME Elena /Volkova/
-1 SEX F
-1 BIRT
-2 DATE 12 JAN 2003
-2 PLAC Moscow, Russia
-1 FAMC @F46@
-
-0 @I107@ INDI
-1 NAME Vitaliy /Sokolov/
-1 SEX M
-1 BIRT
-2 DATE 9 JUL 2001
-2 PLAC Yaroslavl, Russia
-1 FAMC @F47@
-
-0 @I108@ INDI
-1 NAME Nadezhda /Sokolova/
-1 SEX F
-1 BIRT
-2 DATE 16 OCT 2003
-2 PLAC Yaroslavl, Russia
-1 FAMC @F47@
-
-0 @I109@ INDI
-1 NAME Sergey /Morozov/
-1 SEX M
-1 BIRT
-2 DATE 25 SEP 2002
-2 PLAC Vladimir, Russia
-1 FAMC @F48@
-
-0 @I110@ INDI
-1 NAME Olga /Morozova/
-1 SEX F
-1 BIRT
-2 DATEs
+0 TRLR

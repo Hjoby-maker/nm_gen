@@ -367,4 +367,36 @@ class FileInfo {
     }
     return '${(size / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
   }
+
+  /// Очищает все файлы в директории приложения
+  Future<void> clearAllFiles() async {
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final dir = Directory(appDir.path);
+
+      if (await dir.exists()) {
+        final entities = await dir.list().toList();
+        for (final entity in entities) {
+          try {
+            if (entity is Directory) {
+              await entity.delete(recursive: true);
+            } else if (entity is File) {
+              await entity.delete();
+            }
+          } catch (_) {}
+        }
+      }
+
+      // Пересоздаем основные папки
+      final photosDir = Directory('${appDir.path}/photos');
+      if (!await photosDir.exists()) {
+        await photosDir.create(recursive: true);
+      }
+
+      final thumbnailsDir = Directory('${appDir.path}/thumbnails');
+      if (!await thumbnailsDir.exists()) {
+        await thumbnailsDir.create(recursive: true);
+      }
+    } catch (_) {}
+  }
 }

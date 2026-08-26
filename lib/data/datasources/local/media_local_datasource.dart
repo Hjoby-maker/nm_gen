@@ -273,4 +273,10 @@ class MediaLocalDataSourceImpl implements MediaLocalDataSource {
       whereArgs: <String>[mediaId],
     );
   }
+
+  /// Удалить все медиа-записи
+  Future<void> deleteAll() async {
+    final db = await _getDatabase();
+    await db.delete('media_attachments');
+  }
 }

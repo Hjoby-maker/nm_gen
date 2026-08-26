@@ -133,4 +133,18 @@ class EventLocalDataSource {
     }
     return 0;
   }
+
+  /// Удалить все события
+  Future<void> deleteAllEvents({String? treeId}) async {
+    final Database db = await dbHelper.database;
+    if (treeId != null && treeId.isNotEmpty) {
+      await db.delete(
+        'events',
+        where: 'tree_id = ?',
+        whereArgs: <Object?>[treeId],
+      );
+    } else {
+      await db.delete('events');
+    }
+  }
 }

@@ -52,6 +52,7 @@ import 'package:nm_gen/domain/use_cases/event/delete_event.dart';
 import 'package:nm_gen/domain/use_cases/event/delete_all_person_events.dart';
 import 'package:nm_gen/domain/use_cases/event/sync_event_to_person.dart';
 import 'injector.config.dart';
+import 'package:nm_gen/domain/use_cases/clear_all_data.dart';
 
 final getIt = GetIt.instance;
 
@@ -195,6 +196,16 @@ void registerUseCasesAndBlocs() {
   final FamilyRepository familyRepo = getIt<FamilyRepository>();
   final MediaRepository mediaRepo = getIt<MediaRepository>();
   final EventRepository eventRepo = getIt<EventRepository>();
+
+  registerFactoryIfNotRegistered<ClearAllDataUseCase>(
+    () => ClearAllDataUseCase(
+      personRepository: personRepo,
+      familyRepository: familyRepo,
+      eventRepository: eventRepo,
+      mediaRepository: mediaRepo,
+      projectRepository: getIt<ProjectRepository>(),
+    ),
+  );
 
   // ============================================================
   // 8. РЕГИСТРАЦИЯ USE CASES ДЛЯ PERSON

@@ -171,4 +171,10 @@ class ProjectLocalDataSource {
       whereArgs: <String>[id],
     );
   }
+
+  /// Удалить все проекты
+  Future<void> deleteAllProjects() async {
+    final Database db = await dbHelper.database;
+    await db.delete('projects');
+  }
 }

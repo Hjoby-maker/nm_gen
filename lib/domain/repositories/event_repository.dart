@@ -9,4 +9,5 @@ abstract class EventRepository {
   Future<void> deleteEvent(String id);
   Future<void> deleteEventsByPersonId(String personId, {String? treeId});
   Future<int> getEventsCountForPerson(String personId, {String? treeId});
+  Future<void> deleteAllEvents({String? treeId});
 }

@@ -241,15 +241,16 @@ class MediaRepositoryImpl implements MediaRepository {
       // либо на Android слетело разрешение после перезапуска процесса) -
       // это осознанно принятое поведение, а не забытая проверка. UI
       // (MediaCard) должен аккуратно обработать отсутствие файла при показе.
-      final MediaAttachmentModel model = MediaAttachmentModel.createDeviceReference(
-        fileName: fileName,
-        filePath: filePath,
-        mimeType: mimeType,
-        fileSize: fileSize,
-        description: description,
-        personId: personId,
-        eventId: eventId,
-      );
+      final MediaAttachmentModel model =
+          MediaAttachmentModel.createDeviceReference(
+            fileName: fileName,
+            filePath: filePath,
+            mimeType: mimeType,
+            fileSize: fileSize,
+            description: description,
+            personId: personId,
+            eventId: eventId,
+          );
 
       await _dataSource.save(model);
 
@@ -298,13 +299,14 @@ class MediaRepositoryImpl implements MediaRepository {
         );
       }
 
-      final MediaAttachmentModel model = MediaAttachmentModel.createExternalLink(
-        url: trimmedUrl,
-        description: description,
-        title: title,
-        personId: personId,
-        eventId: eventId,
-      );
+      final MediaAttachmentModel model =
+          MediaAttachmentModel.createExternalLink(
+            url: trimmedUrl,
+            description: description,
+            title: title,
+            personId: personId,
+            eventId: eventId,
+          );
 
       await _dataSource.save(model);
 
@@ -701,6 +703,30 @@ class MediaRepositoryImpl implements MediaRepository {
     } catch (e) {
       return Left(
         FileSystemFailure('cleanup', message: 'Ошибка очистки файлов: $e'),
+      );
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> deleteAllMedia() async {
+    try {
+      await _dataSource.deleteAll();
+      return const Right(null);
+    } catch (e) {
+      return Left(
+        MediaDatabaseFailure(message: 'Ошибка удаления всех медиа: $e'),
+      );
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> clearAllFiles() async {
+    try {
+      await _fileStorage.clearAllFiles();
+      return const Right(null);
+    } catch (e) {
+      return Left(
+        FileSystemFailure('clear_all', message: 'Ошибка очистки файлов: $e'),
       );
     }
   }

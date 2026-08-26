@@ -64,4 +64,9 @@ class EventRepositoryImpl implements EventRepository {
       treeId: treeId,
     );
   }
+
+  @override
+  Future<void> deleteAllEvents({String? treeId}) async {
+    await localDataSource.deleteAllEvents(treeId: treeId);
+  }
 }

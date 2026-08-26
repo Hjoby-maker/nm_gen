@@ -101,4 +101,9 @@ class ProjectRepositoryImpl implements ProjectRepository {
   Future<void> setDefaultProject(String id) async {
     await localDataSource.setDefaultProject(id);
   }
+
+  @override
+  Future<void> deleteAllProjects() async {
+    await localDataSource.deleteAllProjects();
+  }
 }
