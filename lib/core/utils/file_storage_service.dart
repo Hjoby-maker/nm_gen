@@ -253,7 +253,7 @@ class FileStorageService {
         final extension = path.extension(fileName);
         final int timestamp = DateTime.now().millisecondsSinceEpoch;
         final String uniqueName = '${nameWithoutExt}_$timestamp$extension';
-        final finalPath = path.join(newDir.path, uniqueName);
+        final String finalPath = path.join(newDir.path, uniqueName);
         await sourceFile.copy(finalPath);
         await sourceFile.delete();
         return finalPath;
@@ -314,7 +314,7 @@ class FileStorageService {
         final extension = path.extension(fileName);
         final int timestamp = DateTime.now().millisecondsSinceEpoch;
         final String uniqueName = '${nameWithoutExt}_$timestamp$extension';
-        final finalPath = path.join(destinationDirectory, uniqueName);
+        final String finalPath = path.join(destinationDirectory, uniqueName);
         await sourceFile.copy(finalPath);
         return finalPath;
       }
@@ -340,34 +340,8 @@ class FileStorageService {
       return 0;
     }
   }
-}
 
-/// Информация о файле
-class FileInfo {
-  const FileInfo({
-    required this.path,
-    required this.size,
-    required this.modified,
-    required this.accessed,
-    required this.isDirectory,
-  });
-  final String path;
-  final int size;
-  final DateTime modified;
-  final DateTime accessed;
-  final bool isDirectory;
-
-  String get formattedSize {
-    if (size < 1024) return '$size B';
-    if (size < 1024 * 1024) {
-      return '${(size / 1024).toStringAsFixed(1)} KB';
-    }
-    if (size < 1024 * 1024 * 1024) {
-      return '${(size / (1024 * 1024)).toStringAsFixed(1)} MB';
-    }
-    return '${(size / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
-  }
-
+  // ✅ ПЕРЕМЕЩЕННЫЙ МЕТОД (был внутри FileInfo)
   /// Очищает все файлы в директории приложения
   Future<void> clearAllFiles() async {
     try {
@@ -398,5 +372,32 @@ class FileInfo {
         await thumbnailsDir.create(recursive: true);
       }
     } catch (_) {}
+  }
+}
+
+/// Информация о файле
+class FileInfo {
+  const FileInfo({
+    required this.path,
+    required this.size,
+    required this.modified,
+    required this.accessed,
+    required this.isDirectory,
+  });
+  final String path;
+  final int size;
+  final DateTime modified;
+  final DateTime accessed;
+  final bool isDirectory;
+
+  String get formattedSize {
+    if (size < 1024) return '$size B';
+    if (size < 1024 * 1024) {
+      return '${(size / 1024).toStringAsFixed(1)} KB';
+    }
+    if (size < 1024 * 1024 * 1024) {
+      return '${(size / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+    return '${(size / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
   }
 }

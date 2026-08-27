@@ -34,7 +34,11 @@ class ClearAllDataUseCase {
       // 2. Удаляем медиа (дочерняя таблица)
       final mediaResult = await _mediaRepository.deleteAllMedia();
       if (mediaResult.isLeft()) {
-        return Left(mediaResult.fold((l) => l, (r) => Failure(message: '')));
+        final failure = mediaResult.fold(
+          (l) => l,
+          (r) => const ServerFailure('Неизвестная ошибка при удалении медиа'),
+        );
+        return Left(failure);
       }
 
       // 3. Удаляем семьи
@@ -49,12 +53,17 @@ class ClearAllDataUseCase {
       // 6. Очищаем файлы на диске
       final clearResult = await _mediaRepository.clearAllFiles();
       if (clearResult.isLeft()) {
-        return Left(clearResult.fold((l) => l, (r) => Failure(message: '')));
+        final failure = clearResult.fold(
+          (l) => l,
+          (r) => const ServerFailure('Неизвестная ошибка при очистке файлов'),
+        );
+        return Left(failure);
       }
 
       return const Right(unit);
     } catch (e) {
-      return Left(Failure(message: 'Ошибка при очистке данных: $e'));
+      // Используем ServerFailure для ошибок сервера/БД
+      return Left(ServerFailure('Ошибка при очистке данных: $e'));
     }
   }
 }

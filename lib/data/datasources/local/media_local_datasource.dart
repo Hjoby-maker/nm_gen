@@ -50,19 +50,19 @@ abstract class MediaLocalDataSource {
     String? newPersonId,
     String? newEventId,
   });
+
+  /// ✅ ДОБАВИТЬ: Удалить все медиа-записи
+  Future<void> deleteAll();
 }
 
 /// Реализация локального датасорса
 class MediaLocalDataSourceImpl implements MediaLocalDataSource {
-  // ← Используем DatabaseHelper вместо Database
-
   MediaLocalDataSourceImpl(this._dbHelper);
   final DatabaseHelper _dbHelper;
 
   /// Получение экземпляра базы данных
   Future<Database> _getDatabase() async {
-    return _dbHelper
-        .database; // ← Предполагается, что у DatabaseHelper есть геттер database
+    return _dbHelper.database;
   }
 
   @override
@@ -218,7 +218,6 @@ class MediaLocalDataSourceImpl implements MediaLocalDataSource {
       };
     }
 
-    // Добавляем вычисляемое поле other_count
     final data = result.first;
     final int totalCount = data['total_count'] as int? ?? 0;
     final int imageCount = data['image_count'] as int? ?? 0;
@@ -244,9 +243,6 @@ class MediaLocalDataSourceImpl implements MediaLocalDataSource {
   Future<List<String>> getAllFilePaths() async {
     final db = await _getDatabase();
     final result = await db.query('media_attachments');
-    // ⚠️ local_path теперь может быть NULL (у externalLink файла нет
-    // вообще). Раньше здесь был жёсткий каст `as String`, который упал бы
-    // с ошибкой на первой же ссылке.
     return result
         .map((map) => map['local_path'] as String?)
         .where((path) => path != null && path.isNotEmpty)
@@ -274,7 +270,8 @@ class MediaLocalDataSourceImpl implements MediaLocalDataSource {
     );
   }
 
-  /// Удалить все медиа-записи
+  // ✅ ДОБАВЛЕННЫЙ МЕТОД
+  @override
   Future<void> deleteAll() async {
     final db = await _getDatabase();
     await db.delete('media_attachments');
