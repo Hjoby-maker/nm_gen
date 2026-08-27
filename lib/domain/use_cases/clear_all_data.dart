@@ -27,42 +27,64 @@ class ClearAllDataUseCase {
        _projectRepository = projectRepository;
 
   Future<Either<Failure, Unit>> execute() async {
+    print('🔄 [ClearAllData] Начало очистки данных...');
+
     try {
       // 1. Удаляем события (дочерняя таблица)
+      print('📌 [ClearAllData] Шаг 1: Удаление событий...');
       await _eventRepository.deleteAllEvents();
+      print('✅ [ClearAllData] Шаг 1: События удалены');
 
       // 2. Удаляем медиа (дочерняя таблица)
+      print('📌 [ClearAllData] Шаг 2: Удаление медиа...');
       final mediaResult = await _mediaRepository.deleteAllMedia();
       if (mediaResult.isLeft()) {
+        print(
+          '❌ [ClearAllData] Ошибка при удалении медиа: ${mediaResult.fold((l) => l, (r) => '')}',
+        );
         final failure = mediaResult.fold(
           (l) => l,
           (r) => const ServerFailure('Неизвестная ошибка при удалении медиа'),
         );
         return Left(failure);
       }
+      print('✅ [ClearAllData] Шаг 2: Медиа удалены');
 
       // 3. Удаляем семьи
+      print('📌 [ClearAllData] Шаг 3: Удаление семей...');
       await _familyRepository.deleteAllFamilies();
+      print('✅ [ClearAllData] Шаг 3: Семьи удалены');
 
       // 4. Удаляем людей
+      print('📌 [ClearAllData] Шаг 4: Удаление людей...');
       await _personRepository.deleteAllPersons();
+      print('✅ [ClearAllData] Шаг 4: Люди удалены');
 
       // 5. Удаляем проекты
+      print('📌 [ClearAllData] Шаг 5: Удаление проектов...');
       await _projectRepository.deleteAllProjects();
+      print('✅ [ClearAllData] Шаг 5: Проекты удалены');
 
       // 6. Очищаем файлы на диске
+      print('📌 [ClearAllData] Шаг 6: Очистка файлов на диске...');
       final clearResult = await _mediaRepository.clearAllFiles();
       if (clearResult.isLeft()) {
+        print(
+          '❌ [ClearAllData] Ошибка при очистке файлов: ${clearResult.fold((l) => l, (r) => '')}',
+        );
         final failure = clearResult.fold(
           (l) => l,
           (r) => const ServerFailure('Неизвестная ошибка при очистке файлов'),
         );
         return Left(failure);
       }
+      print('✅ [ClearAllData] Шаг 6: Файлы очищены');
 
+      print('✅ [ClearAllData] Все данные успешно очищены!');
       return const Right(unit);
-    } catch (e) {
-      // Используем ServerFailure для ошибок сервера/БД
+    } catch (e, stackTrace) {
+      print('❌ [ClearAllData] КРИТИЧЕСКАЯ ОШИБКА: $e');
+      print('📚 [ClearAllData] StackTrace: $stackTrace');
       return Left(ServerFailure('Ошибка при очистке данных: $e'));
     }
   }

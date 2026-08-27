@@ -34,6 +34,7 @@ class ImportGedcomUseCase {
 
       // Импортируем людей
       for (final GedcomIndividual individual in data.individuals) {
+        // Пропускаем людей без имени
         if (individual.name.isEmpty) continue;
 
         final Person person = GedcomParser.toPerson(individual);
@@ -43,24 +44,50 @@ class ImportGedcomUseCase {
           treeId: treeId ?? 'default',
         );
 
-        final Person savedPerson = await personRepository.addPerson(
-          personWithTree,
-        );
-        idMap[individual.id] = savedPerson.id;
-        importedCount++;
+        try {
+          final Person savedPerson = await personRepository.addPerson(
+            personWithTree,
+          );
+          idMap[individual.id] = savedPerson.id;
+          importedCount++;
+
+          // Логируем для отладки
+          print(
+            '✅ Импортирован: ${person.firstName} ${person.lastName}, '
+            'дата рождения: ${person.birthDate?.toIso8601String() ?? "нет"}',
+          );
+        } catch (e) {
+          print('⚠️ Ошибка импорта человека ${individual.id}: $e');
+        }
       }
 
+      print('📊 Импортировано людей: $importedCount');
+
       // Импортируем семьи
+      int familyCount = 0;
       for (final GedcomFamily gedcomFamily in data.families) {
+        final String husbandNewId = idMap[gedcomFamily.husbandId] ?? '';
+        final String wifeNewId = idMap[gedcomFamily.wifeId] ?? '';
+
+        final List<String> childrenNewIds = gedcomFamily.childrenIds
+            .map((String id) => idMap[id] ?? '')
+            .where((String id) => id.isNotEmpty)
+            .toList();
+
+        // Проверяем, что есть хотя бы один родитель
+        if (husbandNewId.isEmpty && wifeNewId.isEmpty) {
+          print('⚠️ Пропускаем семью ${gedcomFamily.id}: нет родителей');
+          continue;
+        }
+
         final Family family = Family(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          id:
+              DateTime.now().millisecondsSinceEpoch.toString() +
+              '_${familyCount++}',
           treeId: treeId ?? 'default',
-          husbandId: idMap[gedcomFamily.husbandId],
-          wifeId: idMap[gedcomFamily.wifeId],
-          childrenIds: gedcomFamily.childrenIds
-              .map((String id) => idMap[id])
-              .whereType<String>()
-              .toList(),
+          husbandId: husbandNewId.isNotEmpty ? husbandNewId : null,
+          wifeId: wifeNewId.isNotEmpty ? wifeNewId : null,
+          childrenIds: childrenNewIds,
           marriageDate: gedcomFamily.marriageDate != null
               ? _parseDate(gedcomFamily.marriageDate!)
               : null,
@@ -69,32 +96,20 @@ class ImportGedcomUseCase {
               : null,
         );
 
-        // Проверяем, что в семье есть хотя бы один родитель
-        if (family.husbandId != null || family.wifeId != null) {
+        try {
           await familyRepository.addFamily(family);
+          print(
+            '✅ Импортирована семья: муж=${family.husbandId}, жена=${family.wifeId}, детей=${family.childrenIds.length}',
+          );
+        } catch (e) {
+          print('⚠️ Ошибка импорта семьи ${gedcomFamily.id}: $e');
         }
       }
 
-      // ============================================================
-      // ❌ УБРАНО: _createMissingParentLinks создавала "виртуальные семьи"
-      // для людей без родителей на основе совпадения ФАМИЛИИ - это
-      // ненадёжная эвристика: она путает кровных братьев/сестёр с жёнами,
-      // взявшими фамилию мужа при браке (например, невестка automatически
-      // объявлялась "сестрой" золовки). Плюс метод создавал по ОТДЕЛЬНОЙ
-      // Family-записи на каждого члена группы вместо одной, откуда и
-      // бралось кратное дублирование. Как результат - в дереве появлялись
-      // семьи без единого родителя (husbandId и wifeId оба null), что
-      // ломало определение "корневых" людей в get_full_tree.dart.
-      //
-      // Если понадобится показывать в UI группы братьев/сестёр - это
-      // отдельная задача, требующая либо явных данных из GEDCOM (тег
-      // FAMC у обоих должен указывать на одну семью), либо отдельной
-      // сущности, не переиспользующей Family.
-      // await _createMissingParentLinks(data, idMap, treeId);
-      // ============================================================
-
       return Right(importedCount);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ Критическая ошибка импорта: $e');
+      print('❌ StackTrace: $stackTrace');
       return Left(ServerFailure(e.toString()));
     }
   }
@@ -116,7 +131,17 @@ class ImportGedcomUseCase {
       'DEC': 12,
     };
 
-    final List<String> parts = date.split(' ');
+    // Убираем префиксы
+    String cleanDate = date;
+    final List<String> prefixes = ['ABT ', 'BEF ', 'AFT ', 'CAL ', 'EST '];
+    for (final prefix in prefixes) {
+      if (date.startsWith(prefix)) {
+        cleanDate = date.substring(prefix.length);
+        break;
+      }
+    }
+
+    final List<String> parts = cleanDate.split(' ');
     if (parts.length == 3) {
       final int? day = int.tryParse(parts[0]);
       final int? month = months[parts[1].toUpperCase()];

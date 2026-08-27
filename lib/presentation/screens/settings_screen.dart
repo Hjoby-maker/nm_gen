@@ -1,4 +1,5 @@
 // lib/presentation/screens/settings_screen.dart
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:dartz/dartz.dart';
@@ -81,6 +82,7 @@ class SettingsScreen extends StatelessWidget {
   }
 
   void _showClearDataConfirmationDialog(BuildContext context) {
+    print('🔔 [SettingsScreen] Открыт диалог подтверждения удаления');
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -120,11 +122,15 @@ class SettingsScreen extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              print('❌ [SettingsScreen] Удаление отменено пользователем');
+              Navigator.pop(context);
+            },
             child: const Text('Отмена'),
           ),
           ElevatedButton(
             onPressed: () {
+              print('✅ [SettingsScreen] Пользователь подтвердил удаление');
               Navigator.pop(context);
               _clearAllData(context);
             },
@@ -140,29 +146,70 @@ class SettingsScreen extends StatelessWidget {
   }
 
   Future<void> _clearAllData(BuildContext context) async {
+    print('🔄 [SettingsScreen] Начало процесса очистки данных');
+
+    // ✅ Используем Completer для управления диалогом
+    final completer = Completer<void>();
+    bool dialogClosed = false;
+
+    // Показываем диалог загрузки
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext context) => const AlertDialog(
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Очистка данных...'),
-          ],
-        ),
-      ),
-    );
+      builder: (BuildContext dialogContext) {
+        // Сохраняем ссылку на контекст диалога
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  const Text('Очистка данных...'),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Пожалуйста, подождите...',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    ).then((_) {
+      // Диалог был закрыт
+      dialogClosed = true;
+      if (!completer.isCompleted) {
+        completer.complete();
+      }
+    });
+
+    print('📱 [SettingsScreen] Диалог загрузки показан');
 
     try {
+      print('📦 [SettingsScreen] Получение ClearAllDataUseCase из DI...');
       final clearAllDataUseCase = getIt<ClearAllDataUseCase>();
-      final result = await clearAllDataUseCase.execute();
+      print('✅ [SettingsScreen] ClearAllDataUseCase получен');
 
-      if (context.mounted) Navigator.pop(context);
+      print('🚀 [SettingsScreen] Вызов execute()...');
+      final result = await clearAllDataUseCase.execute();
+      print('✅ [SettingsScreen] execute() завершен');
+
+      // ✅ Закрываем диалог через Completer
+      if (!dialogClosed && context.mounted) {
+        print('🔚 [SettingsScreen] Закрытие диалога загрузки...');
+        Navigator.of(context).pop();
+        await Future.delayed(const Duration(milliseconds: 100));
+        print('✅ [SettingsScreen] Диалог загрузки закрыт');
+      } else {
+        print('⚠️ [SettingsScreen] Диалог уже закрыт или контекст не mounted');
+      }
 
       result.fold(
         (failure) {
+          print('❌ [SettingsScreen] Ошибка при очистке: ${failure.message}');
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -174,6 +221,7 @@ class SettingsScreen extends StatelessWidget {
           }
         },
         (_) {
+          print('✅ [SettingsScreen] Очистка успешна!');
           _refreshAllBlocs(context);
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -186,8 +234,20 @@ class SettingsScreen extends StatelessWidget {
           }
         },
       );
-    } catch (e) {
-      if (context.mounted) Navigator.pop(context);
+    } catch (e, stackTrace) {
+      print('❌ [SettingsScreen] КРИТИЧЕСКАЯ ОШИБКА: $e');
+      print('📚 [SettingsScreen] StackTrace: $stackTrace');
+
+      // ✅ Закрываем диалог даже в случае ошибки
+      if (!dialogClosed && context.mounted) {
+        print(
+          '🔚 [SettingsScreen] Закрытие диалога загрузки (после ошибки)...',
+        );
+        Navigator.of(context).pop();
+        await Future.delayed(const Duration(milliseconds: 100));
+        print('✅ [SettingsScreen] Диалог загрузки закрыт (после ошибки)');
+      }
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -201,21 +261,34 @@ class SettingsScreen extends StatelessWidget {
   }
 
   void _refreshAllBlocs(BuildContext context) {
+    print('🔄 [SettingsScreen] Обновление всех BLoC...');
     try {
       const treeId = 'default';
 
+      print('📌 [SettingsScreen] Обновление ProjectBloc...');
       final projectBloc = getIt<ProjectBloc>();
       projectBloc.add(LoadProjectsEvent());
+      print('✅ [SettingsScreen] ProjectBloc обновлен');
 
+      print('📌 [SettingsScreen] Обновление PersonBloc...');
       final personBloc = getIt<PersonBloc>();
       personBloc.add(LoadPersonsEvent(treeId: treeId));
+      print('✅ [SettingsScreen] PersonBloc обновлен');
 
+      print('📌 [SettingsScreen] Обновление FamilyBloc...');
       final familyBloc = getIt<FamilyBloc>();
       familyBloc.add(LoadAllFamiliesEvent(treeId: treeId));
+      print('✅ [SettingsScreen] FamilyBloc обновлен');
 
+      print('📌 [SettingsScreen] Обновление TreeBloc...');
       final treeBloc = getIt<TreeBloc>();
       treeBloc.add(LoadTreeEvent('', treeId: treeId));
-    } catch (_) {}
+      print('✅ [SettingsScreen] TreeBloc обновлен');
+
+      print('✅ [SettingsScreen] Все BLoC обновлены');
+    } catch (e) {
+      print('❌ [SettingsScreen] Ошибка при обновлении BLoC: $e');
+    }
   }
 }
 
@@ -290,6 +363,7 @@ class _SettingsTile extends StatelessWidget {
             )
           : isDeleteAction
           ? () {
+              print('👆 [SettingsTile] Нажат пункт "Очистить все данные"');
               final settings = context
                   .findAncestorWidgetOfExactType<SettingsScreen>();
               settings?._showClearDataConfirmationDialog(context);

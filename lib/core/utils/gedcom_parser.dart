@@ -66,30 +66,100 @@ class GedcomParser {
     Map<String, GedcomIndividual> individuals,
     String id,
   ) {
-    final Map<String, String> data = <String, String>{};
-    for (final String line in buffer) {
+    String name = '';
+    String gender = '';
+    String birthDate = '';
+    String deathDate = '';
+    String birthPlace = '';
+    String deathPlace = '';
+    String occupation = '';
+    String familyId = '';
+    String spouseFamilyId = '';
+
+    // Парсим строки с учетом вложенности
+    for (int i = 0; i < buffer.length; i++) {
+      final String line = buffer[i];
       final List<String> parts = line.split(' ');
       if (parts.length < 2) continue;
+
+      final int level = int.tryParse(parts[0]) ?? 0;
       final String tag = parts[1];
       final String value = parts.length > 2 ? parts.sublist(2).join(' ') : '';
-      if (!data.containsKey(tag)) {
-        data[tag] = value;
+
+      // Основные теги уровня 1
+      if (level == 1) {
+        switch (tag) {
+          case 'NAME':
+            name = value;
+            break;
+          case 'SEX':
+            gender = value;
+            break;
+          case 'BIRT':
+            // Ищем вложенные теги для BIRT
+            birthDate = _findChildValue(buffer, i, 'DATE');
+            birthPlace = _findChildValue(buffer, i, 'PLAC');
+            break;
+          case 'DEAT':
+            deathDate = _findChildValue(buffer, i, 'DATE');
+            deathPlace = _findChildValue(buffer, i, 'PLAC');
+            break;
+          case 'OCCU':
+            occupation = value;
+            break;
+          case 'FAMC':
+            familyId = value;
+            break;
+          case 'FAMS':
+            spouseFamilyId = value;
+            break;
+          case '_BIRT_PLACE':
+            // Для обратной совместимости
+            if (birthPlace.isEmpty) birthPlace = value;
+            break;
+          case '_DEAT_PLACE':
+            if (deathPlace.isEmpty) deathPlace = value;
+            break;
+        }
       }
     }
 
     final GedcomIndividual individual = GedcomIndividual(
       id: id,
-      name: data['NAME'] ?? '',
-      gender: data['SEX'] ?? '',
-      birthDate: data['BIRT'] ?? '',
-      deathDate: data['DEAT'] ?? '',
-      birthPlace: data['_BIRT_PLACE'] ?? '',
-      deathPlace: data['_DEAT_PLACE'] ?? '',
-      occupation: data['OCCU'] ?? '',
-      familyId: data['FAMC'] ?? '',
-      spouseFamilyId: data['FAMS'] ?? '',
+      name: name,
+      gender: gender,
+      birthDate: birthDate,
+      deathDate: deathDate,
+      birthPlace: birthPlace,
+      deathPlace: deathPlace,
+      occupation: occupation,
+      familyId: familyId,
+      spouseFamilyId: spouseFamilyId,
     );
     individuals[id] = individual;
+  }
+
+  /// Поиск значения дочернего тега для указанной позиции
+  static String _findChildValue(
+    List<String> buffer,
+    int startIndex,
+    String childTag,
+  ) {
+    for (int i = startIndex + 1; i < buffer.length; i++) {
+      final String line = buffer[i];
+      final List<String> parts = line.split(' ');
+      if (parts.length < 2) continue;
+
+      final int level = int.tryParse(parts[0]) ?? 0;
+      // Если уровень стал <= 1, значит мы вышли из блока
+      if (level <= 1) break;
+
+      final String tag = parts[1];
+      if (tag == childTag) {
+        return parts.length > 2 ? parts.sublist(2).join(' ') : '';
+      }
+    }
+    return '';
   }
 
   static void _saveFamily(
@@ -103,22 +173,40 @@ class GedcomParser {
     String? marriageDate;
     String? divorceDate;
 
-    for (final String line in buffer) {
+    for (int i = 0; i < buffer.length; i++) {
+      final String line = buffer[i];
       final List<String> parts = line.split(' ');
       if (parts.length < 2) continue;
+
+      final int level = int.tryParse(parts[0]) ?? 0;
       final String tag = parts[1];
       final String value = parts.length > 2 ? parts.sublist(2).join(' ') : '';
 
-      if (tag == 'HUSB') {
-        husbandId = value;
-      } else if (tag == 'WIFE') {
-        wifeId = value;
-      } else if (tag == 'CHIL') {
-        childrenIds.add(value);
-      } else if (tag == 'MARR') {
-        marriageDate = value;
-      } else if (tag == 'DIV') {
-        divorceDate = value;
+      if (level == 1) {
+        switch (tag) {
+          case 'HUSB':
+            husbandId = value;
+            break;
+          case 'WIFE':
+            wifeId = value;
+            break;
+          case 'CHIL':
+            childrenIds.add(value);
+            break;
+          case 'MARR':
+            // Ищем дату брака во вложенных тегах
+            marriageDate = _findChildValue(buffer, i, 'DATE');
+            if (marriageDate == null || marriageDate!.isEmpty) {
+              marriageDate = value;
+            }
+            break;
+          case 'DIV':
+            divorceDate = _findChildValue(buffer, i, 'DATE');
+            if (divorceDate == null || divorceDate!.isEmpty) {
+              divorceDate = value;
+            }
+            break;
+        }
       }
     }
 
@@ -179,8 +267,9 @@ class GedcomParser {
 
   static DateTime? _parseDate(String date) {
     if (date.isEmpty) return null;
-    // Простой парсинг даты в формате DD MMM YYYY
-    // Например: "15 JAN 1980"
+
+    // Поддерживаем разные форматы дат
+    // DD MMM YYYY или DD MMM YYYY с дополнительным текстом
     final Map<String, int> months = <String, int>{
       'JAN': 1,
       'FEB': 2,
@@ -196,7 +285,17 @@ class GedcomParser {
       'DEC': 12,
     };
 
-    final List<String> parts = date.split(' ');
+    // Убираем возможный префикс (например, "ABT ", "BEF ", "AFT ")
+    String cleanDate = date;
+    final List<String> prefixes = ['ABT ', 'BEF ', 'AFT ', 'CAL ', 'EST '];
+    for (final prefix in prefixes) {
+      if (date.startsWith(prefix)) {
+        cleanDate = date.substring(prefix.length);
+        break;
+      }
+    }
+
+    final List<String> parts = cleanDate.split(' ');
     if (parts.length == 3) {
       final int? day = int.tryParse(parts[0]);
       final int? month = months[parts[1].toUpperCase()];
