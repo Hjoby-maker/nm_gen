@@ -19,6 +19,7 @@ import 'package:nm_gen/domain/repositories/family_repository.dart';
 import 'package:nm_gen/domain/repositories/media_repository.dart';
 import 'package:nm_gen/domain/repositories/person_repository.dart';
 import 'package:nm_gen/domain/repositories/project_repository.dart';
+import 'package:nm_gen/domain/use_cases/clear_all_data.dart';
 import 'package:nm_gen/domain/use_cases/family/add_child_to_family.dart';
 import 'package:nm_gen/domain/use_cases/family/add_family.dart';
 import 'package:nm_gen/domain/use_cases/family/get_families_by_person.dart';
@@ -29,7 +30,9 @@ import 'package:nm_gen/domain/use_cases/gedcom/import_gedcom.dart';
 import 'package:nm_gen/domain/use_cases/person/add_person.dart';
 import 'package:nm_gen/domain/use_cases/person/delete_person.dart';
 import 'package:nm_gen/domain/use_cases/person/get_all_persons.dart';
+import 'package:nm_gen/domain/use_cases/person/get_favorite_persons.dart';
 import 'package:nm_gen/domain/use_cases/person/get_person.dart';
+import 'package:nm_gen/domain/use_cases/person/search_favorite_persons.dart';
 import 'package:nm_gen/domain/use_cases/person/search_persons.dart';
 import 'package:nm_gen/domain/use_cases/person/sync_person_events.dart';
 import 'package:nm_gen/domain/use_cases/person/update_person.dart';
@@ -41,8 +44,6 @@ import 'package:nm_gen/presentation/blocs/media/media_bloc.dart';
 import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
 import 'package:nm_gen/presentation/blocs/project/project_bloc.dart';
 import 'package:nm_gen/presentation/blocs/tree/tree_bloc.dart';
-import 'package:nm_gen/domain/use_cases/person/get_favorite_persons.dart';
-import 'package:nm_gen/domain/use_cases/person/search_favorite_persons.dart';
 // Импорты Use Cases для Event
 import 'package:nm_gen/domain/use_cases/event/add_event.dart';
 import 'package:nm_gen/domain/use_cases/event/get_events_by_person.dart';
@@ -52,7 +53,6 @@ import 'package:nm_gen/domain/use_cases/event/delete_event.dart';
 import 'package:nm_gen/domain/use_cases/event/delete_all_person_events.dart';
 import 'package:nm_gen/domain/use_cases/event/sync_event_to_person.dart';
 import 'injector.config.dart';
-import 'package:nm_gen/domain/use_cases/clear_all_data.dart';
 
 final getIt = GetIt.instance;
 
@@ -197,16 +197,6 @@ void registerUseCasesAndBlocs() {
   final MediaRepository mediaRepo = getIt<MediaRepository>();
   final EventRepository eventRepo = getIt<EventRepository>();
 
-  registerFactoryIfNotRegistered<ClearAllDataUseCase>(
-    () => ClearAllDataUseCase(
-      personRepository: personRepo,
-      familyRepository: familyRepo,
-      eventRepository: eventRepo,
-      mediaRepository: mediaRepo,
-      projectRepository: getIt<ProjectRepository>(),
-    ),
-  );
-
   // ============================================================
   // 8. РЕГИСТРАЦИЯ USE CASES ДЛЯ PERSON
   // ============================================================
@@ -222,14 +212,6 @@ void registerUseCasesAndBlocs() {
     () => GetAllPersonsUseCase(personRepo),
   );
 
-  registerFactoryIfNotRegistered<GetFavoritePersonsUseCase>(
-    () => GetFavoritePersonsUseCase(personRepo),
-  );
-
-  registerFactoryIfNotRegistered<SearchFavoritePersonsUseCase>(
-    () => SearchFavoritePersonsUseCase(personRepo),
-  );
-
   registerFactoryIfNotRegistered<UpdatePersonUseCase>(
     () => UpdatePersonUseCase(personRepo, getIt<SyncPersonEventsUseCase>()),
   );
@@ -240,6 +222,14 @@ void registerUseCasesAndBlocs() {
 
   registerFactoryIfNotRegistered<SearchPersonsUseCase>(
     () => SearchPersonsUseCase(personRepo),
+  );
+
+  registerFactoryIfNotRegistered<GetFavoritePersonsUseCase>(
+    () => GetFavoritePersonsUseCase(personRepo),
+  );
+
+  registerFactoryIfNotRegistered<SearchFavoritePersonsUseCase>(
+    () => SearchFavoritePersonsUseCase(personRepo),
   );
 
   // ============================================================
@@ -275,6 +265,7 @@ void registerUseCasesAndBlocs() {
     () => ImportGedcomUseCase(
       personRepository: personRepo,
       familyRepository: familyRepo,
+      syncPersonEventsUseCase: getIt<SyncPersonEventsUseCase>(),
     ),
   );
 
@@ -354,16 +345,7 @@ void registerUseCasesAndBlocs() {
   final deleteEventUseCase = getIt<DeleteEventUseCase>();
   final deleteAllPersonEventsUseCase = getIt<DeleteAllPersonEventsUseCase>();
 
-  // ⚠️ Person/Family/Tree блоки регистрируем как LazySingleton, а НЕ Factory.
-  // Эти блоки живут на уровне MainScreen и раздаются вниз через
-  // BlocProvider.value сразу нескольким экранам, которые остаются
-  // смонтированными в IndexedStack. Если бы это был Factory, каждый
-  // getIt<PersonBloc>() (в т.ч. повторный вызов внутри самих экранов)
-  // создавал бы новый независимый инстанс со своим стримом состояний —
-  // и изменения на одном экране не были бы видны остальным. LazySingleton
-  // гарантирует, что все части приложения работают с одним и тем же
-  // инстансом блока.
-  registerLazySingletonIfNotRegistered<PersonBloc>(
+  registerFactoryIfNotRegistered<PersonBloc>(
     () => PersonBloc(
       getAllPersonsUseCase: getAllPersonsUseCase,
       getFavoritePersonsUseCase: getFavoritePersonsUseCase,
@@ -377,9 +359,9 @@ void registerUseCasesAndBlocs() {
     ),
   );
 
-  registerLazySingletonIfNotRegistered<TreeBloc>(() => TreeBloc());
+  registerFactoryIfNotRegistered<TreeBloc>(() => TreeBloc());
 
-  registerLazySingletonIfNotRegistered<FamilyBloc>(
+  registerFactoryIfNotRegistered<FamilyBloc>(
     () => FamilyBloc(
       getFamiliesByPersonUseCase: getFamiliesByPersonUseCase,
       getFamilyWithDetailsUseCase: getFamilyWithDetailsUseCase,
@@ -414,4 +396,21 @@ void registerUseCasesAndBlocs() {
   // 16. РЕГИСТРАЦИЯ PROJECT BLOC
   // ============================================================
   registerFactoryIfNotRegistered<ProjectBloc>(() => ProjectBloc());
+
+  // ============================================================
+  // 17. РЕГИСТРАЦИЯ USE CASE ClearAllDataUseCase
+  // ============================================================
+  // ⚠️ Этот use case раньше нигде не регистрировался в DI вообще - отсюда
+  // "Object/factory with type ClearAllDataUseCase is not registered" при
+  // нажатии "Очистить все данные" в настройках. Все пять репозиториев,
+  // которые ему нужны, уже зарегистрированы выше в этом же файле.
+  registerFactoryIfNotRegistered<ClearAllDataUseCase>(
+    () => ClearAllDataUseCase(
+      personRepository: personRepo,
+      familyRepository: familyRepo,
+      eventRepository: eventRepo,
+      mediaRepository: mediaRepo,
+      projectRepository: getIt<ProjectRepository>(),
+    ),
+  );
 }

@@ -2,269 +2,459 @@
 1 SOUR GENERATED
 2 VERS 1.0
 1 DEST DISKETTE
-1 DATE 19 JUN 2026
+1 DATE 29 AUG 2026
 1 GEDC
 2 VERS 5.5.1
 2 FORM LINEAGE-LINKED
 1 CHAR UTF-8
 
-# ========== ПОКОЛЕНИЕ 1 (БАБУШКА И ДЕДУШКА) ==========
-
 0 @I1@ INDI
-1 NAME Александр /Соколов/
+1 NAME Пётр /Волков/
 1 SEX M
 1 BIRT
-2 DATE 15 MAR 1940
+2 DATE 12 MAR 1922
+2 PLAC Москва
 1 DEAT
-2 DATE 20 JAN 2010
-1 _BIRT_PLACE Москва
-1 OCCU Военный
-
-0 @I2@ INDI
-1 NAME Екатерина /Соколова/
-1 SEX F
-1 BIRT
-2 DATE 22 AUG 1943
-1 DEAT
-2 DATE 05 MAY 2015
-1 _BIRT_PLACE Москва
-1 OCCU Врач
-
-# БРАТЬЯ И СЕСТРЫ БАБУШКИ (ЕКАТЕРИНЫ)
-0 @I3@ INDI
-1 NAME Николай /Петров/        # брат Екатерины
-1 SEX M
-1 BIRT
-2 DATE 10 JAN 1941
-1 _BIRT_PLACE Москва
+2 DATE 05 JUL 1995
 1 OCCU Инженер
 
-0 @I4@ INDI
-1 NAME Ольга /Петрова/          # сестра Екатерины
+0 @I2@ INDI
+1 NAME Вера /Волкова/
 1 SEX F
 1 BIRT
-2 DATE 05 MAY 1945
-1 _BIRT_PLACE Москва
+2 DATE 03 SEP 1925
+2 PLAC Москва
+1 DEAT
+2 DATE 14 FEB 2001
 1 OCCU Учительница
 
-# БРАТЬЯ И СЕСТРЫ ДЕДУШКИ (АЛЕКСАНДРА)
-0 @I5@ INDI
-1 NAME Владимир /Соколов/       # брат Александра
+0 @I3@ INDI
+1 NAME Григорий /Волков/
 1 SEX M
 1 BIRT
-2 DATE 12 JUN 1938
+2 DATE 20 NOV 1919
+2 PLAC Москва
 1 DEAT
-2 DATE 03 NOV 2005
-1 _BIRT_PLACE Москва
-1 OCCU Художник
+2 DATE 11 APR 1988
+1 OCCU Столяр
 
-0 @I6@ INDI
-1 NAME Людмила /Соколова/        # сестра Александра
+0 @I4@ INDI
+1 NAME Надежда /Волкова/
 1 SEX F
 1 BIRT
-2 DATE 18 SEP 1942
-1 _BIRT_PLACE Москва
-1 OCCU Библиотекарь
+2 DATE 28 JUN 1921
+2 PLAC Тула
+1 DEAT
+2 DATE 02 OCT 1999
+1 OCCU Швея
 
-# СЕМЬЯ БАБУШКИ И ДЕДУШКИ
-0 @F1@ FAM
-1 HUSB @I1@
-1 WIFE @I2@
-1 CHIL @I7@
-1 CHIL @I8@
-1 CHIL @I9@
-1 CHIL @I10@
-1 MARR
-2 DATE 01 JUN 1965
-
-# ========== ПОКОЛЕНИЕ 2 (ДЕТИ) ==========
-
-# ДЕТИ АЛЕКСАНДРА И ЕКАТЕРИНЫ (4 ЧЕЛОВЕКА)
-0 @I7@ INDI
-1 NAME Ирина /Соколова/
+0 @I5@ INDI
+1 NAME Ирина /Волкова/
 1 SEX F
 1 BIRT
-2 DATE 10 APR 1966
-1 _BIRT_PLACE Москва
+2 DATE 14 APR 1946
+2 PLAC Москва
 1 OCCU Экономист
 
-0 @I8@ INDI
-1 NAME Олег /Соколов/
+0 @I6@ INDI
+1 NAME Михаил /Волков/
 1 SEX M
 1 BIRT
-2 DATE 25 JUL 1968
-1 _BIRT_PLACE Москва
+2 DATE 30 JUL 1948
+2 PLAC Москва
+1 DEAT
+2 DATE 21 JAN 2010
+1 OCCU Военный
+
+0 @I7@ INDI
+1 NAME Светлана /Волкова/
+1 SEX F
+1 BIRT
+2 DATE 09 OCT 1950
+2 PLAC Москва
+1 OCCU Врач
+
+0 @I8@ INDI
+1 NAME Анатолий /Волков/
+1 SEX M
+1 BIRT
+2 DATE 17 FEB 1944
+2 PLAC Москва
 1 OCCU Водитель
 
 0 @I9@ INDI
-1 NAME Татьяна /Соколова/
+1 NAME Людмила /Волкова/
 1 SEX F
 1 BIRT
-2 DATE 03 DEC 1970
-1 _BIRT_PLACE Москва
+2 DATE 25 DEC 1952
+2 PLAC Тула
 1 OCCU Медсестра
 
 0 @I10@ INDI
-1 NAME Павел /Соколов/
+1 NAME Николай /Гусев/
 1 SEX M
 1 BIRT
-2 DATE 14 MAY 1973
-1 _BIRT_PLACE Москва
-1 OCCУ Программист
+2 DATE 02 JUN 1944
+2 PLAC Москва
+1 DEAT
+2 DATE 10 MAR 2015
+1 OCCU Инженер
 
-# СУПРУГИ ДЛЯ 2 ДЕТЕЙ (СЕМЬИ)
 0 @I11@ INDI
-1 NAME Анна /Иванова/
+1 NAME Тамара /Волкова/
 1 SEX F
 1 BIRT
-2 DATE 12 AUG 1968
-1 _BIRT_PLACE Москва
-1 OCCU Бухгалтер
+2 DATE 19 AUG 1949
+2 PLAC Москва
+1 OCCU Продавец
 
-0 @F2@ FAM
-1 HUSB @I8@
-1 WIFE @I11@
-1 CHIL @I12@
-1 CHIL @I13@
-1 CHIL @I14@
-1 MARR
-2 DATE 15 SEP 1992
+0 @I12@ INDI
+1 NAME Валентина /Волкова/
+1 SEX F
+1 BIRT
+2 DATE 05 MAY 1945
+2 PLAC Москва
+1 OCCU Портниха
+
+0 @I13@ INDI
+1 NAME Виктор /Соловьёв/
+1 SEX M
+1 BIRT
+2 DATE 23 NOV 1950
+2 PLAC Курск
+1 OCCU Механик
+
+0 @I14@ INDI
+1 NAME Ольга /Гусева/
+1 SEX F
+1 BIRT
+2 DATE 07 MAR 1970
+2 PLAC Москва
+1 OCCU Дизайнер
 
 0 @I15@ INDI
-1 NAME Елена /Козлова/
+1 NAME Дмитрий /Гусев/
+1 SEX M
+1 BIRT
+2 DATE 16 SEP 1972
+2 PLAC Москва
+1 OCCU Программист
+
+0 @I16@ INDI
+1 NAME Елена /Волкова/
 1 SEX F
 1 BIRT
-2 DATE 20 FEB 1975
-1 _BIRT_PLACE Москва
+2 DATE 28 MAY 1974
+2 PLAC Москва
+1 OCCU Юрист
+
+0 @I17@ INDI
+1 NAME Андрей /Волков/
+1 SEX M
+1 BIRT
+2 DATE 02 DEC 1976
+2 PLAC Москва
+1 OCCU Архитектор
+
+0 @I18@ INDI
+1 NAME Наталья /Волкова/
+1 SEX F
+1 BIRT
+2 DATE 19 APR 1978
+2 PLAC Москва
+1 OCCU Психолог
+
+0 @I19@ INDI
+1 NAME Кирилл /Волков/
+1 SEX M
+1 BIRT
+2 DATE 30 JAN 1969
+2 PLAC Москва
+1 OCCU Финансист
+
+0 @I20@ INDI
+1 NAME Юрий /Соловьёв/
+1 SEX M
+1 BIRT
+2 DATE 14 JUN 1975
+2 PLAC Курск
+1 OCCU Электрик
+
+0 @I21@ INDI
+1 NAME Марина /Соловьёва/
+1 SEX F
+1 BIRT
+2 DATE 08 OCT 1977
+2 PLAC Курск
+1 OCCU Стоматолог
+
+0 @I22@ INDI
+1 NAME Сергей /Титов/
+1 SEX M
+1 BIRT
+2 DATE 11 FEB 1968
+2 PLAC Москва
+1 OCCU Предприниматель
+
+0 @I23@ INDI
+1 NAME Павел /Кузнецов/
+1 SEX M
+1 BIRT
+2 DATE 25 JUL 1971
+2 PLAC Москва
+1 OCCU Хирург
+
+0 @I24@ INDI
+1 NAME Алина /Волкова/
+1 SEX F
+1 BIRT
+2 DATE 03 MAR 1970
+2 PLAC Москва
+1 OCCU Переводчик
+
+0 @I25@ INDI
+1 NAME Максим /Орлов/
+1 SEX M
+1 BIRT
+2 DATE 17 SEP 1974
+2 PLAC Курск
+1 OCCU Пилот
+
+0 @I26@ INDI
+1 NAME Анастасия /Титова/
+1 SEX F
+1 BIRT
+2 DATE 09 APR 1993
+2 PLAC Москва
+1 OCCU Маркетолог
+
+0 @I27@ INDI
+1 NAME Владислав /Титов/
+1 SEX M
+1 BIRT
+2 DATE 22 AUG 1996
+2 PLAC Москва
 1 OCCU Дизайнер
+
+0 @I28@ INDI
+1 NAME Артём /Кузнецов/
+1 SEX M
+1 BIRT
+2 DATE 30 JAN 1998
+2 PLAC Москва
+1 OCCU Студент
+
+0 @I29@ INDI
+1 NAME Виктория /Волкова/
+1 SEX F
+1 BIRT
+2 DATE 14 JUN 1994
+2 PLAC Москва
+1 OCCU Врач
+
+0 @I30@ INDI
+1 NAME Роман /Волков/
+1 SEX M
+1 BIRT
+2 DATE 27 NOV 1997
+2 PLAC Москва
+1 OCCU Музыкант
+
+0 @I31@ INDI
+1 NAME Екатерина /Орлова/
+1 SEX F
+1 BIRT
+2 DATE 05 MAY 1999
+2 PLAC Курск
+1 OCCU Студентка
+
+0 @I32@ INDI
+1 NAME Игорь /Смирнов/
+1 SEX M
+1 BIRT
+2 DATE 19 OCT 1991
+2 PLAC Москва
+1 OCCU Аналитик
+
+0 @I33@ INDI
+1 NAME Денис /Фёдоров/
+1 SEX M
+1 BIRT
+2 DATE 02 FEB 1993
+2 PLAC Москва
+1 OCCU Инженер
+
+0 @I34@ INDI
+1 NAME Мия /Смирнова/
+1 SEX F
+1 BIRT
+2 DATE 06 MAR 2016
+2 PLAC Москва
+
+0 @I35@ INDI
+1 NAME Лев /Смирнов/
+1 SEX M
+1 BIRT
+2 DATE 21 JUL 2019
+2 PLAC Москва
+
+0 @I36@ INDI
+1 NAME Софья /Фёдорова/
+1 SEX F
+1 BIRT
+2 DATE 14 FEB 2018
+2 PLAC Москва
+
+0 @I37@ INDI
+1 NAME Тимофей /Фёдоров/
+1 SEX M
+1 BIRT
+2 DATE 29 SEP 2021
+2 PLAC Москва
+
+0 @I38@ INDI
+1 NAME Клавдия /Морозова/
+1 SEX F
+1 BIRT
+2 DATE 15 JAN 1923
+2 PLAC Москва
+1 DEAT
+2 DATE 30 AUG 2003
+1 OCCU Бухгалтер
+
+0 @I39@ INDI
+1 NAME Степан /Морозов/
+1 SEX M
+1 BIRT
+2 DATE 09 MAY 1920
+2 PLAC Рязань
+1 DEAT
+2 DATE 19 DEC 1990
+1 OCCU Кузнец
+
+0 @I40@ INDI
+1 NAME Раиса /Морозова/
+1 SEX F
+1 BIRT
+2 DATE 11 JUL 1947
+2 PLAC Рязань
+1 OCCU Библиотекарь
+
+0 @F1@ FAM
+1 HUSB @I1@
+1 WIFE @I2@
+1 CHIL @I5@
+1 CHIL @I6@
+1 CHIL @I7@
+1 MARR
+2 DATE 10 JUN 1944
+
+0 @F2@ FAM
+1 HUSB @I3@
+1 WIFE @I4@
+1 CHIL @I8@
+1 CHIL @I9@
+1 MARR
+2 DATE 15 SEP 1943
 
 0 @F3@ FAM
 1 HUSB @I10@
-1 WIFE @I15@
-1 CHIL @I16@
-1 CHIL @I17@
+1 WIFE @I5@
+1 CHIL @I14@
+1 CHIL @I15@
 1 MARR
-2 DATE 10 OCT 1998
-
-# ========== ПОКОЛЕНИЕ 3 (ВНУКИ) ==========
-
-# ДЕТИ ОЛЕГА И АННЫ (3 ЧЕЛОВЕКА)
-0 @I12@ INDI
-1 NAME Сергей /Соколов/
-1 SEX M
-1 BIRT
-2 DATE 20 JAN 1993
-1 _BIRT_PLACE Москва
-
-0 @I13@ INDI
-1 NAME Наталья /Соколова/
-1 SEX F
-1 BIRT
-2 DATE 15 JUN 1995
-1 _BIRT_PLACE Москва
-
-0 @I14@ INDI
-1 NAME Дмитрий /Соколов/
-1 SEX M
-1 BIRT
-2 DATE 08 SEP 1997
-1 _BIRT_PLACE Москва
-
-# ДЕТИ ПАВЛА И ЕЛЕНЫ (2 ЧЕЛОВЕКА)
-0 @I16@ INDI
-1 NAME Карина /Соколова/
-1 SEX F
-1 BIRT
-2 DATE 25 DEC 1999
-1 _BIRT_PLACE Москва
-
-0 @I17@ INDI
-1 NAME Алексей /Соколов/
-1 SEX M
-1 BIRT
-2 DATE 01 APR 2002
-1 _BIRT_PLACE Москва
-
-# СУПРУГА ДЛЯ ОДНОГО ИЗ ВНУКОВ (СЕМЬЯ)
-0 @I18@ INDI
-1 NAME Мария /Морозова/
-1 SEX F
-1 BIRT
-2 DATE 15 MAR 1995
-1 _BIRT_PLACE Москва
-1 OCCU Фотограф
+2 DATE 20 AUG 1968
 
 0 @F4@ FAM
-1 HUSB @I14@
-1 WIFE @I18@
-1 CHIL @I19@
-1 CHIL @I20@
+1 HUSB @I6@
+1 WIFE @I11@
+1 CHIL @I16@
+1 CHIL @I17@
+1 CHIL @I18@
 1 MARR
-2 DATE 20 DEC 2020
+2 DATE 05 JUL 1971
 
-# ========== ПОКОЛЕНИЕ 4 (ПРАВНУКИ) ==========
-
-# ДЕТИ ДМИТРИЯ И МАРИИ (2 ЧЕЛОВЕКА)
-0 @I19@ INDI
-1 NAME София /Соколова/
-1 SEX F
-1 BIRT
-2 DATE 05 MAR 2022
-1 _BIRT_PLACE Москва
-
-0 @I20@ INDI
-1 NAME Максим /Соколов/
-1 SEX M
-1 BIRT
-2 DATE 18 OCT 2023
-1 _BIRT_PLACE Москва
-
-# ========== СЕМЬИ БРАТЬЕВ И СЕСТЕР (ДЛЯ СВЯЗИ) ==========
-
-# Братья и сестры бабушки (Екатерины)
 0 @F5@ FAM
-1 HUSB @I3@
-1 WIFE @I21@
-1 CHIL @I22@
+1 HUSB @I8@
+1 WIFE @I12@
+1 CHIL @I19@
 1 MARR
-2 DATE 10 MAY 1965
+2 DATE 12 MAY 1967
+1 DIV
+2 DATE 03 SEP 1980
 
-0 @I21@ INDI
-1 NAME Галина /Петрова/
-1 SEX F
-1 BIRT
-2 DATE 01 APR 1944
-1 _BIRT_PLACE Москва
-
-0 @I22@ INDI
-1 NAME Алексей /Петров/
-1 SEX M
-1 BIRT
-2 DATE 12 AUG 1966
-1 _BIRT_PLACE Москва
-
-# Братья и сестры дедушки (Александра)
 0 @F6@ FAM
-1 HUSB @I5@
-1 WIFE @I23@
-1 CHIL @I24@
+1 HUSB @I13@
+1 WIFE @I9@
+1 CHIL @I20@
+1 CHIL @I21@
 1 MARR
-2 DATE 15 JUN 1960
+2 DATE 18 OCT 1974
 
-0 @I23@ INDI
-1 NAME Зинаида /Соколова/
-1 SEX F
-1 BIRT
-2 DATE 20 FEB 1941
-1 _BIRT_PLACE Москва
+0 @F7@ FAM
+1 HUSB @I22@
+1 WIFE @I14@
+1 CHIL @I26@
+1 CHIL @I27@
+1 MARR
+2 DATE 14 JUN 1992
 
-0 @I24@ INDI
-1 NAME Виктор /Соколов/
-1 SEX M
-1 BIRT
-2 DATE 25 MAR 1962
-1 _BIRT_PLACE Москва
+0 @F8@ FAM
+1 HUSB @I23@
+1 WIFE @I16@
+1 CHIL @I28@
+1 MARR
+2 DATE 09 SEP 1996
 
-# ========== ЗАВЕРШЕНИЕ ==========
+0 @F9@ FAM
+1 HUSB @I19@
+1 WIFE @I24@
+1 CHIL @I29@
+1 CHIL @I30@
+1 MARR
+2 DATE 22 APR 1991
+
+0 @F10@ FAM
+1 HUSB @I25@
+1 WIFE @I21@
+1 CHIL @I31@
+1 MARR
+2 DATE 30 JUL 1998
+
+0 @F11@ FAM
+1 HUSB @I32@
+1 WIFE @I26@
+1 CHIL @I34@
+1 CHIL @I35@
+1 MARR
+2 DATE 11 MAY 2014
+
+0 @F12@ FAM
+1 HUSB @I33@
+1 WIFE @I29@
+1 CHIL @I36@
+1 CHIL @I37@
+1 MARR
+2 DATE 08 AUG 2015
+
+0 @F13@ FAM
+1 HUSB @I39@
+1 WIFE @I38@
+1 CHIL @I40@
+1 MARR
+2 DATE 25 NOV 1946
+
+0 @F14@ FAM
+1 CHIL @I1@
+1 CHIL @I3@
+1 NOTE Пётр и Григорий - родные братья. Их родители не известны и в
+2 CONT дереве не заведены, поэтому эта семья без HUSB/WIFE - только
+2 CONT группа братьев/сестёр.
+
+0 @F15@ FAM
+1 CHIL @I2@
+1 CHIL @I38@
+1 NOTE Вера и Клавдия - родные сёстры (в замужестве разные фамилии).
+2 CONT Родители не известны, поэтому семья без HUSB/WIFE.
 
 0 TRLR

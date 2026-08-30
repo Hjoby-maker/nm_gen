@@ -12,6 +12,7 @@ class TreeNode extends Equatable {
     this.generation = 0,
     this.isDuplicateReference = false,
     this.isDivorced = false,
+    this.isSiblingGroup = false,
   });
   final Person person;
   final List<TreeNode> children;
@@ -34,6 +35,16 @@ class TreeNode extends Equatable {
   /// семье это поле не используется.
   final bool isDivorced;
 
+  /// true, если это синтетический (не отображаемый как карточка) узел-
+  /// обёртка, чьи children - это несколько РАЗНЫХ корневых деревьев,
+  /// объединённых только тем, что их "главы" - братья/сёстры без
+  /// известных общих родителей (см. GetFullTreeUseCase - такая связь
+  /// приходит из Family с husbandId == null && wifeId == null). У такого
+  /// узла нет своего person-а для отображения, TreeVisualizer рисует его
+  /// children рядом друг с другом с горизонтальной линией родства вместо
+  /// разрыва на несколько независимых деревьев.
+  final bool isSiblingGroup;
+
   bool get isLeaf => children.isEmpty;
 
   int get descendantsCount {
@@ -55,6 +66,7 @@ class TreeNode extends Equatable {
     int? generation,
     bool? isDuplicateReference,
     bool? isDivorced,
+    bool? isSiblingGroup,
   }) {
     return TreeNode(
       person: person ?? this.person,
@@ -65,6 +77,7 @@ class TreeNode extends Equatable {
       generation: generation ?? this.generation,
       isDuplicateReference: isDuplicateReference ?? this.isDuplicateReference,
       isDivorced: isDivorced ?? this.isDivorced,
+      isSiblingGroup: isSiblingGroup ?? this.isSiblingGroup,
     );
   }
 
@@ -78,5 +91,6 @@ class TreeNode extends Equatable {
     generation,
     isDuplicateReference,
     isDivorced,
+    isSiblingGroup,
   ];
 }

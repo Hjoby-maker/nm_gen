@@ -5,15 +5,25 @@ import 'package:nm_gen/domain/entities/family.dart';
 import 'package:nm_gen/domain/entities/person.dart';
 import 'package:nm_gen/domain/repositories/family_repository.dart';
 import 'package:nm_gen/domain/repositories/person_repository.dart';
+import 'package:nm_gen/domain/use_cases/person/sync_person_events.dart';
 
 /// Use Case: Импорт данных из GEDCOM файла
 class ImportGedcomUseCase {
   ImportGedcomUseCase({
     required this.personRepository,
     required this.familyRepository,
+    required this.syncPersonEventsUseCase,
   });
   final PersonRepository personRepository;
   final FamilyRepository familyRepository;
+
+  /// Та же синхронизация "человек -> событие", что уже используется в
+  /// AddPersonUseCase/UpdatePersonUseCase: если у человека указана дата
+  /// рождения/смерти, автоматически создаётся соответствующее событие.
+  /// Импорт раньше писал людей напрямую через personRepository.addPerson,
+  /// минуя AddPersonUseCase - поэтому при импорте эта синхронизация не
+  /// срабатывала вообще, в отличие от ручного добавления человека.
+  final SyncPersonEventsUseCase syncPersonEventsUseCase;
 
   Future<Either<Failure, int>> execute(String content, {String? treeId}) async {
     try {
@@ -51,6 +61,24 @@ class ImportGedcomUseCase {
           idMap[individual.id] = savedPerson.id;
           importedCount++;
 
+          // Автосоздание событий "Рождение"/"Смерть" из birthDate/deathDate
+          // - то же самое, что происходит при ручном добавлении человека
+          // через AddPersonUseCase. execute() возвращает Either и сама
+          // ловит исключения внутри (не бросает) - обрабатываем через
+          // fold, а не try/catch. Ошибка синхронизации не должна ронять
+          // весь импорт - человек уже сохранён, событие можно досоздать
+          // позже вручную.
+          final syncResult = await syncPersonEventsUseCase.execute(
+            savedPerson,
+          );
+          syncResult.fold(
+            (failure) => print(
+              '⚠️ Не удалось создать авто-события для ${individual.id}: '
+              '${failure.message}',
+            ),
+            (_) {},
+          );
+
           // Логируем для отладки
           print(
             '✅ Импортирован: ${person.firstName} ${person.lastName}, '
@@ -74,9 +102,22 @@ class ImportGedcomUseCase {
             .where((String id) => id.isNotEmpty)
             .toList();
 
-        // Проверяем, что есть хотя бы один родитель
-        if (husbandNewId.isEmpty && wifeNewId.isEmpty) {
-          print('⚠️ Пропускаем семью ${gedcomFamily.id}: нет родителей');
+        // Пропускаем семью только если в ней действительно некого
+        // связывать: нет ни родителей, ни детей.
+        //
+        // ⚠️ РАНЬШЕ здесь проверялось только "есть хотя бы один родитель",
+        // и это отбрасывало псевдо-семьи (husbandId == null && wifeId ==
+        // null, childrenIds - участники группы братьев/сестёр без
+        // известных родителей). Именно такие семьи GetFullTreeUseCase
+        // использует, чтобы связать несколько независимых деревьев в один
+        // кластер (TreeNode.isSiblingGroup) - но раньше они целиком
+        // отсеивались уже на этапе импорта, до того как до этой логики
+        // вообще доходило дело, поэтому дерево из отдельных родов
+        // распадалось на несколько несвязанных.
+        if (husbandNewId.isEmpty && wifeNewId.isEmpty && childrenNewIds.isEmpty) {
+          print(
+            '⚠️ Пропускаем семью ${gedcomFamily.id}: нет ни родителей, ни детей',
+          );
           continue;
         }
 

@@ -342,35 +342,36 @@ class FileStorageService {
   }
 
   // ✅ ПЕРЕМЕЩЕННЫЙ МЕТОД (был внутри FileInfo)
-  /// Очищает все файлы в директории приложения
+  /// Очищает media-файлы и миниатюры, не трогая ничего другого в
+  /// директории приложения.
+  ///
+  /// ⚠️ РАНЬШЕ этот метод делал `Directory(appDir.path).list()` и удалял
+  /// ВСЁ верхнеуровневое содержимое getApplicationDocumentsDirectory() -
+  /// включая family_tree.db (DatabaseHelper._initDatabase() кладёт файл
+  /// БД именно туда: join(appDir.path, 'family_tree.db')). Удаление
+  /// файла БД из-под уже открытого sqflite-соединения - это и есть причина
+  /// "attempt to write a readonly database (SQLITE_READONLY_DBMOVED)"
+  /// сразу после "полной очистки данных": файл на диске сменил identity,
+  /// пока в памяти оставалось старое соединение к нему.
+  ///
+  /// Теперь метод трогает только media/thumbnails - те же директории,
+  /// которыми управляют _getMediaDirectory()/_getThumbnailsDirectory()
+  /// выше в этом классе (раньше здесь пересоздавалась папка 'photos',
+  /// которая нигде больше в классе не используется - реальная 'media'
+  /// после "очистки" вообще не создавалась заново).
   Future<void> clearAllFiles() async {
     try {
-      final appDir = await getApplicationDocumentsDirectory();
-      final dir = Directory(appDir.path);
-
-      if (await dir.exists()) {
-        final entities = await dir.list().toList();
-        for (final entity in entities) {
-          try {
-            if (entity is Directory) {
-              await entity.delete(recursive: true);
-            } else if (entity is File) {
-              await entity.delete();
-            }
-          } catch (_) {}
-        }
+      final Directory mediaDir = await _getMediaDirectory();
+      if (await mediaDir.exists()) {
+        await mediaDir.delete(recursive: true);
       }
+      await mediaDir.create(recursive: true);
 
-      // Пересоздаем основные папки
-      final photosDir = Directory('${appDir.path}/photos');
-      if (!await photosDir.exists()) {
-        await photosDir.create(recursive: true);
+      final Directory thumbnailsDir = await _getThumbnailsDirectory();
+      if (await thumbnailsDir.exists()) {
+        await thumbnailsDir.delete(recursive: true);
       }
-
-      final thumbnailsDir = Directory('${appDir.path}/thumbnails');
-      if (!await thumbnailsDir.exists()) {
-        await thumbnailsDir.create(recursive: true);
-      }
+      await thumbnailsDir.create(recursive: true);
     } catch (_) {}
   }
 }

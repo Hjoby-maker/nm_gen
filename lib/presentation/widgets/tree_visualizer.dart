@@ -296,6 +296,41 @@ class _SubtreeLayout {
       parentUnitBottomY: parentUnitBottomY,
     );
   }
+
+  /// Аналог shiftedBy, но по вертикали - нужен для кластера братьев/сестёр
+  /// без известных родителей: их поддеревья сдвигаются вниз, чтобы сверху
+  /// осталось место под горизонтальную линию родства (см.
+  /// _layoutSiblingCluster).
+  _SubtreeLayout shiftedDownBy(double dy) {
+    Offset shift(Offset o) => Offset(o.dx, o.dy + dy);
+    return _SubtreeLayout(
+      width: width,
+      cards: cards
+          .map((c) => _PositionedCard(c.node, shift(c.offset), c.isRoot))
+          .toList(),
+      edges: edges.map((e) => _Edge(shift(e.from), shift(e.to))).toList(),
+      marriageMarkers: marriageMarkers
+          .map(
+            (m) => _MarriageMarker(
+              center: shift(m.center),
+              isDivorced: m.isDivorced,
+            ),
+          )
+          .toList(),
+      childCountLabels: childCountLabels
+          .map(
+            (l) => _ChildCountLabel(
+              center: shift(l.center),
+              top: l.top + dy,
+              text: l.text,
+              merged: l.merged,
+            ),
+          )
+          .toList(),
+      parentUnitCenterX: parentUnitCenterX,
+      parentUnitBottomY: parentUnitBottomY + dy,
+    );
+  }
 }
 
 class _TreeLayout {
@@ -328,7 +363,7 @@ class _TreeLayoutEngine {
 
     if (rootNode.person.id == 'virtual_root') {
       if (rootNode.children.length == 1) {
-        layout = _layoutFamily(rootNode.children.first, 0);
+        layout = _layoutRootEntry(rootNode.children.first);
       } else {
         layout = _layoutForest(rootNode.children);
       }
@@ -351,12 +386,22 @@ class _TreeLayoutEngine {
     );
   }
 
+  /// Раскладывает один элемент верхнего уровня (ребёнка virtual_root):
+  /// обычное дерево - как раньше, а синтетическую группу "братья/сёстры
+  /// без известных родителей" (см. TreeNode.isSiblingGroup) - как связанный
+  /// кластер вместо независимого дерева.
+  _SubtreeLayout _layoutRootEntry(TreeNode node) {
+    return node.isSiblingGroup
+        ? _layoutSiblingCluster(node.children)
+        : _layoutFamily(node, 0);
+  }
+
   /// Раскладывает несколько независимых деревьев (нет общего предка) рядом
   /// друг с другом с увеличенным зазором между ними.
   _SubtreeLayout _layoutForest(List<TreeNode> roots) {
     final double gap = metrics.siblingGap * 3;
     final List<_SubtreeLayout> layouts = roots
-        .map((r) => _layoutFamily(r, 0))
+        .map((r) => _layoutRootEntry(r))
         .toList();
 
     double cursor = 0;
@@ -383,6 +428,62 @@ class _TreeLayoutEngine {
       childCountLabels: labels,
       parentUnitCenterX: totalWidth / 2,
       parentUnitBottomY: 0,
+    );
+  }
+
+  /// Раскладывает кластер братьев/сестёр без известных родителей (см.
+  /// TreeNode.isSiblingGroup). Каждый - независимый корень со своим
+  /// поддеревом (свой брак, свои дети), но визуально они стоят рядом с
+  /// небольшим зазором (как соседние дети одной семьи, а не как совсем
+  /// несвязанные деревья) и соединены сверху горизонтальной линией
+  /// родства. У этой линии нарочно нет сердца (это не брак) и нет "шины"
+  /// со спуском к общим детям (это не отношение родитель-ребёнок - общих
+  /// детей у братьев/сестёр нет).
+  _SubtreeLayout _layoutSiblingCluster(List<TreeNode> siblings) {
+    // Место сверху под саму линию родства и её вертикальные "усы" вниз к
+    // карточкам - без этого отступа линия рисовалась бы поверх аватаров.
+    const double clusterTopMargin = 28;
+    final double gap = metrics.siblingGap * 1.5;
+    final List<_SubtreeLayout> layouts = siblings
+        .map((s) => _layoutFamily(s, 0))
+        .toList();
+
+    double cursor = 0;
+    final List<_PositionedCard> cards = [];
+    final List<_Edge> edges = [];
+    final List<_MarriageMarker> markers = [];
+    final List<_ChildCountLabel> labels = [];
+    final List<double> memberCenters = [];
+
+    for (final layout in layouts) {
+      final shifted = layout.shiftedBy(cursor).shiftedDownBy(clusterTopMargin);
+      cards.addAll(shifted.cards);
+      edges.addAll(shifted.edges);
+      markers.addAll(shifted.marriageMarkers);
+      labels.addAll(shifted.childCountLabels);
+      memberCenters.add(shifted.parentUnitCenterX);
+      cursor += layout.width + gap;
+    }
+
+    final double totalWidth = layouts.isEmpty ? 0 : cursor - gap;
+
+    if (memberCenters.length > 1) {
+      final double minX = memberCenters.reduce(math.min);
+      final double maxX = memberCenters.reduce(math.max);
+      edges.add(_Edge(Offset(minX, 0), Offset(maxX, 0)));
+      for (final double cx in memberCenters) {
+        edges.add(_Edge(Offset(cx, 0), Offset(cx, clusterTopMargin)));
+      }
+    }
+
+    return _SubtreeLayout(
+      width: totalWidth,
+      cards: cards,
+      edges: edges,
+      marriageMarkers: markers,
+      childCountLabels: labels,
+      parentUnitCenterX: totalWidth / 2,
+      parentUnitBottomY: clusterTopMargin,
     );
   }
 

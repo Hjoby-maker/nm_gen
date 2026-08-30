@@ -50,8 +50,23 @@ class SyncPersonEventsUseCase {
     );
 
     if (person.birthDate != null) {
-      // Если есть дата рождения — создаем или обновляем событие
+      // Если есть дата рождения — создаем или обновляем событие.
+      //
+      // ⚠️ РАНЬШЕ здесь new-событие сохранялось с id: '' (сентинел из
+      // orElse выше просто пролетал через copyWith, который id не
+      // трогает). Для первого человека это проходило (INSERT ... id='' -
+      // одна такая строка допустима), а для любого следующего человека,
+      // которому тоже требовалось новое событие рождения, падало с
+      // "UNIQUE constraint failed: events.id", т.к. '' уже была занята.
+      // Комбинация timestamp+personId+тип события гарантированно уникальна
+      // даже при массовом импорте, когда события создаются в цикле подряд.
+      final bool isNewEvent = birthEvent.id.isEmpty;
+      final String eventId = isNewEvent
+          ? '${DateTime.now().millisecondsSinceEpoch}_${person.id}_birth'
+          : birthEvent.id;
+
       final updatedEvent = birthEvent.copyWith(
+        id: eventId,
         personId: person.id,
         treeId: person.treeId,
         type: EventType.birth,
@@ -61,7 +76,7 @@ class SyncPersonEventsUseCase {
         updatedAt: DateTime.now(),
       );
 
-      if (birthEvent.id.isEmpty) {
+      if (isNewEvent) {
         // Создаем новое событие
         try {
           await _eventRepository.addEvent(updatedEvent);
@@ -108,8 +123,16 @@ class SyncPersonEventsUseCase {
     );
 
     if (person.deathDate != null) {
-      // Если есть дата смерти — создаем или обновляем событие
+      // Если есть дата смерти — создаем или обновляем событие (та же
+      // причина генерировать настоящий id для нового события, что и в
+      // _syncBirthEvent выше - см. комментарий там).
+      final bool isNewEvent = deathEvent.id.isEmpty;
+      final String eventId = isNewEvent
+          ? '${DateTime.now().millisecondsSinceEpoch}_${person.id}_death'
+          : deathEvent.id;
+
       final updatedEvent = deathEvent.copyWith(
+        id: eventId,
         personId: person.id,
         treeId: person.treeId,
         type: EventType.death,
@@ -119,7 +142,7 @@ class SyncPersonEventsUseCase {
         updatedAt: DateTime.now(),
       );
 
-      if (deathEvent.id.isEmpty) {
+      if (isNewEvent) {
         // Создаем новое событие
         try {
           await _eventRepository.addEvent(updatedEvent);

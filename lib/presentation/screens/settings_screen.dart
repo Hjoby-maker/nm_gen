@@ -86,12 +86,27 @@ class SettingsScreen extends StatelessWidget {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext context) => AlertDialog(
-        title: const Row(
-          children: [
+      // ⚠️ Параметр называем dialogContext, а не context, чтобы НЕ затенять
+      // context метода _showClearDataConfirmationDialog. Раньше здесь было
+      // `builder: (BuildContext context) => ...`, и внутри onPressed
+      // вызывался _clearAllData(context) с контекстом ЭТОГО диалога -
+      // того самого, который мы секундой раньше закрывали через
+      // Navigator.pop(context). После закрытия элемент диалога
+      // размонтируется, и все последующие проверки context.mounted внутри
+      // _clearAllData возвращали false, из-за чего диалог загрузки
+      // никогда не закрывался.
+      builder: (BuildContext dialogContext) => AlertDialog(
+        title: Row(
+          children: const [
             Icon(Icons.warning_amber, color: Colors.red, size: 28),
             SizedBox(width: 12),
-            Text('Удаление всех данных'),
+            // Expanded нужен, чтобы Text забирал только оставшееся место
+            // и переносился на вторую строку, а не вылезал за пределы
+            // Row при узком экране или увеличенном системном масштабе
+            // шрифта (Настройки Android → Размер шрифта).
+            Expanded(
+              child: Text('Удаление всех данных'),
+            ),
           ],
         ),
         content: const Column(
@@ -124,14 +139,16 @@ class SettingsScreen extends StatelessWidget {
           TextButton(
             onPressed: () {
               print('❌ [SettingsScreen] Удаление отменено пользователем');
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
             },
             child: const Text('Отмена'),
           ),
           ElevatedButton(
             onPressed: () {
               print('✅ [SettingsScreen] Пользователь подтвердил удаление');
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
+              // ✅ Передаём исходный (живой) context самого SettingsScreen,
+              // а не context закрывшегося диалога подтверждения.
               _clearAllData(context);
             },
             style: ElevatedButton.styleFrom(
