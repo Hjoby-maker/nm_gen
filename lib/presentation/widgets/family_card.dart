@@ -55,9 +55,20 @@ class FamilyCard extends StatelessWidget {
                       Colors.blue,
                     ),
                   ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Icon(Icons.favorite, color: Colors.red, size: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Icon(
+                      // Тот же принцип, что и в TreeVisualizer при отрисовке
+                      // дерева: расторгнутый брак (family.divorceDate !=
+                      // null) - разбитое сердце, действующий - обычное.
+                      family.divorceDate != null
+                          ? Icons.heart_broken
+                          : Icons.favorite,
+                      color: family.divorceDate != null
+                          ? Colors.grey.shade500
+                          : Colors.red,
+                      size: 16,
+                    ),
                   ),
                   Expanded(
                     child: _buildParentChip(

@@ -1,10 +1,6 @@
 // lib/presentation/widgets/persons/person_list_tile.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nm_gen/domain/entities/person.dart';
-import 'package:nm_gen/presentation/blocs/person/person_bloc.dart';
-import 'package:nm_gen/presentation/blocs/person/person_event.dart';
-import 'package:nm_gen/presentation/widgets/favorite_icon.dart';
 import 'package:nm_gen/presentation/widgets/person_avatar.dart';
 
 /// Одна строка человека в списке (persons_screen.dart): свайп вправо -
@@ -58,32 +54,22 @@ class PersonListTile extends StatelessWidget {
       },
       child: Card(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        child: ListTile(
-          leading: PersonAvatar(person: person, radius: 25),
-          title: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  person.displayName,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              // Звездочка избранного
-              FavoriteIcon(
-                isFavorite: person.isFavorite,
-                size: 18,
-                onTap: () {
-                  // Переключаем избранное при клике на звездочку
-                  context.read<PersonBloc>().add(ToggleFavoriteEvent(person));
-                },
-              ),
-            ],
+        // Тот же принцип, что и в TreeNodeWidget при отрисовке дерева:
+        // умерший человек (person.isAlive == false) получает сероватый фон
+        // карточки плюс приглушение содержимого через Opacity - работает
+        // независимо от того, что рисует сам PersonAvatar внутри.
+        color: person.isAlive ? null : Colors.grey.shade200,
+        child: Opacity(
+          opacity: person.isAlive ? 1.0 : 0.6,
+          child: ListTile(
+            leading: PersonAvatar(person: person, radius: 25),
+            title: Text(person.displayName),
+            subtitle: Text(
+              '${person.formattedAge} · ${person.occupation ?? 'Без профессии'}',
+            ),
+            trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+            onTap: onTap,
           ),
-          subtitle: Text(
-            '${person.formattedAge} · ${person.occupation ?? 'Без профессии'}',
-          ),
-          trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-          onTap: onTap,
         ),
       ),
     );
